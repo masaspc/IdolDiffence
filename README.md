@@ -27,3 +27,12 @@
 ## 技術スタック（予定）
 
 TypeScript (strict) / Vite / Canvas 2D / React（UI オーバーレイ）/ Zod / Vitest
+
+## 配信
+
+サーバー不要のクライアント完結構成のため、GitHub Pages で配信します。
+`main` への push で [`.github/workflows/deploy.yml`](./.github/workflows/deploy.yml) がビルドとデプロイを行い、
+`https://masaspc.github.io/IdolDiffence/` に公開されます。
+
+実装着手（M0）までは `package.json` が無いためワークフローはスキップされます。
+Pages 固有の注意点は [05. 技術アーキテクチャ 5.10](./docs/design/05-architecture.md#510-配信--デプロイgithub-pages) を参照。

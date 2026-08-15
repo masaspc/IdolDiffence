@@ -220,3 +220,62 @@ npm run sim -- --stage S8 --star 5 --loadout meta_p3 --trials 2000
 | ゴールデン | 固定 seed でステージを走らせ、最終状態のハッシュを比較（意図しない挙動変化の検出） |
 | プロパティ | 「声援は負にならない」「観客ゲージは 0 を下回らない」「攻撃速度は上限を超えない」 |
 | E2E | タイトル→ステージ 1 クリア→報酬反映 のスモーク（Playwright） |
+
+## 5.10 配信 / デプロイ（GitHub Pages）
+
+本作はサーバーを必要としない（[5.1](#51-技術選定) の全要素がクライアント完結）ため、
+**GitHub Pages で配信する**。公開 URL は `https://masaspc.github.io/IdolDiffence/`。
+
+| 要素 | 実現方法 | サーバー |
+|---|---|---|
+| ゲーム本体 | Vite の静的ビルド（JS / CSS / HTML） | 不要 |
+| ゲームデータ | JSON をバンドルに同梱 | 不要 |
+| セーブ | `localStorage` | 不要 |
+| BGM / SE | Web Audio API で手続き生成 | 不要 |
+
+### Pages 固有の制約と対応（実装時に必ず踏む 4 点）
+
+1. **サブパス配信**
+   ユーザーページ直下ではなくプロジェクトページなので、配信は `/IdolDiffence/` 配下になる。
+   `vite.config.ts` に `base: '/IdolDiffence/'` を設定する（本番のみ）。
+   ```ts
+   export default defineConfig(({ command }) => ({
+     base: command === 'build' ? '/IdolDiffence/' : '/',
+   }))
+   ```
+   未設定だとアセットを `/assets/...` に取りに行って 404 し、**真っ白な画面**になる。
+
+2. **絶対パスの `fetch` を書かない**
+   `fetch('/data/stages.json')` は同じ理由で壊れる。
+   ゲームデータは **`import` でバンドルに含める**（ビルド時に Zod 検証する方針とも整合）。
+   実行時取得が必要な場合のみ `import.meta.env.BASE_URL` を前置する。
+
+3. **Web Audio の自動再生制限**
+   `AudioContext` は最初のユーザー操作まで `suspended`。
+   タイトル画面の「タップして開始」で `resume()` する。
+   BPM クロックは `AudioContext.currentTime` 基準（[2.4](./02-core-battle.md#24-ウェーブ--楽曲構成)）なので、
+   **クロックの起点をこの resume 以降に固定する**こと。ここを誤ると曲とウェーブがずれる。
+
+4. **`localStorage` のオリジン共有**
+   `masaspc.github.io` 配下の全プロジェクトが同一オリジンで、
+   容量（5〜10MB）もキー空間も共有する。キーは `idoldiffence.` プレフィックスで名前空間を分ける
+   （[5.6](#56-セーブデータ)）。他プロジェクトによる `localStorage.clear()` で消える可能性があるため、
+   エクスポート機能をユーザーに案内する。
+
+- **`COOP` / `COEP` ヘッダーは Pages では設定できない** → `SharedArrayBuffer` は使用不可。
+  シミュレーションは単一スレッド前提なので影響なし（Worker 化する場合も
+  `postMessage` ベースに留める）。
+- Pages のキャッシュ制御は行えないため、Vite のハッシュ付きファイル名に依存する。
+  `index.html` のみ短命キャッシュになる点は許容。
+
+### デプロイ
+
+`.github/workflows/deploy.yml` が `main` への push で build → Pages デプロイを行う。
+
+- 手動実行（`workflow_dispatch`）にも対応。
+- **`package.json` が存在しない間はスキップ**する（設計フェーズの現在は no-op で成功する）。
+  M0 で雛形を追加した時点で自動的に動き出す。
+- `npm ci` を使うため、M0 では **`package-lock.json` をコミットする**こと。
+- リポジトリ設定 → Pages → Source を **「GitHub Actions」** に切り替える初回操作が必要。
+- ビルド前に `npm run validate:data`（[5.5](#55-データスキーマ抜粋)）を通し、
+  壊れたデータが公開されないようにする。

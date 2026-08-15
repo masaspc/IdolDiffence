@@ -8,8 +8,12 @@
 - `core/`（固定タイムステップループ、seeded RNG、EventBus、Vec2）
 - Canvas レンダラの土台（レイヤ、カメラ、スプライト仮描画）
 - データローダ + Zod スキーマ + `npm run validate:data`
+- GitHub Pages への配信を有効化（`vite.config.ts` の `base`、`package-lock.json` のコミット、
+  リポジトリ設定の Pages Source を GitHub Actions に変更）。
+  ワークフロー `.github/workflows/deploy.yml` は追加済みで、`package.json` が入った時点で動き出す
 
 **受け入れ条件**: 空のステージが 60fps で描画され、`Math.random()` の使用が lint で落ちる。
+`main` への push で `https://masaspc.github.io/IdolDiffence/` が更新される。
 
 ## M1 — バトルの最小成立（プレイアブル最小）
 
