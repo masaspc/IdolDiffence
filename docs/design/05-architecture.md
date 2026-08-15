@@ -1,0 +1,220 @@
+# 05. 技術アーキテクチャ
+
+## 5.1 技術選定
+
+| 領域 | 採用 | 理由 |
+|---|---|---|
+| 言語 | TypeScript (strict) | データ駆動が多く、型でスキーマを守りたい |
+| ビルド | Vite | 起動が速く、設定が薄い |
+| 描画 | **Canvas 2D**（自前レンダラ）→ 負荷次第で PixiJS へ移行可能な抽象を挟む | 同時表示 200 体程度なら Canvas 2D で足りる。依存を増やさず初動を軽くする |
+| UI | React 18（Canvas の上に DOM オーバーレイ） | メニュー・育成画面は DOM の方が圧倒的に速く作れる |
+| 状態管理 | Zustand（メタ層のみ） | バトル層は React の外（後述） |
+| データ検証 | Zod | JSON データとセーブデータのランタイム検証 |
+| 音 | Web Audio API 直叩き | BPM 同期のために `AudioContext.currentTime` 基準のクロックが必要 |
+| テスト | Vitest（単体・シミュレーション）、Playwright（スモーク） | — |
+
+**重要な設計判断**: バトルシミュレーションは React の状態に一切依存させない。
+`sim` は純粋な TypeScript モジュールとして DOM なしで動き、React はフレームごとに
+読み取り専用のスナップショットを受け取るだけにする。これにより
+(1) 描画負荷と切り離せる (2) ヘッドレスでバランス検証できる (3) テストが書きやすい。
+
+## 5.2 モジュール構成
+
+```
+src/
+├── core/                 # 汎用基盤（ゲーム固有知識を持たない）
+│   ├── loop.ts           # 固定タイムステップループ + 描画補間
+│   ├── rng.ts            # mulberry32 seeded PRNG
+│   ├── vec.ts            # ベクトル・幾何
+│   ├── events.ts         # 型付き EventBus
+│   └── clock.ts          # BPM クロック（beat / bar イベント）
+│
+├── sim/                  # バトルシミュレーション（DOM 非依存・決定的）
+│   ├── world.ts          # World 状態のコンテナ
+│   ├── entities.ts       # Unit / Enemy / Projectile / StatusEffect
+│   ├── systems/
+│   │   ├── spawn.ts      # ウェーブ進行・敵生成
+│   │   ├── movement.ts   # ウェイポイント追従、飛行、魅了時の逆走
+│   │   ├── targeting.ts  # 射程判定（空間ハッシュ）+ ターゲティングモード
+│   │   ├── combat.ts     # 攻撃間隔、ダメージ式、クリティカル
+│   │   ├── status.ts     # バフ・デバフの適用と減衰
+│   │   ├── economy.ts    # 声援の収支
+│   │   ├── voltage.ts    # ボルテージ蓄積・スペシャル
+│   │   └── formation.ts  # 隣接ボーナスの再計算
+│   ├── modifiers.ts      # 加算/乗算プールの合成（強化系統の合流点）
+│   └── snapshot.ts       # 描画・UI 向けの読み取り専用ビュー生成
+│
+├── data/                 # 静的データ（JSON）+ Zod スキーマ
+│   ├── schema/*.ts
+│   └── json/{idols,enemies,stages,songs,costumes,talents,cards,balance}.json
+│
+├── meta/                 # 恒久進行（セーブ対象）
+│   ├── save.ts           # 直列化・マイグレーション
+│   ├── progression.ts    # レベル・限界突破・才能・施設
+│   ├── inventory.ts      # 衣装・素材
+│   └── rewards.ts        # リザルト計算とドロップ抽選
+│
+├── render/               # Canvas 描画
+│   ├── renderer.ts       # レイヤ管理（背景 / 経路 / ユニット / 弾 / エフェクト）
+│   ├── sprites.ts        # アトラス読み込み
+│   └── fx/               # パーティクル、音波リング、カットイン
+│
+├── ui/                   # React コンポーネント
+│   ├── screens/          # Title / Home / Formation / Battle / Result / Lesson ...
+│   └── hud/              # 声援・ボルテージ・ウェーブ・配置パレット
+│
+├── audio/                # BGM 合成、SE、BPM 同期
+└── balance/              # ヘッドレスシミュレータ（CI で実行）
+```
+
+## 5.3 エンティティ表現
+
+ECS フルセットは過剰。**構造体配列 + システム関数** の軽量方式を採る。
+
+```ts
+type EntityId = number;
+
+interface Enemy {
+  id: EntityId;
+  defId: string;          // "e_armor"
+  attr: Attribute;        // 'silence' | 'noise' | 'glare'
+  hp: number; maxHp: number;
+  def: number;
+  baseSpeed: number;
+  pathIndex: number;      // 現在のウェイポイント区間
+  pathT: number;          // 区間内の進捗 0..1
+  pos: Vec2;              // 描画用にキャッシュ
+  flying: boolean;
+  statuses: StatusEffect[];
+  resist: Partial<Record<StatusKind, number>>;
+  leak: number; bounty: number;
+}
+
+interface Unit {                 // 配置されたアイドル
+  id: EntityId;
+  idolId: string;                // "V1"
+  type: IdolType;                // 'vocal' | 'dance' | 'visual'
+  cell: GridCell;
+  level: 1 | 2 | 3;              // ラン内ポジションレベル
+  awakening?: 'A' | 'B';
+  targeting: TargetingMode;
+  cooldownMs: number;
+  stats: ResolvedStats;          // 全強化を合成した結果（変化時のみ再計算）
+  isCenter: boolean;
+}
+```
+
+- `stats` は毎フレーム計算しない。**強化・バフの変化イベント時のみ再計算**し、
+  `statsDirty` フラグで管理する（200 ユニット × 60fps の再計算を避ける）。
+
+## 5.4 強化の合流点 — `modifiers.ts`
+
+15 系統の強化が最終ステータスに合流する箇所を 1 ファイルに集約する。ここが balance の要。
+
+```ts
+interface ModifierPool {
+  addPct:  Record<StatKey, number>;   // 加算プール（才能・称号・ランク・ラン内カード）
+  mulPct:  Record<StatKey, number[]>; // 乗算プール（衣装セット・覚醒・センター）
+  flat:    Record<StatKey, number>;   // 定数加算
+}
+
+function resolveStats(base: BaseStats, pools: ModifierPool[]): ResolvedStats {
+  // 1. flat を加算
+  // 2. addPct を合算して (1 + Σ) を掛ける
+  // 3. mulPct を順に掛ける
+  // 4. CAPS でクランプ（クリティカル率 100% 等）
+}
+```
+
+強化系統を追加するときは「どのプールに入れるか」を決めるだけでよく、
+計算順序の判断がコード中に散らばらない。
+
+## 5.5 データスキーマ（抜粋）
+
+```jsonc
+// data/json/idols.json
+{
+  "V1": {
+    "name": "星野 ひかり",
+    "type": "vocal",
+    "cost": 30,
+    "base": { "atk": 90, "range": 3.0, "attackIntervalMs": 1600, "critRate": 0.05, "critDmg": 0.5 },
+    "attack": { "kind": "aoe_ring", "skillMul": 0.9, "radius": 1.2, "pierce": true, "canHitFlying": false },
+    "skill": { "id": "high_tone", "cooldownMs": 12000, "mul": 1.4, "target": "all_in_range" },
+    "awakening": {
+      "A": { "name": "ロングトーン", "mods": { "attackIntervalMs": "*1.5", "radius": "*1.8" } },
+      "B": { "name": "ラップパート", "mods": { "attackIntervalMs": "*0.6", "radius": "*0.7" },
+             "onHit": { "status": "echo", "stacks": 1 } }
+    },
+    "units": ["arcadia"],
+    "levelCurve": { "atkPerLevel": 0.06 }
+  }
+}
+```
+
+```jsonc
+// data/json/stages.json（抜粋）
+{
+  "S3": {
+    "name": "小箱のライブハウス",
+    "grid": { "w": 16, "h": 9 },
+    "lanes": [ { "waypoints": [[0,4],[5,4],[5,7],[12,7],[15,5]] }, { "waypoints": [[0,2],[8,2],[8,5],[15,5]] } ],
+    "placeable": [[2,3],[3,3],[6,2],[6,5]],
+    "cellTypes": { "6,2": "runway", "3,3": "audience" },
+    "song": "silent_cry",
+    "hpMul": 1.4,
+    "waves": [
+      { "section": "intro", "bars": 8, "spawns": [] },
+      { "section": "verse", "bars": 16,
+        "spawns": [ { "bar": 1, "enemy": "e_walker", "count": 6, "intervalBars": 0.5, "lane": 0 } ] }
+    ]
+  }
+}
+```
+
+すべての JSON は Zod スキーマで検証し、**起動時ではなくビルド時**に検証する
+（`npm run validate:data`）。実行時の検証は開発モードのみ。
+
+## 5.6 セーブデータ
+
+- 保存先: `localStorage`（キー `idoldiffence.save.v1`）、JSON を LZ 圧縮。
+- 構造: `{ version, producer, idols, inventory, talents, facilities, stageProgress, prestige, settings }`
+- **マイグレーション必須**: `migrations: Record<number, (old: any) => any>` を用意し、
+  バージョンを 1 つずつ上げていく方式にする。強化要素が多い＝スキーマ変更が頻発するため、
+  最初から入れておかないと後で必ず詰む。
+- エクスポート / インポート（Base64 文字列）を提供。localStorage 消失への保険。
+- チート対策は行わない（シングルプレイのため）。ただし壊れたセーブの検出と
+  安全な復旧（該当セクションのみ初期化）は行う。
+
+## 5.7 バランス検証
+
+`src/balance/` にヘッドレスランナーを置く。
+
+```
+npm run sim -- --stage S8 --star 5 --loadout meta_p3 --trials 2000
+→ クリア率 / 平均残観客 / ボトルネックウェーブ / 系統別ダメージ寄与
+```
+
+- 描画・音を全て除外し、`sim` を最大速度で回す（1 試行 ≒ 5ms 目標）。
+- 強化段階を `loadout` プリセット（序盤 / 中盤 / 終盤 / カンスト）で定義。
+- CI で主要 20 パターンを回し、**クリア率が想定レンジ（40〜70%）を外れたら fail**。
+  バランス崩壊を PR 時点で検出できるようにする。
+
+## 5.8 パフォーマンス方針
+
+| 項目 | 目標 | 手段 |
+|---|---|---|
+| フレームレート | 60fps（敵 200 + 弾 300 同時） | 空間ハッシュによる射程判定、オブジェクトプール |
+| 射程判定 | O(敵数) を避ける | セルサイズ 2 マスの空間ハッシュに敵を登録、周辺セルのみ走査 |
+| GC | フレーム内アロケーション 0 に近づける | Vec2 の使い回し、配列の `length = 0` による再利用 |
+| 描画 | draw call を抑える | スプライトアトラス 1 枚、レイヤごとにバッチ、静的背景はオフスクリーンにキャッシュ |
+| 初回ロード | 5MB 以内 | アトラスを WebP、データは gzip、楽曲は手続き生成 |
+
+## 5.9 テスト方針
+
+| 層 | 内容 |
+|---|---|
+| 単体 | ダメージ式、`resolveStats` の合成順序、状態異常の重複ルール、セーブマイグレーション |
+| ゴールデン | 固定 seed でステージを走らせ、最終状態のハッシュを比較（意図しない挙動変化の検出） |
+| プロパティ | 「声援は負にならない」「観客ゲージは 0 を下回らない」「攻撃速度は上限を超えない」 |
+| E2E | タイトル→ステージ 1 クリア→報酬反映 のスモーク（Playwright） |
