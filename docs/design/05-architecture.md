@@ -139,7 +139,7 @@ function resolveStats(base: BaseStats, pools: ModifierPool[]): ResolvedStats {
     "type": "vocal",
     "cost": 30,
     "base": { "atk": 90, "range": 3.0, "attackIntervalMs": 1600, "critRate": 0.05, "critDmg": 0.5 },
-    "attack": { "kind": "aoe_ring", "skillMul": 0.9, "radius": 1.2, "pierce": true, "canHitFlying": false },
+    "attack": { "kind": "aoe_ring", "skillMul": 0.9, "radius": 1.2, "pierce": true, "canHitFlying": true },
     "skill": { "id": "high_tone", "cooldownMs": 12000, "mul": 1.4, "target": "all_in_range" },
     "awakening": {
       "A": { "name": "ロングトーン", "mods": { "attackIntervalMs": "*1.5", "radius": "*1.8" } },
@@ -148,6 +148,8 @@ function resolveStats(base: BaseStats, pools: ModifierPool[]): ResolvedStats {
     },
     "units": ["arcadia"],
     "levelCurve": { "atkPerLevel": 0.06 }
+    // canHitFlying は 歌・ヴィジュアルが true、ダンスは false。
+    // ダンスの覚醒 A（D2「旋風」）のみ awakening.mods で true に上書きする
   }
 }
 ```
