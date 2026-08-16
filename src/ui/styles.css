@@ -245,17 +245,20 @@ kbd {
 
 .palette {
   display: flex;
+  flex-wrap: wrap;
   gap: 0.5rem;
 }
 
 .palette-item {
   position: relative;
+  flex: 0 0 auto;
   display: grid;
   grid-template-columns: auto 1fr;
   grid-template-rows: auto auto;
   gap: 0 0.4rem;
   align-items: center;
-  padding: 0.4rem 0.7rem 0.4rem 0.55rem;
+  /* 右は数字キーの表示ぶんを空けておく（名前と重ねない） */
+  padding: 0.4rem 1.1rem 0.4rem 0.55rem;
   border-radius: 10px;
   border: 1px solid var(--panel-edge);
   background: rgba(255, 255, 255, 0.05);
@@ -307,6 +310,8 @@ kbd {
 .palette-name {
   font-size: 0.85rem;
   text-align: left;
+  /* 進化後は「かぐやRay」のように伸びる。折り返すと 1 文字ずつ縦に割れて読めない */
+  white-space: nowrap;
 }
 
 .palette-cost {
@@ -324,10 +329,12 @@ kbd {
 }
 
 .hint {
+  /* 下部バーの真上に貼る。パレットが折り返して背が伸びても被らない */
   position: absolute;
   left: 50%;
-  bottom: 5.5rem;
+  bottom: calc(100% + 0.5rem);
   transform: translateX(-50%);
+  white-space: nowrap;
   z-index: 2;
   padding: 0.4rem 0.9rem;
   border-radius: 999px;
@@ -809,6 +816,195 @@ kbd {
   cursor: not-allowed;
 }
 
+/* --- M4: ★難度・ランク・ソロパート・貢献度 --- */
+
+.rank-badge {
+  display: grid;
+  gap: 0.15rem;
+  text-align: right;
+}
+
+.rank-bar {
+  display: block;
+  width: 6rem;
+  height: 3px;
+  border-radius: 2px;
+  background: rgba(255, 255, 255, 0.15);
+  overflow: hidden;
+}
+
+.rank-bar > span {
+  display: block;
+  height: 100%;
+  background: var(--vocal);
+}
+
+.stage-head {
+  display: flex;
+  align-items: baseline;
+  gap: 0.5rem;
+}
+
+.stage-card.is-boss {
+  border-color: rgba(240, 139, 208, 0.55);
+}
+
+.boss-chip {
+  padding: 0.05rem 0.4rem;
+  border-radius: 999px;
+  background: #f08bd0;
+  color: #1b1436;
+  font-size: 0.65rem;
+  font-weight: bold;
+}
+
+.stage-gimmick {
+  font-size: 0.72rem;
+  color: #8fd7ff;
+}
+
+.star-picker {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-top: 0.6rem;
+}
+
+.star-label {
+  font-size: 0.72rem;
+  color: var(--text-dim);
+}
+
+.star-picker input {
+  flex: 1;
+  min-width: 5rem;
+}
+
+.star-value {
+  font-size: 0.85rem;
+  font-weight: bold;
+  color: #ffd45e;
+  font-variant-numeric: tabular-nums;
+}
+
+.star-max {
+  font-size: 0.68rem;
+  font-weight: normal;
+  color: var(--text-dim);
+}
+
+.star-rule {
+  font-size: 0.7rem;
+  color: #ff9db8;
+}
+
+.stage-go {
+  margin-top: 0.5rem;
+  padding: 0.55rem;
+  border-radius: 8px;
+  border: 1px solid var(--panel-edge);
+  background: rgba(255, 255, 255, 0.09);
+  color: var(--text);
+  font: inherit;
+  font-size: 0.85rem;
+  cursor: pointer;
+}
+
+.stage-go:hover {
+  background: rgba(255, 255, 255, 0.17);
+}
+
+/* ライブ中の★とギミックの表示。常に見えていないと理由が分からず弱くなる */
+.stage-rules {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.3rem;
+  align-items: center;
+}
+
+.star-chip,
+.rule-chip {
+  padding: 0.05rem 0.4rem;
+  border-radius: 999px;
+  font-size: 0.66rem;
+  white-space: nowrap;
+}
+
+.star-chip {
+  background: #ffd45e;
+  color: #1b1436;
+  font-weight: bold;
+}
+
+.rule-chip {
+  background: rgba(255, 157, 184, 0.22);
+  color: #ffc0d0;
+}
+
+.solo {
+  width: 100%;
+  margin-top: 0.5rem;
+  padding: 0.5rem;
+  border-radius: 8px;
+  border: 1px solid rgba(143, 215, 255, 0.5);
+  background: rgba(143, 215, 255, 0.12);
+  color: var(--text);
+  font: inherit;
+  font-size: 0.8rem;
+  cursor: pointer;
+}
+
+.solo:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.solo.is-on {
+  background: rgba(143, 215, 255, 0.35);
+}
+
+/* リザルトの貢献度。誰が効いていたかを 1 画面で見せる */
+.contribution {
+  margin: 0.8rem 0;
+  text-align: left;
+}
+
+.contribution h3 {
+  margin: 0 0 0.4rem;
+  font-size: 0.78rem;
+  color: var(--text-dim);
+  font-weight: normal;
+}
+
+.contribution-row {
+  display: grid;
+  grid-template-columns: 5rem 1fr 2.6rem;
+  align-items: center;
+  gap: 0.4rem;
+  margin-bottom: 0.25rem;
+  font-size: 0.75rem;
+}
+
+.contribution-bar {
+  display: block;
+  height: 8px;
+  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.12);
+  overflow: hidden;
+}
+
+.contribution-bar > span {
+  display: block;
+  height: 100%;
+  background: linear-gradient(90deg, var(--vocal), #ffd45e);
+}
+
+.contribution-value {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-dim);
+}
+
 /* --- 衣装（03-progression.md ⑨） --- */
 
 .last-drops {
@@ -993,12 +1189,12 @@ kbd {
   color: var(--text);
   font: inherit;
   text-align: left;
-  cursor: pointer;
 }
 
+/* ★スライダーを置くためにカードは div になった。
+   クリックできるのは中の「出撃」ボタンだけなので、カード全体を光らせない */
 .stage-card:hover {
-  border-color: var(--visual);
-  background: rgba(255, 213, 79, 0.1);
+  border-color: var(--panel-edge);
 }
 
 .stage-no {
@@ -1296,7 +1492,9 @@ kbd {
   .palette {
     /* 5 人ぶんは並びきらないので横スクロールにする。
        縮めて全員入れると 1 枚あたりが指で押せない大きさになる。
-       右端をぼかして「まだ続く」ことを見せる */
+       右端をぼかして「まだ続く」ことを見せる。
+       折り返してしまうと下部バーが盤面を食い潰すので、ここでは折り返さない */
+    flex-wrap: nowrap;
     overflow-x: auto;
     scrollbar-width: none;
     padding-bottom: 0.15rem;
@@ -1338,11 +1536,11 @@ kbd {
   .hint {
     left: 0.75rem;
     right: 0.75rem;
-    bottom: auto;
-    top: 5.5rem;
     transform: none;
     text-align: center;
     font-size: 0.75rem;
+    /* 狭い画面では 1 行に収まらない。折り返して読ませる */
+    white-space: normal;
   }
 
   /* 選択中のメンバーはボトムシートで出す。

@@ -126,6 +126,11 @@ export interface Unit {
   attack: ResolvedAttack;
   aura: ResolvedAura | null;
   /**
+   * 沈黙の残り時間（ミリ秒）。0 より大きいあいだは攻撃できない。
+   * 最終ボス「強制ログアウト」がレーンごとに掛ける
+   */
+  silencedMs: number;
+  /**
    * このユニットが付ける Echo の毎秒ダメージ（1 スタックあたり）。
    *
    * **付けた本人の強化で決まる。** world がひとつの値を配ると、

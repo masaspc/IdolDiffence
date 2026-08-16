@@ -62,5 +62,12 @@ export interface BattleEvents {
   specialStarted: Record<string, never>;
   specialEnded: Record<string, never>;
   audienceChanged: { value: number };
+  /** ボスの属性が変わった（偽アカウント） */
+  bossPhase: { id: number; attr: string };
+  /** レーンのメンバーが沈黙した（強制ログアウト） */
+  silenced: { lane: number; count: number };
+  /** ソロパート（楽曲レベル）の発動と終了 */
+  soloStarted: { id: number };
+  soloEnded: Record<string, never>;
   battleEnded: { won: boolean; audienceLeft: number };
 }

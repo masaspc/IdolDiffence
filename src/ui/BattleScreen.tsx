@@ -116,6 +116,7 @@ export function BattleScreen({ stageId, meta, onFinish, onExit }: BattleScreenPr
               won: latest.won,
               audience: latest.audience,
               killed: latest.killed,
+              star: latest.star,
             });
           }
           return;
@@ -273,6 +274,13 @@ export function BattleScreen({ stageId, meta, onFinish, onExit }: BattleScreenPr
     if (world.activateSpecial()) sync();
   }, [sync]);
 
+  /** ソロパートは**選んでいる 1 人**に当てる。選んでいなければ何もしない */
+  const activateSoloPart = useCallback(() => {
+    const world = worldRef.current;
+    if (!world || selectedUnitId === null) return;
+    if (world.activateSoloPart(selectedUnitId)) sync();
+  }, [sync, selectedUnitId]);
+
   const chooseCard = useCallback(
     (cardId: string) => {
       const world = worldRef.current;
@@ -340,6 +348,7 @@ export function BattleScreen({ stageId, meta, onFinish, onExit }: BattleScreenPr
           onTogglePause={togglePause}
           onCycleSpeed={cycleSpeed}
           onSpecial={activateSpecial}
+          onSoloPart={activateSoloPart}
           onChooseCard={chooseCard}
           onRestart={onExit}
           onExportLog={exportLog}

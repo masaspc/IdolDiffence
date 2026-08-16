@@ -26,6 +26,7 @@ interface HudProps {
   onTogglePause: () => void;
   onCycleSpeed: () => void;
   onSpecial: () => void;
+  onSoloPart: () => void;
   onChooseCard: (cardId: string) => void;
   onRestart: () => void;
   onExportLog: () => void;
@@ -42,6 +43,11 @@ export function Hud(props: HudProps): React.JSX.Element {
   const { snapshot, fps, pendingIdolId, selectedUnitId } = props;
   const wave = snapshot.wave;
   const sectionLabel = wave ? (SECTION_LABEL[wave.section] ?? wave.section) : '大詰め';
+  // 進化後は表示名が変わる。パレットの名前をそのまま使って案内と食い違わせない
+  const pendingName = pendingIdolId
+    ? (snapshot.palette.find((e) => e.idolId === pendingIdolId)?.shortName ??
+      getIdol(pendingIdolId).name)
+    : '';
   const selected = snapshot.units.find((u) => u.id === selectedUnitId) ?? null;
   const selectedDef = selected ? getIdol(selected.idolId) : null;
   const canUpgrade =
@@ -52,6 +58,13 @@ export function Hud(props: HudProps): React.JSX.Element {
   return (
     <>
       <div className="hud hud-top">
+        {(snapshot.star > 1 || snapshot.starRule || snapshot.stageNote) && (
+          <div className="stage-rules">
+            {snapshot.star > 1 && <span className="star-chip">★{snapshot.star}</span>}
+            {snapshot.starRule && <span className="rule-chip">{snapshot.starRule}</span>}
+            {snapshot.stageNote && <span className="rule-chip">{snapshot.stageNote}</span>}
+          </div>
+        )}
         <div className="gauge">
           <span className="gauge-label">観客</span>
           <div className="bar bar-audience">
@@ -135,13 +148,13 @@ export function Hud(props: HudProps): React.JSX.Element {
             ⏩ {snapshot.speed}x <kbd>Tab</kbd>
           </button>
         </div>
-      </div>
 
-      {pendingIdolId && (
-        <div className="hint">
-          {getIdol(pendingIdolId).name} を配置するマスをクリック（<kbd>Esc</kbd> で取消）
-        </div>
-      )}
+        {pendingIdolId && (
+          <div className="hint">
+            {pendingName} を配置するマスをクリック（<kbd>Esc</kbd> で取消）
+          </div>
+        )}
+      </div>
 
       {selected && selectedDef && (
         <div className="unit-panel">
@@ -205,6 +218,23 @@ export function Hud(props: HudProps): React.JSX.Element {
               )}
             </button>
           ) : null}
+
+          {/* ソロパート（楽曲レベル）。**選んでいる 1 人**に当てるので、
+              全体バフの月華とは別のボタンにしてユニットパネルへ置く */}
+          {snapshot.soloReady !== null && (
+            <button
+              type="button"
+              className={`solo${snapshot.soloUnitId === selected.id ? ' is-on' : ''}`}
+              onClick={props.onSoloPart}
+              disabled={!snapshot.soloReady}
+            >
+              {snapshot.soloUnitId === selected.id
+                ? 'ソロパート中'
+                : snapshot.soloReady
+                  ? 'ソロパート'
+                  : `ソロパート（あと ${Math.ceil(snapshot.soloCooldownMs / 1000)}s）`}
+            </button>
+          )}
 
           <button type="button" className="sell" onClick={props.onSellSelected}>
             売却（♥{Math.floor(selected.investedCost * 0.6)} 返却）
@@ -275,6 +305,26 @@ export function Hud(props: HudProps): React.JSX.Element {
             <p>
               観客 {snapshot.audience} / 100 ・ 撃破 {snapshot.killed} ・ 漏れ {snapshot.leaked}
             </p>
+            {snapshot.contribution.length > 0 && (
+              <div className="contribution">
+                <h3>貢献度</h3>
+                {(() => {
+                  const top = snapshot.contribution[0]?.damage ?? 1;
+                  const total = snapshot.contribution.reduce((sum, c) => sum + c.damage, 0) || 1;
+                  return snapshot.contribution.map((entry) => (
+                    <div key={entry.idolId} className="contribution-row">
+                      <span className="contribution-name">{entry.shortName}</span>
+                      <span className="contribution-bar">
+                        <span style={{ width: `${(entry.damage / top) * 100}%` }} />
+                      </span>
+                      <span className="contribution-value">
+                        {Math.round((entry.damage / total) * 100)}%
+                      </span>
+                    </div>
+                  ));
+                })()}
+              </div>
+            )}
             <p className="note">
               {snapshot.won
                 ? 'リザルトの報酬でメンバーを育てて、より上の観客数を狙えます。'

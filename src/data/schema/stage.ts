@@ -36,6 +36,22 @@ export const stageSchema = z.object({
   cellTypes: z.record(z.string(), cellTypeSchema).default({}),
   song: z.string().min(1),
   hpMul: z.number().positive().default(1),
+  /**
+   * ステージ固有のギミック（04-content.md 4.4）。
+   *
+   * 敵の種類だけで差を付けると、後半のステージは「同じ敵が硬くなっただけ」に
+   * なる。盤面そのものの条件を変える枠をここに置く。
+   */
+  modifiers: z
+    .object({
+      /** 全メンバーの射程倍率。S9「雨のアリーナ」は 0.9（視界が悪い） */
+      rangeMul: z.number().positive().optional(),
+      /** UI に出す説明。プレイヤーが理由を知らないまま弱くならないように */
+      note: z.string().optional(),
+    })
+    .default({}),
+  /** ボスステージか。ステージ選択で別枠に出す */
+  boss: z.boolean().default(false),
   waves: z.array(waveSchema).min(1),
 });
 

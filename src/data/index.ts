@@ -110,14 +110,54 @@ export const idolUnlockStage: Record<string, string | null> = {
 };
 
 /**
- * ステージの並びと解放条件。
- * 前のステージをクリアすると次が開く（06-ui-ux.md 6.5 の段階解放）。
+ * ステージの並び（表示順）。
+ *
+ * ボスは本編の途中と最後に挟まる。B1 は S6 の直後に出るが、
+ * **S7 の前提ではない**（寄り道として置く）。
  */
-export const stageOrder = ['S1', 'S2', 'S3', 'S4', 'S5', 'S6', 'S7'] as const;
+export const stageOrder = [
+  'S1',
+  'S2',
+  'S3',
+  'S4',
+  'S5',
+  'S6',
+  'B1',
+  'S7',
+  'S8',
+  'S9',
+  'S10',
+  'B2',
+] as const;
+
+/**
+ * 解放条件（06-ui-ux.md 6.5 の段階解放）。
+ *
+ * 並び順から導いていたが、ボスが分岐で入ると
+ * 「B1 をクリアしないと S7 が開かない」ことになってしまう。
+ * **明示の表**にして、寄り道を寄り道のままにする。
+ */
+export const stageUnlock: Record<string, string | null> = {
+  S1: null,
+  S2: 'S1',
+  S3: 'S2',
+  S4: 'S3',
+  S5: 'S4',
+  S6: 'S5',
+  B1: 'S6',
+  S7: 'S6',
+  S8: 'S7',
+  S9: 'S8',
+  S10: 'S9',
+  B2: 'S10',
+};
 
 export function requiredStage(stageId: string): string | null {
-  const index = stageOrder.indexOf(stageId as (typeof stageOrder)[number]);
-  return index > 0 ? (stageOrder[index - 1] ?? null) : null;
+  return stageUnlock[stageId] ?? null;
 }
+
+/** 本編のステージだけ（ボスを除く）。バランス計測の対象 */
+export const mainStageIds = stageOrder.filter((id) => !getStage(id).boss);
+export const bossStageIds = stageOrder.filter((id) => getStage(id).boss);
 
 export type { Stage, Song, EnemyDef, IdolDef, CardDef, TalentNode, CostumeSeries };

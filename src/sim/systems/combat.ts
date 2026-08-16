@@ -13,8 +13,11 @@ import { findTarget } from './targeting';
 export interface CombatContext {
   rng: Rng;
   enemies: readonly Enemy[];
-  /** ダメージを実際に反映する。撃破判定も呼び出し側の責務 */
-  applyDamage: (enemy: Enemy, result: DamageResult) => void;
+  /**
+   * ダメージを実際に反映する。撃破判定も呼び出し側の責務。
+   * `from` は貢献度の集計に使う（誰が出したダメージか）
+   */
+  applyDamage: (enemy: Enemy, result: DamageResult, from?: Unit) => void;
   /** Echo の最大スタック。才能「無限旋律」で伸びる */
   echoMaxStacks?: number;
   /**
@@ -30,6 +33,16 @@ export interface CombatContext {
 
 export function updateUnit(unit: Unit, ctx: CombatContext, dtMs: number): void {
   unit.lastAttackAgeMs += dtMs;
+
+  // 沈黙（最終ボスの切断処理）。**クールダウンも進めない**。
+  // 進めてしまうと、明けた瞬間に溜まったぶんが一斉に撃たれて、
+  // 「1 レーンが 4 秒止まる」という圧が帳消しになる
+  if (unit.silencedMs > 0) {
+    unit.silencedMs -= dtMs;
+    unit.lastTargetPos = null;
+    return;
+  }
+
   unit.cooldownMs -= dtMs * (ctx.speedMulFor?.(unit) ?? 1);
   if (unit.cooldownMs > 0) return;
 
@@ -78,7 +91,7 @@ export function updateUnit(unit: Unit, ctx: CombatContext, dtMs: number): void {
       result.amount *= 1 - shield * (1 - unit.attack.shieldPierce);
     }
 
-    ctx.applyDamage(victim, result);
+    ctx.applyDamage(victim, result, unit);
     if (!victim.alive) killedAny = true;
 
     if (victim.alive) {

@@ -32,6 +32,7 @@ import {
   type Unit,
 } from './entities';
 import { buildSpawnSchedule, waveHpMultiplier, type ScheduledSpawn } from './systems/spawn';
+import { phaseAttribute } from './systems/boss';
 import {
   evaluateFormations,
   formationModsFor,
@@ -53,6 +54,7 @@ import {
   SPECIAL_ENEMY_SPEED_MUL,
 } from './unitStats';
 import { defenseReduction, type DamageResult } from './damage';
+import { clampStar, starCoefficients, starRuleText, weakenedType, WEAKEN_PCT } from './star';
 import { ECHO_MAX_STACKS } from './entities';
 import type { TalentEffects } from '../meta/talents';
 import type { PartyCostumeEffects } from '../meta/costumes';
@@ -261,6 +263,20 @@ export interface PaletteEntry {
 export interface WorldSnapshot {
   stageId: string;
   stageName: string;
+  /** ★難度 1〜10 */
+  star: number;
+  /** ★7 以降の追加ルールの説明。無ければ null */
+  starRule: string | null;
+  /** ステージ固有のギミックの説明。無ければ null */
+  stageNote: string | null;
+  /** ボスステージか */
+  boss: boolean;
+  /** ソロパートが撃てるか。使えない編成では null */
+  soloReady: boolean | null;
+  soloUnitId: EntityId | null;
+  soloCooldownMs: number;
+  /** アイドル ID -> 与えた累計ダメージ。多い順 */
+  contribution: { idolId: string; shortName: string; damage: number }[];
   /** 出撃メンバー。HUD の配置パレットはこれをそのまま並べる */
   palette: PaletteEntry[];
   /** センターの**アイドル名**。HUD は誰がセンターかを出したいのでパッシブ名ではない */
@@ -337,6 +353,13 @@ export interface BattleMeta {
   talents?: TalentEffects;
   /** 進化（Ray）を解放済みのアイドル ID（03-progression.md ⑦-2） */
   evolved?: readonly string[];
+  /** ★難度 1〜10（02-core-battle.md 2.10）。既定は 1 */
+  star?: number;
+  /**
+   * 楽曲レベルで解禁される「ソロパート」（03-progression.md ⑩）。
+   * 省略すると使えない（ヘッドレス計測の既定）
+   */
+  soloPart?: { atkMul: number; durationMs: number; cooldownMs: number };
   /**
    * 衣装（03-progression.md ⑨）。**アイドルごと**に効く。
    * 才能と同じく、セーブの形ではなく畳んだ結果だけを渡す
@@ -377,6 +400,14 @@ export class BattleWorld {
   private readonly talentPool: ModifierPool;
   private readonly talents: TalentEffects | undefined;
   private readonly echoMaxStacks: number;
+  /** ★難度。ラン中は変わらない */
+  readonly star: number;
+  /** ★の追加ルールで攻撃力が落ちる系統（★7 以降） */
+  private readonly weakType: IdolType | null;
+  /** ★の敵 DEF 加算 */
+  private readonly starDefAdd: number;
+  /** ★の敵 HP 倍率 */
+  private readonly starHpMul: number;
   /** 進化済みのアイドル。配置時に引き当てるので Set で持つ */
   private readonly evolvedIds: ReadonlySet<string>;
   /** 衣装の加算プール（アイドルごと）。ラン中は変わらないので 1 回だけ組む */
@@ -384,6 +415,8 @@ export class BattleWorld {
   private readonly costumeBonuses: ReadonlyMap<string, CostumeCombatBonus>;
   /** 衣装のうち経済（声援・月華）に効くぶん。センターと同じく世界が持つ */
   private readonly costumeEconomyPool: ModifierPool;
+  /** ★の追加ルール（系統ペナルティ）。全ユニット共通なので加算プール 1 つで足りる */
+  private readonly starPool: ModifierPool;
 
   private scheduleCursor = 0;
   private nextEntityId = 1;
@@ -401,6 +434,14 @@ export class BattleWorld {
 
   /** フォーメーションの成立状況。配置が変わったときだけ数え直す */
   private formation: FormationResult = { byUnit: new Map(), voltageMul: 1, hits: [] };
+  /** ボスの沈黙の発動間隔を数える。敵 ID ごと */
+  private readonly silenceTimers = new Map<EntityId, number>();
+  /** ソロパートを受けているユニットと残り時間 */
+  private soloUnitId: EntityId | null = null;
+  private soloRemainingMs = 0;
+  private soloCooldownMs = 0;
+  /** アイドル ID -> 与えた累計ダメージ。リザルトの貢献度に使う */
+  private readonly contribution = new Map<string, number>();
   /** 才能「ステップアップ」の累積。ウェーブが変わるとリセットする */
   private killSpeedBonus = 0;
   private killSpeedWave = -1;
@@ -428,7 +469,13 @@ export class BattleWorld {
     this.rng = createRng(seed);
     this.meta = meta;
     this.paths = buildPaths(this.stage);
-    this.schedule = buildSpawnSchedule(this.stage, this.song);
+
+    this.star = clampStar(meta.star ?? 1);
+    const coeff = starCoefficients(this.star);
+    this.starHpMul = coeff.hpMul;
+    this.starDefAdd = coeff.defAdd;
+    this.weakType = weakenedType(this.star);
+    this.schedule = buildSpawnSchedule(this.stage, this.song, coeff.countMul);
     this.placeableKeys = new Set(this.stage.placeable.map(([x, y]) => `${x},${y}`));
 
     this.partyIds = new Set(meta.party ?? []);
@@ -450,6 +497,14 @@ export class BattleWorld {
     }
     this.costumePools = costumePools;
     this.costumeBonuses = costumeBonuses;
+
+    // ★7 以降の追加ルール。加算プールへ入れて、才能やカードと同じ器で相殺できるようにする。
+    // ステージのギミック（S9 の雨で射程 -10%）も同じ器へ入れる ―― どちらも
+    // 「そのライブのあいだ全員に掛かる外的条件」で、性質が同じ
+    this.starPool = emptyPool();
+    if (this.weakType) addTypePct(this.starPool, this.weakType, -WEAKEN_PCT);
+    const rangeMul = this.stage.modifiers.rangeMul;
+    if (rangeMul !== undefined) addPct(this.starPool, 'range', rangeMul - 1);
 
     this.costumeEconomyPool = emptyPool();
     addPct(this.costumeEconomyPool, 'cheerGain', meta.costumes?.cheerGainPct ?? 0);
@@ -526,6 +581,7 @@ export class BattleWorld {
     if (advanced === 0) return;
 
     this.updateSpecial(advanced);
+    this.updateSoloPart(advanced);
     this.updateEconomy(advanced);
     this.spawnDueEnemies();
     this.updateEnemies(advanced);
@@ -547,6 +603,50 @@ export class BattleWorld {
       this.events.emit('specialEnded', {});
       this.record('specialEnded');
     }
+  }
+
+  /**
+   * ソロパート（楽曲レベル）。
+   *
+   * 全体バフは月華が既に担っているので、こちらは**指定 1 人**に絞る。
+   * もう 1 つ全体バフを足すと「どちらを先に押すか」だけの判断になり、
+   * 盤面を読む理由が増えない。
+   */
+  private updateSoloPart(dtMs: number): void {
+    if (this.soloCooldownMs > 0) this.soloCooldownMs = Math.max(0, this.soloCooldownMs - dtMs);
+    if (this.soloRemainingMs <= 0) return;
+
+    this.soloRemainingMs -= dtMs;
+    if (this.soloRemainingMs > 0) return;
+
+    this.soloRemainingMs = 0;
+    this.soloUnitId = null;
+    this.refreshUnitStats();
+    this.events.emit('soloEnded', {});
+  }
+
+  get soloReady(): boolean {
+    return (
+      this.meta.soloPart !== undefined &&
+      this.soloCooldownMs <= 0 &&
+      this.soloRemainingMs <= 0 &&
+      !this.finished
+    );
+  }
+
+  /** ソロパートを 1 人へ当てる。@returns 撃てたら true */
+  activateSoloPart(id: EntityId): boolean {
+    const solo = this.meta.soloPart;
+    if (!solo || !this.soloReady) return false;
+    if (!this.units.some((u) => u.id === id)) return false;
+
+    this.soloUnitId = id;
+    this.soloRemainingMs = solo.durationMs;
+    this.soloCooldownMs = solo.cooldownMs + solo.durationMs;
+    this.refreshUnitStats();
+    this.events.emit('soloStarted', { id });
+    this.record('solo', { id });
+    return true;
   }
 
   private updateEconomy(dtMs: number): void {
@@ -579,7 +679,8 @@ export class BattleWorld {
     const hpMul =
       waveHpMultiplier(scheduled.waveIndex) *
       sectionHpMultiplier(this.stage.waves[scheduled.waveIndex]?.section) *
-      this.stage.hpMul;
+      this.stage.hpMul *
+      this.starHpMul;
     this.createEnemy(scheduled.enemyId, scheduled.lane, hpMul, null);
   }
 
@@ -607,7 +708,7 @@ export class BattleWorld {
       attr: def.attr,
       hp,
       maxHp: hp,
-      def: def.def,
+      def: def.def + this.starDefAdd,
       baseSpeed: def.speed,
       flying: def.flying,
       radius: def.radius,
@@ -631,6 +732,7 @@ export class BattleWorld {
   private updateEnemies(dtMs: number): void {
     const globalSpeedMul = this.specialActive ? SPECIAL_ENEMY_SPEED_MUL : 1;
     this.applyHealAuras(dtMs);
+    this.applySilence(dtMs);
 
     for (let i = this.enemies.length - 1; i >= 0; i--) {
       const enemy = this.enemies[i];
@@ -641,6 +743,7 @@ export class BattleWorld {
         continue;
       }
 
+      this.updatePhase(enemy);
       const echoDamage = tickStatuses(enemy, dtMs);
       if (echoDamage > 0) {
         this.applyDamage(enemy, {
@@ -665,6 +768,72 @@ export class BattleWorld {
         this.leakAudience(enemy.leak);
       }
     }
+  }
+
+  /**
+   * ボス「偽アカウント」のフェーズ変化。
+   *
+   * 残 HP の割合で属性が 虚飾 → 喧噪 → 静寂 と一周する。
+   * 3 すくみ（02-core-battle.md 2.5）を一巡するので、
+   * 「相性のいい 1 系統に寄せる」が通じない相手になる。
+   */
+  private updatePhase(enemy: Enemy): void {
+    if (!enemy.traits.phases) return;
+    // 定義上の属性から毎回引き直す。`enemy.attr` を起点にすると、
+    // 回復でしきい値を戻ったときに前のフェーズへ帰れない
+    const next = phaseAttribute(enemy.traits, getEnemy(enemy.defId).attr, enemy.hp / enemy.maxHp);
+    if (next === enemy.attr) return;
+
+    enemy.attr = next;
+    this.events.emit('bossPhase', { id: enemy.id, attr: next });
+    this.record('bossPhase', { id: enemy.id, attr: next });
+  }
+
+  /**
+   * 最終ボス「強制ログアウト」の切断処理。
+   *
+   * 一定間隔で 1 レーンぶんのメンバーを沈黙させる。狙うレーンは
+   * **そのとき最も人数の多いレーン**ではなく、ボス自身がいるレーン。
+   * 前者にすると「薄いレーンへ散らす」だけが最適解になり、
+   * ボスの進路を止める配置と噛み合わなくなる。
+   */
+  private applySilence(dtMs: number): void {
+    for (const enemy of this.enemies) {
+      const silence = enemy.traits.silence;
+      if (!silence || !enemy.alive) continue;
+
+      const elapsed = (this.silenceTimers.get(enemy.id) ?? 0) + dtMs;
+      if (elapsed < silence.everyMs) {
+        this.silenceTimers.set(enemy.id, elapsed);
+        continue;
+      }
+      this.silenceTimers.set(enemy.id, elapsed - silence.everyMs);
+
+      const targets = this.units.filter((unit) => this.nearestLane(unit) === enemy.lane);
+      if (targets.length === 0) continue;
+      for (const unit of targets) unit.silencedMs = silence.durationMs;
+      this.events.emit('silenced', { lane: enemy.lane, count: targets.length });
+      this.record('silence', { lane: enemy.lane, units: targets.length });
+    }
+  }
+
+  /**
+   * このユニットがいちばん近い経路。沈黙の対象を決めるのに使う。
+   * 経路は折れ線なので、ウェイポイントとの距離で近似する
+   */
+  private nearestLane(unit: Unit): number {
+    let best = 0;
+    let bestDist = Number.POSITIVE_INFINITY;
+    this.paths.forEach((path, lane) => {
+      for (const segment of path.segments) {
+        const dist = Math.hypot(segment.from.x - unit.pos.x, segment.from.y - unit.pos.y);
+        if (dist < bestDist) {
+          bestDist = dist;
+          best = lane;
+        }
+      }
+    });
+    return best;
   }
 
   /**
@@ -715,7 +884,8 @@ export class BattleWorld {
     const ctx = {
       rng: this.rng,
       enemies: this.enemies,
-      applyDamage: (enemy: Enemy, result: DamageResult) => this.applyDamage(enemy, result),
+      applyDamage: (enemy: Enemy, result: DamageResult, from?: Unit) =>
+        this.applyDamage(enemy, result, true, from?.idolId),
       echoMaxStacks: this.echoMaxStacks,
       defDownFor: (enemy: Enemy) => this.defDownFor(enemy),
       knockback: (enemy: Enemy, dist: number) => {
@@ -729,11 +899,19 @@ export class BattleWorld {
     }
   }
 
-  private applyDamage(enemy: Enemy, result: DamageResult, showText = true): void {
+  private applyDamage(
+    enemy: Enemy,
+    result: DamageResult,
+    showText = true,
+    source?: string,
+  ): void {
     if (!enemy.alive) return;
     // 過剰キル分は数えない。硬い敵を溶かした最後の一撃だけが得をするのを避ける
     const dealt = Math.min(result.amount, enemy.hp);
     enemy.hp -= result.amount;
+    // 貢献度は**過剰キル分を除いた実ダメージ**で数える。
+    // 素の値で数えると、硬い敵にとどめを刺した 1 人だけが不当に伸びる
+    if (source) this.contribution.set(source, (this.contribution.get(source) ?? 0) + dealt);
     this.addVoltage((dealt / enemy.maxHp) * VOLTAGE_PER_ENEMY_HP);
 
     if (showText) {
@@ -981,6 +1159,7 @@ export class BattleWorld {
         onHit: def.attack.onHit,
       },
       aura: null,
+      silencedMs: 0,
       echoDps: ECHO_DPS,
       cooldownMs: 0,
       hitCount: 0,
@@ -1096,6 +1275,7 @@ export class BattleWorld {
     resolveUnit(unit, {
       runPool: this.runPool,
       talentPool: this.talentPool,
+      starPool: this.starPool,
       costumePool: this.costumePools.get(unit.idolId) ?? emptyPool(),
       costume: this.costumeBonuses.get(unit.idolId),
       center: this.center,
@@ -1105,6 +1285,7 @@ export class BattleWorld {
       allyAtkPct: this.allyAtkPctFor(unit),
       formation: formationModsFor(this.formation, unit.id),
       killSpeedBonus: this.killSpeedBonus,
+      soloAtkMul: unit.id === this.soloUnitId ? (this.meta.soloPart?.atkMul ?? 1) : 1,
     });
   }
 
@@ -1236,6 +1417,20 @@ export class BattleWorld {
     return {
       stageId: this.stageId,
       stageName: this.stage.name,
+      star: this.star,
+      starRule: starRuleText(this.star),
+      stageNote: this.stage.modifiers.note ?? null,
+      boss: this.stage.boss,
+      soloReady: this.meta.soloPart ? this.soloReady : null,
+      soloUnitId: this.soloUnitId,
+      soloCooldownMs: Math.round(this.soloCooldownMs),
+      contribution: [...this.contribution.entries()]
+        .map(([idolId, damage]) => ({
+          idolId,
+          shortName: this.displayOf(idolId).shortName,
+          damage: Math.round(damage),
+        }))
+        .sort((a, b) => b.damage - a.damage),
       palette: this.palette,
       centerName: this.centerName,
       songName: this.song.name,
