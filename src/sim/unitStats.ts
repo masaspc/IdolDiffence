@@ -148,6 +148,8 @@ export interface ResolveOptions {
   formation?: { atkMul: number; attackSpeedMul: number; rangeMul: number };
   /** 撃破の積み重ねによる攻撃速度（才能「ステップアップ」） */
   killSpeedBonus?: number;
+  /** Echo 1 スタックあたりの素の毎秒ダメージ。強化前の基準値 */
+  baseEchoDps: number;
 }
 
 /**
@@ -207,6 +209,9 @@ export function resolveUnit(unit: Unit, options: ResolveOptions): void {
   const speed = resolveStat(1, 'attackSpeed', pools);
   const intervalMul = mulMod(branches, 'attackIntervalMul');
   unit.attackIntervalMs = (def.base.attackIntervalMs * intervalMul) / speed;
+
+  // Echo の威力は**付ける本人**の強化で決まる。才能・カード・衣装がここで合流する
+  unit.echoDps = options.baseEchoDps * resolveStat(1, 'echoPower', pools);
 
   unit.attack = resolveAttack(unit, branches, pools, options.costume);
   unit.aura = resolveUnitAura(unit);

@@ -25,7 +25,13 @@ import {
   unequipSlot,
 } from '../meta/costumes';
 import { randomSeed } from '../core/rng';
-import { loadSave, saveSave, type CostumeInstance, type SaveData } from '../meta/save';
+import {
+  DEFAULT_RNG_STATE,
+  loadSave,
+  saveSave,
+  type CostumeInstance,
+  type SaveData,
+} from '../meta/save';
 import type { CostumeSlot } from '../data/schema/costume';
 import type { BattleMeta } from '../sim/world';
 
@@ -36,8 +42,15 @@ export function App(): React.JSX.Element {
     const result = loadSave(window.localStorage);
     if (result.recoveredFrom) {
       console.warn(`セーブデータを初期化しました: ${result.recoveredFrom}`);
-      // 作り直すときはドロップの種を引き直す。既定値のままだと
-      // 誰が始めても同じ順で衣装が出る
+    }
+    // ドロップの種は**まだ個人化されていなければ**引き直す。
+    //
+    // 対象は 3 通りある: 新規セーブ・v4 以前からの移行・壊れて作り直したもの。
+    // 「壊れたときだけ」にしていたら、いちばん多い**新規プレイヤー**が既定値のまま
+    // 残り、全員が同じ順で衣装を引くことになっていた。
+    // 既定値と一致するのは「一度も引いていない」状態だけなので、これで見分けられる
+    // （偶然一致しても、種を引き直すだけで害はない）。
+    if (result.data.rngState === DEFAULT_RNG_STATE) {
       return { ...result.data, rngState: randomSeed() };
     }
     return result.data;

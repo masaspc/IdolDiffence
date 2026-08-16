@@ -15,8 +15,6 @@ export interface CombatContext {
   enemies: readonly Enemy[];
   /** ダメージを実際に反映する。撃破判定も呼び出し側の責務 */
   applyDamage: (enemy: Enemy, result: DamageResult) => void;
-  /** Echo 1 スタックあたりの毎秒ダメージ */
-  echoDps: number;
   /** Echo の最大スタック。才能「無限旋律」で伸びる */
   echoMaxStacks?: number;
   /**
@@ -96,7 +94,8 @@ export function updateUnit(unit: Unit, ctx: CombatContext, dtMs: number): void {
             kind: onHit.status,
             value: onHit.value,
             remainingMs: onHit.durationMs,
-            ...(onHit.status === 'echo' ? { stacks: onHit.value, dps: ctx.echoDps } : {}),
+            // Echo の威力は付けた本人のもの（衣装・才能が人ごとに違う）
+            ...(onHit.status === 'echo' ? { stacks: onHit.value, dps: unit.echoDps } : {}),
           },
           ctx.echoMaxStacks,
         );

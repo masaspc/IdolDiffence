@@ -426,26 +426,45 @@ function costumeSeries(id: string): ReturnType<typeof getSeries> | null {
 }
 
 /**
+ * 編成全体に効くぶん。「誰の数値か」を決められないものはここへ集まる。
+ *
+ * 声援と月華の獲得は**ユニットのステータスではなく経済**なので、
+ * 着ている本人のプールへ積んでも `BattleWorld` の計算には一切届かない
+ * （センターパッシブで同じことが起きたので `centerEconomyPool` が別にある）。
+ */
+export interface PartyCostumeEffects {
+  byIdol: Record<string, CostumeEffects>;
+  echoMaxStacksAdd: number;
+  startCheer: number;
+  cheerGainPct: number;
+  voltageGainPct: number;
+}
+
+/**
  * 出撃メンバーぶんをまとめて解決する。
  *
- * グローバル項（Echo の最大スタック・開始時声援）は**最大値**を採る。
- * 合算にすると、全員に同じセットを着せるのが常に最適になってしまう。
+ * 全体に効く項は**最大値**を採る。合算にすると、全員に同じセットを着せるのが
+ * 常に最適になってしまい、スロットを配る判断が消える。
  */
 export function resolvePartyCostumes(
   save: SaveData,
   party: readonly string[],
-): { byIdol: Record<string, CostumeEffects>; echoMaxStacksAdd: number; startCheer: number } {
+): PartyCostumeEffects {
   const byIdol: Record<string, CostumeEffects> = {};
   let echoMaxStacksAdd = 0;
   let startCheer = 0;
+  let cheerGainPct = 0;
+  let voltageGainPct = 0;
 
   for (const idolId of party) {
     const effects = resolveCostumes(save, idolId);
     byIdol[idolId] = effects;
     echoMaxStacksAdd = Math.max(echoMaxStacksAdd, effects.echoMaxStacksAdd);
     startCheer = Math.max(startCheer, effects.startCheer);
+    cheerGainPct = Math.max(cheerGainPct, effects.stats.cheerGainPct ?? 0);
+    voltageGainPct = Math.max(voltageGainPct, effects.stats.voltageGainPct ?? 0);
   }
-  return { byIdol, echoMaxStacksAdd, startCheer };
+  return { byIdol, echoMaxStacksAdd, startCheer, cheerGainPct, voltageGainPct };
 }
 
 /** 新規セーブの乱数の種。固定値だと全プレイヤーが同じ順で引く */

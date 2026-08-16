@@ -32,6 +32,7 @@ import { applyReward, calcReward } from './progression';
 import { COSTUME_SLOTS, MAX_ENHANCE, SLOT_MAIN_STATS } from '../data/schema/costume';
 import { costumeSeries, seriesIds } from '../data';
 import { createWorld } from '../sim/world';
+import { runHeadless } from '../core/loop';
 
 /** 決まった数だけ引いたセーブ */
 function withDrops(count: number, funds = 100_000): SaveData {
@@ -422,5 +423,78 @@ describe('盤面への反映', () => {
     const v1 = world.placeUnit('V1', 4, 6);
     if (typeof v1 === 'string') throw new Error(v1);
     expect(v1.attack.defIgnore).toBe(0);
+  });
+
+  /** その器だけを持つ 1 着を着せたセーブ。セット効果を混ぜずに 1 項目を見る */
+  function onlyStat(stat: CostumeInstance['mainStat']): SaveData {
+    const costume: CostumeInstance = {
+      id: 'only',
+      seriesId: 'tama',
+      slot: 'stage',
+      rarity: 'UR',
+      mainStat: stat,
+      subs: [],
+      enhance: 0,
+    };
+    return equipCostume({ ...createNewSave(), costumes: [costume] }, 'V1', 'only');
+  }
+
+  it('声援獲得が経済に届く', () => {
+    // 声援獲得はユニットのステータスではなく**経済**。
+    // 着ている本人のプールへ積んでも updateEconomy は見に来ないので、
+    // 着ても何も起きない衣装になっていた
+    const cheerAfter = (save: SaveData): number => {
+      const world = worldWith(save, ['V1']);
+      runHeadless(6000, (dt) => world.update(dt));
+      return world.snapshot().cheer;
+    };
+    expect(cheerAfter(onlyStat('cheerGainPct'))).toBeGreaterThan(cheerAfter(createNewSave()));
+  });
+
+  it('「燕の子安貝」2 着の声援獲得も同じ経路を通る', () => {
+    // 開始時声援 +200 も一緒に乗るので、差し引いてから比べる。
+    // 短く回すと「+200 ぴったり」との差が端数に埋もれて、
+    // 獲得が効いていなくてもテストが通ってしまう（実際そうなった）ので長めに回す
+    const cheerAfter = (save: SaveData): number => {
+      const world = worldWith(save, ['V1']);
+      runHeadless(30_000, (dt) => world.update(dt));
+      return world.snapshot().cheer;
+    };
+    expect(cheerAfter(fullSet('koyasugai')) - 200).toBeGreaterThan(
+      cheerAfter(createNewSave()) + 10,
+    );
+  });
+
+  it('月華の蓄積も経済として届く', () => {
+    const voltageAfter = (save: SaveData): number => {
+      const world = worldWith(save, ['V1']);
+      runHeadless(6000, (dt) => world.update(dt));
+      return world.snapshot().voltage;
+    };
+    expect(voltageAfter(onlyStat('voltageGainPct'))).toBeGreaterThan(voltageAfter(createNewSave()));
+  });
+
+  it('「火鼠の裘」の Echo ダメージが実際の Echo に乗る', () => {
+    // world がひとつの echoDps を配っていたので、衣装ぶんが載らなかった。
+    // Echo は**付けた本人**の強化で決まる
+    const echoDpsOf = (save: SaveData): number => {
+      const world = worldWith(save, ['V1']);
+      world.addCheer(20_000);
+      const unit = world.placeUnit('V1', 4, 6);
+      if (typeof unit === 'string') throw new Error(unit);
+      return unit.echoDps;
+    };
+    // 火鼠の裘 2 着で Echo のダメージ +30%
+    expect(echoDpsOf(fullSet('kawagoromo'))).toBeCloseTo(echoDpsOf(createNewSave()) * 1.3, 4);
+  });
+
+  it('Echo の威力は着ている人ごとに違う', () => {
+    const save = fullSet('kawagoromo', 'D1');
+    const world = worldWith(save, ['V1', 'D1']);
+    world.addCheer(20_000);
+    const v1 = world.placeUnit('V1', 4, 6);
+    const d1 = world.placeUnit('D1', 8, 5);
+    if (typeof v1 === 'string' || typeof d1 === 'string') throw new Error('置けなかった');
+    expect(d1.echoDps).toBeGreaterThan(v1.echoDps);
   });
 });

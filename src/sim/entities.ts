@@ -125,6 +125,14 @@ export interface Unit {
   critDmg: number;
   attack: ResolvedAttack;
   aura: ResolvedAura | null;
+  /**
+   * このユニットが付ける Echo の毎秒ダメージ（1 スタックあたり）。
+   *
+   * **付けた本人の強化で決まる。** world がひとつの値を配ると、
+   * 才能はともかく衣装（着ている人ごとに違う）を反映できない。
+   * 付与時に状態へ焼き付けるので、あとから着替えても既に付いた Echo は変わらない
+   */
+  echoDps: number;
 
   cooldownMs: number;
   /** ノックバックの発動間隔を数えるための命中カウンタ */
