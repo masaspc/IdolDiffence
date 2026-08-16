@@ -74,5 +74,17 @@ TypeScript (strict) / Vite / Canvas 2D / React（UI オーバーレイ）/ Zod /
 `main` への push で [`.github/workflows/deploy.yml`](./.github/workflows/deploy.yml) がビルドとデプロイを行い、
 `https://masaspc.github.io/IdolDiffence/` に公開されます。
 
-実装着手（M0）までは `package.json` が無いためワークフローはスキップされます。
+### 初回のみ必要な手動設定
+
+**リポジトリ設定 → Pages → Build and deployment → Source を「GitHub Actions」に切り替える。**
+
+これを済ませるまで、ワークフローは `actions/configure-pages` の段階で失敗します
+（`Get Pages site failed ... Not Found`）。ビルドは成功しているので、設定後は `main` へ
+何かを push するか、Actions 画面から Deploy ワークフローを再実行すれば公開されます。
+
+`configure-pages` の `enablement: true` で自動化を試みましたが、ワークフローの
+`GITHUB_TOKEN` には Pages サイトの**作成**権限が無く
+（`Create Pages site failed. Error: Resource not accessible by integration`）、
+リポジトリ管理者による一度きりの手動操作が必要です。
+
 Pages 固有の注意点は [05. 技術アーキテクチャ 5.10](./docs/design/05-architecture.md#510-配信--デプロイgithub-pages) を参照。
