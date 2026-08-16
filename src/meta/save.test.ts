@@ -8,6 +8,8 @@ import {
   saveSave,
   CURRENT_VERSION,
   SAVE_KEY,
+  STARTER_IDS,
+  saveSchema,
   type SaveData,
 } from './save';
 import {
@@ -93,6 +95,38 @@ describe('マイグレーション', () => {
   it('移行手段が無い古いバージョンは例外にする（黙って捨てない）', () => {
     expect(() => migrate({ version: 0 })).toThrow();
   });
+
+  it('v1 のセーブが現行まで一気に上がる（進行は消えない）', () => {
+    // M1 の頃から遊んでいる人のデータ。当時は育成とステージ進捗しか無かった
+    const v1 = {
+      version: 1,
+      funds: 5000,
+      idolLevels: { V1: 12, D1: 8, Vi1: 5 },
+      stageProgress: { S1: { cleared: true, bestAudience: 100, plays: 4 } },
+    };
+    const parsed = saveSchema.safeParse(migrate(v1));
+    expect(parsed.success, JSON.stringify(parsed.error?.issues)).toBe(true);
+    if (!parsed.success) return;
+
+    // 積み上げてきたものは残る
+    expect(parsed.data.funds).toBe(5000);
+    expect(parsed.data.idolLevels['V1']).toBe(12);
+    expect(parsed.data.stageProgress['S1']?.plays).toBe(4);
+    // 後から足した枠は空で始まる
+    expect(parsed.data.party).toEqual([...STARTER_IDS]);
+    expect(parsed.data.talents).toEqual([]);
+    expect(parsed.data.evolved).toEqual([]);
+    expect(parsed.data.costumes).toEqual([]);
+    expect(parsed.data.equipped).toEqual({});
+  });
+
+  it('全バージョンぶんの移行が用意されている', () => {
+    // 1 つでも欠けると、その版で遊んでいた人のセーブが例外になる
+    for (let version = 1; version < CURRENT_VERSION; version++) {
+      expect(() => migrate({ ...createNewSave(), version }), `v${version} から上がれない`)
+        .not.toThrow();
+    }
+  });
 });
 
 describe('育成', () => {
@@ -144,16 +178,16 @@ describe('報酬', () => {
   it('進捗が更新される', () => {
     const save = createNewSave();
     const outcome = { stageId: 'S1', won: true, audience: 80, killed: 100 };
-    const next = applyReward(save, outcome, calcReward(outcome));
+    const next = applyReward(save, outcome, calcReward(outcome)).save;
     expect(next.stageProgress['S1']).toEqual({ cleared: true, bestAudience: 80, plays: 1 });
   });
 
   it('一度クリアした記録は負けても消えない', () => {
     let save = createNewSave();
     const win = { stageId: 'S1', won: true, audience: 90, killed: 100 };
-    save = applyReward(save, win, calcReward(win));
+    save = applyReward(save, win, calcReward(win)).save;
     const lose = { stageId: 'S1', won: false, audience: 0, killed: 10 };
-    save = applyReward(save, lose, calcReward(lose));
+    save = applyReward(save, lose, calcReward(lose)).save;
     expect(save.stageProgress['S1']?.cleared).toBe(true);
     expect(save.stageProgress['S1']?.bestAudience).toBe(90);
     expect(save.stageProgress['S1']?.plays).toBe(2);

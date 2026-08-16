@@ -809,6 +809,137 @@ kbd {
   cursor: not-allowed;
 }
 
+/* --- 衣装（03-progression.md ⑨） --- */
+
+.last-drops {
+  display: block;
+  margin-top: 0.3rem;
+  font-size: 0.75rem;
+  color: var(--text-dim);
+}
+
+.costume-idols {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+
+.costume-idols .party-chip {
+  border: 1px solid var(--panel-edge);
+  cursor: pointer;
+  font: inherit;
+  font-size: 0.78rem;
+}
+
+.costume-idols .party-chip.is-on {
+  outline: 2px solid var(--vocal);
+}
+
+.costume-slots {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(9rem, 1fr));
+  gap: 0.6rem;
+}
+
+.costume-slot {
+  display: grid;
+  gap: 0.15rem;
+  padding: 0.6rem;
+  border-radius: 10px;
+  border: 1px solid var(--panel-edge);
+  background: var(--panel);
+  color: var(--text);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.costume-slot.is-on {
+  border-color: var(--vocal);
+  box-shadow: 0 0 0 1px var(--vocal) inset;
+}
+
+.costume-slot.is-empty {
+  opacity: 0.6;
+}
+
+.costume-slot-name {
+  font-size: 0.68rem;
+  color: var(--text-dim);
+}
+
+.costume-series {
+  font-size: 0.8rem;
+  font-weight: bold;
+}
+
+.costume-main,
+.costume-enhance {
+  font-size: 0.72rem;
+  color: var(--text-dim);
+  font-variant-numeric: tabular-nums;
+}
+
+/* レアリティは色だけでなく文字でも示す（06-ui-ux.md 6.7 の色覚配慮） */
+.costume-rarity {
+  display: inline-grid;
+  place-items: center;
+  min-width: 2.2rem;
+  padding: 0.05rem 0.35rem;
+  border-radius: 4px;
+  font-size: 0.68rem;
+  font-weight: bold;
+  color: #1b1436;
+}
+
+.costume-rarity.r-R { background: #9aa4bf; }
+.costume-rarity.r-SR { background: #6fd3f0; }
+.costume-rarity.r-SSR { background: #f0c04f; }
+.costume-rarity.r-UR { background: #f08bd0; }
+
+.costume-card.r-SSR { border-top: 3px solid #f0c04f; }
+.costume-card.r-UR { border-top: 3px solid #f08bd0; }
+
+.costume-card.is-picked {
+  outline: 2px dashed #f08bd0;
+}
+
+.costume-card .costume-sub dt,
+.costume-card .costume-sub dd {
+  opacity: 0.75;
+}
+
+.costume-flavor {
+  margin: 0 0 0.5rem;
+  font-size: 0.68rem;
+  line-height: 1.5;
+  color: var(--text-dim);
+}
+
+.costume-worn-by {
+  margin: 0 0 0.5rem;
+  font-size: 0.7rem;
+  color: #ffd45e;
+}
+
+.costume-sets {
+  margin: 0.7rem 0 0.3rem;
+  padding-left: 1.1rem;
+  font-size: 0.76rem;
+}
+
+.costume-total,
+.costume-empty {
+  margin: 0.4rem 0 0;
+  font-size: 0.74rem;
+  line-height: 1.6;
+  color: var(--text-dim);
+}
+
+.costume-screen .party-actions {
+  flex-wrap: wrap;
+}
+
 /* 進化（Ray）。レッスンとは別枠にして、一度きりの解放だと分かるようにする */
 .roster-card.is-evolved {
   border-color: rgba(255, 212, 94, 0.5);

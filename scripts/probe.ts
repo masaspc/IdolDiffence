@@ -12,7 +12,9 @@ import { autoplay, type Placement } from '../src/sim/autoplay';
 import { getIdol, getTalent, rosterIds } from '../src/data';
 import { levelAtkMultiplier } from '../src/meta/progression';
 import { emptyTalentEffects, resolveTalents, type TalentEffects } from '../src/meta/talents';
-import { createNewSave } from '../src/meta/save';
+import { createNewSave, type CostumeInstance, type SaveData } from '../src/meta/save';
+import { equipCostume, resolvePartyCostumes } from '../src/meta/costumes';
+import { COSTUME_SLOTS, SLOT_MAIN_STATS } from '../src/data/schema/costume';
 import { minimalPlan, PLAN_STAGES, STAGE_PLANS } from '../src/balance/plans';
 
 const SEED = 20260816;
@@ -32,16 +34,56 @@ function fullBranchTalents(branch: 'vo' | 'da' | 'vi'): TalentEffects {
   return resolveTalents({ ...createNewSave(), talents: ids });
 }
 
+/**
+ * 出撃メンバー全員に、指定シリーズの UR を 4 スロットぶん着せたセーブ。
+ * 「衣装に振り切るとどこまで行くか」を 1 行で見るために使う（03 E-2 の 2.9 倍）
+ */
+function fullCostumes(party: readonly string[], seriesId: string, enhance: number): SaveData {
+  const costumes: CostumeInstance[] = [];
+  let seq = 0;
+  for (const idolId of party) {
+    for (const slot of COSTUME_SLOTS) {
+      costumes.push({
+        id: `p${seq++}`,
+        seriesId,
+        slot,
+        rarity: 'UR',
+        mainStat: SLOT_MAIN_STATS[slot][0] ?? 'atkPct',
+        subs: [],
+        enhance,
+      });
+    }
+    void idolId;
+  }
+  let save: SaveData = { ...createNewSave(), costumes, costumeSeq: seq };
+  let index = 0;
+  for (const idolId of party) {
+    for (let i = 0; i < COSTUME_SLOTS.length; i++) {
+      save = equipCostume(save, idolId, costumes[index++]!.id);
+    }
+  }
+  return save;
+}
+
 /** 育成段階を再現する。レベルだけを変えて他は同条件にする */
-function metaAt(stageId: string, level: number, talents?: TalentEffects): BattleMeta {
+function metaAt(
+  stageId: string,
+  level: number,
+  talents?: TalentEffects,
+  costumeSeries?: string,
+): BattleMeta {
   const plan = STAGE_PLANS[stageId];
+  const party = plan?.party ?? [];
   return {
     atkByIdol: Object.fromEntries(
       rosterIds.map((id) => [id, getIdol(id).base.atk * levelAtkMultiplier(level)]),
     ),
-    party: plan?.party ?? [],
+    party,
     center: plan?.center ?? null,
     talents: talents ?? emptyTalentEffects(),
+    ...(costumeSeries
+      ? { costumes: resolvePartyCostumes(fullCostumes(party, costumeSeries, 15), party) }
+      : {}),
   };
 }
 
@@ -61,9 +103,18 @@ function run(
   stageId: string,
   level: number,
   plan: readonly Placement[],
-  options: { useSpecial?: boolean; worstCard?: boolean; talents?: TalentEffects } = {},
+  options: {
+    useSpecial?: boolean;
+    worstCard?: boolean;
+    talents?: TalentEffects;
+    costumeSeries?: string;
+  } = {},
 ): Row {
-  const world = createWorld(stageId, SEED, metaAt(stageId, level, options.talents));
+  const world = createWorld(
+    stageId,
+    SEED,
+    metaAt(stageId, level, options.talents, options.costumeSeries),
+  );
   const result = autoplay(world, {
     plan,
     ...(options.useSpecial === undefined ? {} : { useSpecial: options.useSpecial }),
@@ -104,6 +155,14 @@ for (const stageId of targets) {
     run(`${stageId} Lv20・才能フル(歌)`, stageId, 20, full, {
       useSpecial: true,
       talents: fullBranchTalents('vo'),
+    }),
+  );
+  // 衣装に振り切った状態。恒久強化の到達点（03 E-2 の 2.9 倍）が
+  // 効きすぎていないかを見る
+  rows.push(
+    run(`${stageId} Lv20・衣装UR+15(玉の枝)`, stageId, 20, full, {
+      useSpecial: true,
+      costumeSeries: 'tama',
     }),
   );
 }

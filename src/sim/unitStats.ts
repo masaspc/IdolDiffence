@@ -119,11 +119,25 @@ export function upgradeCost(baseCost: number, currentLevel: number): number | nu
   return ratio === undefined ? null : Math.round(baseCost * ratio);
 }
 
+/**
+ * 衣装のセット効果のうち、`ModifierPool` の語彙に無いもの。
+ * 増えるたびに `StatKey` を足すと、どの系統も使わない器が並ぶことになる。
+ */
+export interface CostumeCombatBonus {
+  defIgnoreAdd: number;
+  shieldPierce: number;
+  specialDmgPct: number;
+}
+
 export interface ResolveOptions {
   /** ラン内カードなど、全ユニット共通の強化 */
   runPool: ModifierPool;
   /** 才能ボード（恒久）。加算プールとして runPool と同列に合流させる */
   talentPool?: ModifierPool;
+  /** 衣装（このユニットが着ているぶん）。同じく加算プール */
+  costumePool?: ModifierPool;
+  /** 衣装のうち、ステータスの器に載らないもの（03-progression.md ⑨） */
+  costume?: CostumeCombatBonus | undefined;
   /** センター（編成で 1 人）と配置マスの種別 */
   center?: CenterPassive | undefined;
   cellType?: CellType | undefined;
@@ -160,7 +174,9 @@ export function resolveUnit(unit: Unit, options: ResolveOptions): void {
     mulPct(local, 'range', evolution.rangeMul);
   }
   if (options.specialActive) {
-    mulPct(local, 'atk', SPECIAL_ATK_MUL);
+    // 「蓬莱の玉の枝」4 着はスペシャル中だけ乗る。
+    // ここへ掛けると、ダメージ計算に衣装専用の経路を足さずに済む
+    mulPct(local, 'atk', SPECIAL_ATK_MUL * (1 + (options.costume?.specialDmgPct ?? 0)));
     mulPct(local, 'attackSpeed', SPECIAL_SPEED_MUL);
   }
   if (options.formation) {
@@ -176,7 +192,8 @@ export function resolveUnit(unit: Unit, options: ResolveOptions): void {
   if (allyAtk + selfAtk !== 0) addPct(local, 'atk', allyAtk + selfAtk);
 
   const talentPool = options.talentPool ?? emptyPool();
-  const pools = [options.runPool, talentPool, local];
+  const costumePool = options.costumePool ?? emptyPool();
+  const pools = [options.runPool, talentPool, costumePool, local];
 
   unit.atk = resolveStat(unit.baseAtk, 'atk', pools, unit.type);
   unit.range = resolveStat(def.base.range, 'range', pools);
@@ -191,7 +208,7 @@ export function resolveUnit(unit: Unit, options: ResolveOptions): void {
   const intervalMul = mulMod(branches, 'attackIntervalMul');
   unit.attackIntervalMs = (def.base.attackIntervalMs * intervalMul) / speed;
 
-  unit.attack = resolveAttack(unit, branches, pools);
+  unit.attack = resolveAttack(unit, branches, pools, options.costume);
   unit.aura = resolveUnitAura(unit);
 }
 
@@ -239,6 +256,7 @@ function resolveAttack(
   unit: Unit,
   branches: readonly AwakeningBranch[],
   pools: readonly ModifierPool[],
+  costume: CostumeCombatBonus | undefined,
 ): ResolvedAttack {
   const def = getIdol(unit.idolId);
 
@@ -275,7 +293,11 @@ function resolveAttack(
     canHitFlying: def.attack.canHitFlying || branches.some((b) => b.mods.grantFlying === true),
     skillMul: def.attack.skillMul,
     multiTarget: Math.max(1, ...branches.map((b) => b.mods.multiTarget ?? 1)),
-    defIgnore: Math.min(1, def.attack.defIgnore + sumMod(branches, 'defIgnoreAdd')),
+    defIgnore: Math.min(
+      1,
+      def.attack.defIgnore + sumMod(branches, 'defIgnoreAdd') + (costume?.defIgnoreAdd ?? 0),
+    ),
+    shieldPierce: Math.min(1, costume?.shieldPierce ?? 0),
     execute: def.attack.execute,
     knockback: bestKnockback(def.attack.knockback, branches),
     resetCooldownOnKill: branches.some((b) => b.mods.resetCooldownOnKill === true),

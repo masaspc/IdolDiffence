@@ -8,9 +8,31 @@
  * キーには必ずプレフィックスを付ける（5.11）。
  */
 import { z } from 'zod';
+import { costumeRaritySchema, costumeSlotSchema, costumeStatSchema } from '../data/schema/costume';
+import { seedFromString } from '../core/rng';
 
 export const SAVE_KEY = 'idoldiffence.save';
-export const CURRENT_VERSION = 4;
+export const CURRENT_VERSION = 5;
+
+/**
+ * 生成された衣装 1 着（03-progression.md ⑨）。
+ *
+ * 定義（シリーズとセット効果）は JSON にあるが、実体は乱数で無数に増えるので
+ * セーブが持つ。**実効値は持たない**（`mainValue` / `subValue` が強化段階から導く）。
+ * 実効値を焼き込むと、係数を調整したときに既存の所持品だけ旧値のまま残る。
+ */
+export const costumeInstanceSchema = z.object({
+  id: z.string().min(1),
+  seriesId: z.string().min(1),
+  slot: costumeSlotSchema,
+  rarity: costumeRaritySchema,
+  mainStat: costumeStatSchema,
+  /** 副次ステータスと「何段伸びたか」 */
+  subs: z.array(z.object({ stat: costumeStatSchema, rolls: z.number().int().positive() })),
+  enhance: z.number().int().min(0),
+});
+
+export type CostumeInstance = z.infer<typeof costumeInstanceSchema>;
 
 export const saveSchema = z.object({
   version: z.number().int().positive(),
@@ -34,6 +56,19 @@ export const saveSchema = z.object({
   talents: z.array(z.string()),
   /** 進化を解放済みのアイドル ID（03-progression.md ⑦-2） */
   evolved: z.array(z.string()),
+  /** 所持している衣装（03-progression.md ⑨） */
+  costumes: z.array(costumeInstanceSchema),
+  /** アイドル ID -> スロット -> 衣装 ID。1 着は 1 人しか着られない */
+  equipped: z.record(z.string(), z.record(costumeSlotSchema, z.string())),
+  /** 衣装 ID の連番。既存の ID とぶつからないようにするためだけの数 */
+  costumeSeq: z.number().int().nonnegative(),
+  /**
+   * メタ層の乱数の状態（ドロップと錬成）。
+   *
+   * `Math.random()` を使わず**セーブに状態を持つ**ことで、ドロップ分布を
+   * ヘッドレスで測れるようにし、リロードして引き直すのも塞ぐ
+   */
+  rngState: z.number().int().nonnegative(),
 });
 
 export type SaveData = z.infer<typeof saveSchema>;
@@ -41,7 +76,16 @@ export type SaveData = z.infer<typeof saveSchema>;
 /** 初期メンバー。原作の 3 人（04-content.md 4.1） */
 export const STARTER_IDS = ['V1', 'D1', 'Vi1'] as const;
 
-export function createNewSave(): SaveData {
+/**
+ * ドロップ乱数の既定の種。
+ *
+ * 固定値なので、**引数を省いたセーブは誰が作っても同じ順で引く**。
+ * テストとヘッドレス計測はこれで回す。実際のプレイでは `App` が
+ * `randomSeed()` を渡すので、プレイヤーごとに変わる。
+ */
+export const DEFAULT_RNG_STATE = seedFromString('idoldiffence:drops');
+
+export function createNewSave(rngState: number = DEFAULT_RNG_STATE): SaveData {
   return {
     version: CURRENT_VERSION,
     funds: 0,
@@ -51,6 +95,10 @@ export function createNewSave(): SaveData {
     center: 'V1',
     talents: [],
     evolved: [],
+    costumes: [],
+    equipped: {},
+    costumeSeq: 0,
+    rngState,
   };
 }
 
@@ -70,6 +118,17 @@ const migrations: Record<number, Migration> = {
   // v3 -> v4: 初期メンバーの進化を追加した（M3-2）。
   // 解放は資金を払う操作なので、遡って配ることはしない
   3: (old) => ({ ...old, version: 4, evolved: [] }),
+  // v4 -> v5: 衣装を追加した（M3-2b）。所持ゼロから始める。
+  // 乱数の種は既定値を入れる。既存プレイヤーぶんを遡って配らないのは、
+  // ドロップが「プレイした回数」に対する報酬だから
+  4: (old) => ({
+    ...old,
+    version: 5,
+    costumes: [],
+    equipped: {},
+    costumeSeq: 0,
+    rngState: DEFAULT_RNG_STATE,
+  }),
 };
 
 export function migrate(raw: Record<string, unknown>): Record<string, unknown> {

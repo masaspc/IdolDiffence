@@ -1,0 +1,32 @@
+{
+  "hachi": {
+    "name": "仏の御石の鉢",
+    "flavor": "天竺にあるという石の鉢。原典では偽物を掴まされる。硬いものを抜く力を宿す",
+    "two": { "defIgnoreAdd": 0.2 },
+    "four": { "shieldPierce": 0.5 }
+  },
+  "tama": {
+    "name": "蓬莱の玉の枝",
+    "flavor": "根が銀、茎が金、実が真珠の枝。原典では職人に作らせた偽物だった",
+    "two": { "stats": { "atkPct": 0.12 } },
+    "four": { "specialDmgPct": 0.35 }
+  },
+  "kawagoromo": {
+    "name": "火鼠の裘",
+    "flavor": "火に焼けぬという鼠の皮衣。原典では火にくべられて燃え尽きる",
+    "two": { "stats": { "echoPowerPct": 0.3 } },
+    "four": { "echoMaxStacksAdd": 2 }
+  },
+  "kubitama": {
+    "name": "龍の首の玉",
+    "flavor": "龍の首にあるという五色に光る玉。原典では嵐に遭って諦められる",
+    "two": { "stats": { "critRateAdd": 0.1 } },
+    "four": { "stats": { "critDmgAdd": 0.5 } }
+  },
+  "koyasugai": {
+    "name": "燕の子安貝",
+    "flavor": "燕が産むという安産の貝。原典では掴んだと思った瞬間に落ちる",
+    "two": { "stats": { "cheerGainPct": 0.15 } },
+    "four": { "startCheer": 200 }
+  }
+}

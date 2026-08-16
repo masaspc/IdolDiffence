@@ -73,10 +73,11 @@ export function updateUnit(unit: Unit, ctx: CombatContext, dtMs: number): void {
     );
 
     // カガミの前面シールドは**範囲攻撃では崩れる**。
-    // 「単体火力を積めば何でも抜ける」を成立させないための弱点（04-content.md）
+    // 「単体火力を積めば何でも抜ける」を成立させないための弱点（04-content.md）。
+    // 衣装セット「仏の御石の鉢」4 着は、単体のままシールドを削る第 2 の答え
     const shield = victim.traits.frontShield;
     if (shield !== undefined && unit.attack.kind === 'single') {
-      result.amount *= 1 - shield;
+      result.amount *= 1 - shield * (1 - unit.attack.shieldPierce);
     }
 
     ctx.applyDamage(victim, result);

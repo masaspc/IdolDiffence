@@ -17,12 +17,18 @@ import enemiesJson from './json/enemies.json';
 import idolsJson from './json/idols.json';
 import cardsJson from './json/cards.json';
 import talentsJson from './json/talents.json';
+import costumeSeriesJson from './json/costume-series.json';
 import { stagesSchema, type Stage, type Stages } from './schema/stage';
 import { songsSchema, type Song, type Songs } from './schema/song';
 import { enemiesSchema, type EnemyDef, type Enemies } from './schema/enemy';
 import { idolsSchema, type IdolDef, type Idols } from './schema/idol';
 import { cardsSchema, type CardDef, type Cards } from './schema/card';
 import { talentsSchema, type TalentNode, type Talents } from './schema/talent';
+import {
+  costumeSeriesMapSchema,
+  type CostumeSeries,
+  type CostumeSeriesMap,
+} from './schema/costume';
 
 function load<T>(raw: unknown, parse: (raw: unknown) => T): T {
   return parse(raw);
@@ -34,6 +40,9 @@ export const enemies: Enemies = load(enemiesJson, (raw) => enemiesSchema.parse(r
 export const idols: Idols = load(idolsJson, (raw) => idolsSchema.parse(raw));
 export const cards: Cards = load(cardsJson, (raw) => cardsSchema.parse(raw));
 export const talents: Talents = load(talentsJson, (raw) => talentsSchema.parse(raw));
+export const costumeSeries: CostumeSeriesMap = load(costumeSeriesJson, (raw) =>
+  costumeSeriesMapSchema.parse(raw),
+);
 
 export function getStage(id: string): Stage {
   const stage = stages[id];
@@ -58,6 +67,15 @@ export function getTalent(id: string): TalentNode {
   if (!node) throw new Error(`unknown talent: ${id}`);
   return node;
 }
+
+export function getSeries(id: string): CostumeSeries {
+  const series = costumeSeries[id];
+  if (!series) throw new Error(`unknown costume series: ${id}`);
+  return series;
+}
+
+/** シリーズ ID の一覧。抽選と UI の並び順を兼ねる */
+export const seriesIds = Object.keys(costumeSeries);
 
 export function getIdol(id: string): IdolDef {
   const idol = idols[id];
@@ -102,4 +120,4 @@ export function requiredStage(stageId: string): string | null {
   return index > 0 ? (stageOrder[index - 1] ?? null) : null;
 }
 
-export type { Stage, Song, EnemyDef, IdolDef, CardDef, TalentNode };
+export type { Stage, Song, EnemyDef, IdolDef, CardDef, TalentNode, CostumeSeries };

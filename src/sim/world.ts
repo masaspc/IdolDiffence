@@ -55,6 +55,8 @@ import {
 import { defenseReduction, type DamageResult } from './damage';
 import { ECHO_MAX_STACKS } from './entities';
 import type { TalentEffects } from '../meta/talents';
+import type { CostumeEffects } from '../meta/costumes';
+import type { CostumeCombatBonus } from './unitStats';
 
 /** 声援の自然回復。観客ゲージへの依存は意図的に浅い（02-core-battle.md 2.3） */
 const CHEER_REGEN_BASE = 5.0;
@@ -111,6 +113,61 @@ const FLOATING_TEXT_LIFE_MS = 700;
  * `addPct` に通すとノードがほぼ無価値になり、
  * カード（`applyCard` は同じ意味で `addFlat` を使う）とも食い違う。
  */
+/**
+ * 衣装の合算結果を加算プールへ移す。
+ *
+ * 才能と同じ器（加算）。乗算にすると 4 スロット × セット効果で
+ * 掛け算が積み上がり、恒久強化の目標（03 E-2 の 2.9 倍）を軽く超える。
+ *
+ * クリティカルだけは定数加算にする理由も才能と同じ ―― 率そのものだから。
+ */
+function buildCostumePool(effects: CostumeEffects | undefined): ModifierPool {
+  const pool = emptyPool();
+  if (!effects) return pool;
+
+  for (const [stat, value] of Object.entries(effects.stats)) {
+    if (value === undefined || value === 0) continue;
+    switch (stat) {
+      case 'critRateAdd':
+        addFlat(pool, 'critRate', value);
+        break;
+      case 'critDmgAdd':
+        addFlat(pool, 'critDmg', value);
+        break;
+      case 'atkPct':
+        addPct(pool, 'atk', value);
+        break;
+      case 'rangePct':
+        addPct(pool, 'range', value);
+        break;
+      case 'attackSpeedPct':
+        addPct(pool, 'attackSpeed', value);
+        break;
+      case 'cheerGainPct':
+        addPct(pool, 'cheerGain', value);
+        break;
+      case 'voltageGainPct':
+        addPct(pool, 'voltageGain', value);
+        break;
+      case 'statusPowerPct':
+        addPct(pool, 'slowPower', value);
+        break;
+      case 'statusDurationPct':
+        addPct(pool, 'statusDuration', value);
+        break;
+      case 'aoeRadiusPct':
+        addPct(pool, 'aoeRadius', value);
+        break;
+      case 'echoPowerPct':
+        addPct(pool, 'echoPower', value);
+        break;
+      default:
+        break;
+    }
+  }
+  return pool;
+}
+
 function buildTalentPool(effects: TalentEffects | undefined): ModifierPool {
   const pool = emptyPool();
   if (!effects) return pool;
@@ -279,6 +336,16 @@ export interface BattleMeta {
   talents?: TalentEffects;
   /** 進化（Ray）を解放済みのアイドル ID（03-progression.md ⑦-2） */
   evolved?: readonly string[];
+  /**
+   * 衣装（03-progression.md ⑨）。**アイドルごと**に効く。
+   * 才能と同じく、セーブの形ではなく畳んだ結果だけを渡す
+   */
+  costumes?: {
+    byIdol: Readonly<Record<string, CostumeEffects>>;
+    /** 編成全体に効くぶん。誰の数値でもないので世界が持つ */
+    echoMaxStacksAdd: number;
+    startCheer: number;
+  };
 }
 
 export class BattleWorld {
@@ -317,6 +384,9 @@ export class BattleWorld {
   private readonly echoDps: number;
   /** 進化済みのアイドル。配置時に引き当てるので Set で持つ */
   private readonly evolvedIds: ReadonlySet<string>;
+  /** 衣装の加算プール（アイドルごと）。ラン中は変わらないので 1 回だけ組む */
+  private readonly costumePools: ReadonlyMap<string, ModifierPool>;
+  private readonly costumeBonuses: ReadonlyMap<string, CostumeCombatBonus>;
 
   private scheduleCursor = 0;
   private nextEntityId = 1;
@@ -370,6 +440,19 @@ export class BattleWorld {
     this.evolvedIds = new Set(
       (meta.evolved ?? []).filter((id) => getIdol(id).evolution !== undefined),
     );
+
+    const costumePools = new Map<string, ModifierPool>();
+    const costumeBonuses = new Map<string, CostumeCombatBonus>();
+    for (const [idolId, effects] of Object.entries(meta.costumes?.byIdol ?? {})) {
+      costumePools.set(idolId, buildCostumePool(effects));
+      costumeBonuses.set(idolId, {
+        defIgnoreAdd: effects.defIgnoreAdd,
+        shieldPierce: effects.shieldPierce,
+        specialDmgPct: effects.specialDmgPct,
+      });
+    }
+    this.costumePools = costumePools;
+    this.costumeBonuses = costumeBonuses;
     // センターは必ず出撃メンバーの中から選ぶ。編成画面で外したのに
     // パッシブだけ残る、という食い違いを sim の側で塞いでおく
     const centerId =
@@ -381,7 +464,10 @@ export class BattleWorld {
     this.centerIdolId = centerId;
     this.talents = meta.talents;
     this.talentPool = buildTalentPool(meta.talents);
-    this.echoMaxStacks = ECHO_MAX_STACKS + (meta.talents?.echoMaxStacksAdd ?? 0);
+    this.echoMaxStacks =
+      ECHO_MAX_STACKS +
+      (meta.talents?.echoMaxStacksAdd ?? 0) +
+      (meta.costumes?.echoMaxStacksAdd ?? 0);
     this.echoDps = ECHO_DPS * (1 + (meta.talents?.echoPowerPct ?? 0));
     this.centerPool = centerEconomyPool(this.center);
     this.costMul = this.center?.mods.costMul ?? 1;
@@ -413,6 +499,10 @@ export class BattleWorld {
       return info;
     });
     this.totalBars = startBar;
+
+    // 「燕の子安貝」4 着の開始時声援。イベントを出さずに直接足す
+    // （まだ誰も購読していない時点なので、通知しても届かない）
+    this.cheer += meta.costumes?.startCheer ?? 0;
 
     this.record('battleStart', { seed, stage: stageId });
   }
@@ -881,6 +971,7 @@ export class BattleWorld {
         skillMul: def.attack.skillMul,
         multiTarget: 1,
         defIgnore: def.attack.defIgnore,
+        shieldPierce: 0,
         execute: def.attack.execute,
         knockback: def.attack.knockback,
         resetCooldownOnKill: false,
@@ -1001,6 +1092,8 @@ export class BattleWorld {
     resolveUnit(unit, {
       runPool: this.runPool,
       talentPool: this.talentPool,
+      costumePool: this.costumePools.get(unit.idolId) ?? emptyPool(),
+      costume: this.costumeBonuses.get(unit.idolId),
       center: this.center,
       cellType: this.stage.cellTypes[`${unit.cell.x},${unit.cell.y}`],
       specialActive: this.specialActive,
