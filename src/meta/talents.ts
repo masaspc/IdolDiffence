@@ -15,6 +15,7 @@ import { getTalent, talents } from '../data';
 import type { TalentMods, TalentNode } from '../data/schema/talent';
 import type { IdolType } from '../data/schema/common';
 import { talentPointsFromRank } from './rank';
+import { achievementPoints } from './achievements';
 import type { SaveData } from './save';
 
 /** ステージ初回クリアで入るポイント */
@@ -28,7 +29,10 @@ export const talentIds = Object.keys(talents);
 
 /** 到達済みの実績とランクから才能ポイントの総量を求める。セーブに数を持たない */
 export function totalTalentPoints(save: SaveData): number {
-  let total = talentPointsFromRank(save);
+  // ランク + ステージの実績 + 称号の実績（03-progression.md ⑬）。
+  // どれもセーブの中身から毎回導く。数を保存すると、条件を変えたときに
+  // 古いセーブだけ古い解釈のまま残る
+  let total = talentPointsFromRank(save) + achievementPoints(save);
   for (const progress of Object.values(save.stageProgress)) {
     if (progress.cleared) total += POINTS_PER_CLEAR;
     if (progress.bestAudience >= 100) total += POINTS_PER_PERFECT;

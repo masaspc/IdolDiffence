@@ -26,6 +26,11 @@ export interface AutoplayOptions {
   useSpecial?: boolean;
   /** 打ち切り時間 */
   maxMs?: number;
+  /**
+   * 毎フレーム、world を進めた直後に呼ぶ。
+   * コール & レスポンスのように「時間どおりに押す」操作を測るために要る
+   */
+  onTick?: (world: BattleWorld) => void;
 }
 
 export interface AutoplayResult {
@@ -54,6 +59,7 @@ export function autoplay(world: BattleWorld, options: AutoplayOptions = {}): Aut
     (dt) => {
       world.update(dt);
       elapsedMs += dt;
+      options.onTick?.(world);
 
       // ◆ は sim を止める。選ばないと永遠に進まない
       const offers = world.snapshot().offers;

@@ -26,10 +26,60 @@ interface HudProps {
   onTogglePause: () => void;
   onCycleSpeed: () => void;
   onSpecial: () => void;
+  onCall: () => void;
   onSoloPart: () => void;
   onChooseCard: (cardId: string) => void;
   onRestart: () => void;
   onExportLog: () => void;
+}
+
+/** 判定の表示名。日本語にすると 3 つの幅が揃わず、出るたびに位置が動く */
+const JUDGE_LABEL: Record<string, string> = {
+  perfect: 'PERFECT',
+  good: 'GOOD',
+  miss: 'MISS',
+};
+
+/** 判定の表示を消すまでの時間 */
+const JUDGE_LIFE_MS = 600;
+
+/**
+ * コールのマーカー（02-core-battle.md 2.9）。
+ *
+ * **リングが縮んで消える瞬間が小節の頭**。数字のカウントダウンにすると
+ * 目を落とさないと読めず、盤面から視線が外れる。
+ * 押せる窓（±160ms）に入ったらリングを光らせて、
+ * 「いま押していい」を色で伝える。
+ */
+function CallMarker(props: {
+  call: NonNullable<WorldSnapshot['call']>;
+  onCall: () => void;
+}): React.JSX.Element {
+  const { call } = props;
+  // 近づくほど 0 へ寄せる。手前 1000ms から出す ——
+  // それより早いと常時なにか動いていて目が疲れる
+  const LEAD_MS = 1000;
+  const ratio = Math.max(0, Math.min(1, call.toTargetMs / LEAD_MS));
+  const judge = call.lastAgeMs < JUDGE_LIFE_MS ? call.lastJudge : null;
+
+  return (
+    <button
+      type="button"
+      className={`call${call.open ? ' is-open' : ''}`}
+      onClick={props.onCall}
+      aria-label="コール"
+    >
+      <span className="call-ring" style={{ transform: `scale(${1 + ratio * 0.9})` }} />
+      <span className="call-core">
+        {judge ? (
+          <span className={`call-judge is-${judge}`}>{JUDGE_LABEL[judge]}</span>
+        ) : (
+          <span className="call-key">Space</span>
+        )}
+      </span>
+      {call.combo >= 2 && <span className="call-combo">{call.combo} 連</span>}
+    </button>
+  );
 }
 
 function rankOf(audience: number): string {
@@ -148,6 +198,8 @@ export function Hud(props: HudProps): React.JSX.Element {
             ⏩ {snapshot.speed}x <kbd>Tab</kbd>
           </button>
         </div>
+
+        {snapshot.call && <CallMarker call={snapshot.call} onCall={props.onCall} />}
 
         {pendingIdolId && (
           <div className="hint">

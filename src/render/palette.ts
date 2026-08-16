@@ -43,6 +43,23 @@ export function typeColor(type: string): string {
   }
 }
 
+/**
+ * 属性の記号（06-ui-ux.md 6.7 色覚）。
+ *
+ * 色だけで見分けさせない選択肢として、敵の上に重ねる。
+ * **○△□ のような幾何形**にする —— 漢字は 8px 相当まで縮むと潰れて読めない
+ */
+export function attrGlyph(attr: string): string {
+  switch (attr) {
+    case 'silence':
+      return '○';
+    case 'noise':
+      return '△';
+    default:
+      return '□';
+  }
+}
+
 export function attrColor(attr: string): string {
   switch (attr) {
     case 'silence':

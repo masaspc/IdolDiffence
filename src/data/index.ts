@@ -18,12 +18,18 @@ import idolsJson from './json/idols.json';
 import cardsJson from './json/cards.json';
 import talentsJson from './json/talents.json';
 import costumeSeriesJson from './json/costume-series.json';
+import achievementsJson from './json/achievements.json';
 import { stagesSchema, type Stage, type Stages } from './schema/stage';
 import { songsSchema, type Song, type Songs } from './schema/song';
 import { enemiesSchema, type EnemyDef, type Enemies } from './schema/enemy';
 import { idolsSchema, type IdolDef, type Idols } from './schema/idol';
 import { cardsSchema, type CardDef, type Cards } from './schema/card';
 import { talentsSchema, type TalentNode, type Talents } from './schema/talent';
+import {
+  achievementsSchema,
+  type AchievementDef,
+  type Achievements,
+} from './schema/achievement';
 import {
   costumeSeriesMapSchema,
   type CostumeSeries,
@@ -40,6 +46,9 @@ export const enemies: Enemies = load(enemiesJson, (raw) => enemiesSchema.parse(r
 export const idols: Idols = load(idolsJson, (raw) => idolsSchema.parse(raw));
 export const cards: Cards = load(cardsJson, (raw) => cardsSchema.parse(raw));
 export const talents: Talents = load(talentsJson, (raw) => talentsSchema.parse(raw));
+export const achievements: Achievements = load(achievementsJson, (raw) =>
+  achievementsSchema.parse(raw),
+);
 export const costumeSeries: CostumeSeriesMap = load(costumeSeriesJson, (raw) =>
   costumeSeriesMapSchema.parse(raw),
 );
@@ -200,4 +209,4 @@ export function requiredStage(stageId: string): string | null {
 export const mainStageIds = stageOrder.filter((id) => !getStage(id).boss);
 export const bossStageIds = stageOrder.filter((id) => getStage(id).boss);
 
-export type { Stage, Song, EnemyDef, IdolDef, CardDef, TalentNode, CostumeSeries };
+export type { Stage, Song, EnemyDef, IdolDef, CardDef, TalentNode, CostumeSeries, AchievementDef };

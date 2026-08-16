@@ -3,6 +3,8 @@ import { HomeScreen } from './HomeScreen';
 import { PartyScreen } from './PartyScreen';
 import { TalentScreen } from './TalentScreen';
 import { CostumeScreen } from './CostumeScreen';
+import { SettingsScreen } from './SettingsScreen';
+import { AchievementScreen } from './AchievementScreen';
 import { BattleScreen } from './BattleScreen';
 import {
   applyReward,
@@ -26,6 +28,8 @@ import {
 } from '../meta/costumes';
 import { soloPartForStage } from '../meta/rank';
 import { unlockSecret } from '../meta/secrets';
+import { claimRewards } from '../meta/achievements';
+import { textScaleRatio, type Settings } from '../meta/settings';
 import { randomSeed } from '../core/rng';
 import {
   DEFAULT_RNG_STATE,
@@ -37,7 +41,7 @@ import {
 import type { CostumeSlot } from '../data/schema/costume';
 import type { BattleMeta } from '../sim/world';
 
-type Screen = 'home' | 'party' | 'talents' | 'costumes' | 'battle';
+type Screen = 'home' | 'party' | 'talents' | 'costumes' | 'settings' | 'achievements' | 'battle';
 
 export function App(): React.JSX.Element {
   const [save, setSave] = useState<SaveData>(() => {
@@ -78,6 +82,19 @@ export function App(): React.JSX.Element {
     saveSave(window.localStorage, save);
   }, [save]);
 
+  /**
+   * 設定を DOM へ反映する（06-ui-ux.md 6.7）。
+   *
+   * 文字サイズは**根の font-size**を動かすだけで通る —— HUD も画面も
+   * rem で組んであるので、レイアウトを 3 通り書く必要が無い。
+   * 演出強度は属性にして、CSS 側で拾わせる
+   */
+  useEffect(() => {
+    const root = document.documentElement;
+    root.style.fontSize = `${textScaleRatio(save.settings.textScale) * 100}%`;
+    root.dataset.effects = save.settings.effects;
+  }, [save.settings.textScale, save.settings.effects]);
+
   // リザルト処理は setSave の更新関数の**外**で行う。
   // 更新関数は純粋でなければならず、中でドロップを引くと
   // StrictMode の二重呼び出しで 2 組できてしまう
@@ -109,6 +126,8 @@ export function App(): React.JSX.Element {
       <BattleScreen
         stageId={stageId}
         meta={battleMeta}
+        effects={save.settings.effects}
+        attributeGlyphs={save.settings.attributeGlyphs}
         onFinish={handleFinish}
         onExit={() => setScreen('home')}
       />
@@ -143,6 +162,29 @@ export function App(): React.JSX.Element {
     );
   }
 
+  if (screen === 'settings') {
+    return (
+      <SettingsScreen
+        save={save}
+        onChange={(patch: Partial<Settings>) =>
+          setSave((current) => ({ ...current, settings: { ...current.settings, ...patch } }))
+        }
+        onBack={() => setScreen('home')}
+      />
+    );
+  }
+
+  if (screen === 'achievements') {
+    return (
+      <AchievementScreen
+        save={save}
+        onClaim={() => setSave((current) => claimRewards(current))}
+        onSetTitle={(id) => setSave((current) => ({ ...current, title: id }))}
+        onBack={() => setScreen('home')}
+      />
+    );
+  }
+
   if (screen === 'party') {
     return (
       <PartyScreen
@@ -164,6 +206,8 @@ export function App(): React.JSX.Element {
       onOpenParty={() => setScreen('party')}
       onOpenTalents={() => setScreen('talents')}
       onOpenCostumes={() => setScreen('costumes')}
+      onOpenSettings={() => setScreen('settings')}
+      onOpenAchievements={() => setScreen('achievements')}
       onStart={(id, star) => {
         setStageId(id);
         setLastResult(null);
@@ -171,6 +215,7 @@ export function App(): React.JSX.Element {
         const { party, center } = normalizeParty(save);
         setBattleMeta({
           star,
+          call: save.settings.call,
           soloPart: soloPartForStage(save, id),
           atkByIdol: Object.fromEntries(
             unlockedIds(save).map((rid) => [rid, resolvedAtk(save, rid)]),

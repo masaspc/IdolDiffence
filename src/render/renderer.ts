@@ -9,8 +9,9 @@
  * 外部には resize / draw / セル変換しか見せない。
  */
 import type { BattleWorld, EnemyView, UnitView, WorldSnapshot } from '../sim/world';
-import { attrColor, cellStyle, palette, typeColor } from './palette';
+import { attrColor, attrGlyph, cellStyle, palette, typeColor } from './palette';
 import { GeneratedSprites, SPRITE_DRAW_SIZE, type SpriteProvider } from './sprites';
+import { allowsFloatingText, flashAmount, type EffectLevel } from '../meta/settings';
 
 /** 論理解像度。1 マス = 64px、16×9 マスで 1024×576 */
 export const CELL_SIZE = 64;
@@ -62,6 +63,13 @@ export class Renderer {
      * 手描きの PNG アトラスに移るときも Renderer 側は触らずに済む
      */
     private readonly sprites: SpriteProvider = new GeneratedSprites(),
+    /**
+     * 演出の強さ（06-ui-ux.md 6.7）。点滅と浮遊ダメージ表示を段階的に落とす。
+     * **盤面の情報は落とさない** —— 敵・射程・配置マスは強度に関わらず同じに描く
+     */
+    private effects: EffectLevel = 'full',
+    /** 敵に属性の記号を重ねる（06-ui-ux.md 6.7 色覚） */
+    private attributeGlyphs = false,
   ) {
     const ctx = canvas.getContext('2d', { alpha: false });
     if (!ctx) throw new Error('2D コンテキストを取得できませんでした');
@@ -137,6 +145,15 @@ export class Renderer {
     this.specialCenterName = centerName ?? '';
   }
 
+  /** 設定画面での変更を、バトルを作り直さずに反映する */
+  setEffects(effects: EffectLevel): void {
+    this.effects = effects;
+  }
+
+  setAttributeGlyphs(on: boolean): void {
+    this.attributeGlyphs = on;
+  }
+
   draw(snapshot: WorldSnapshot, hover: HoverState, alpha: number): void {
     const { ctx } = this;
     const view = this.view();
@@ -163,7 +180,7 @@ export class Renderer {
     this.drawAttacks(ctx, snapshot);
     this.drawEnemies(ctx, snapshot.enemies, alpha);
     this.drawUnits(ctx, snapshot.units, hover.selectedUnitId);
-    this.drawFloatingTexts(ctx, snapshot);
+    if (allowsFloatingText(this.effects)) this.drawFloatingTexts(ctx, snapshot);
 
     ctx.restore();
 
@@ -184,6 +201,8 @@ export class Renderer {
    * 8 秒のバフ全体を派手にすると、肝心の盤面が見えなくなる
    */
   private drawSpecialEffect(ctx: CanvasRenderingContext2D, snapshot: WorldSnapshot): void {
+    // 画面いっぱいの閃光がいちばん強い刺激。強度 0 なら丸ごと出さない
+    if (flashAmount(this.effects) <= 0) return;
     // バフ中はうっすら色を乗せて、効果が続いていることを示す
     if (snapshot.specialRemainingMs > 0) {
       ctx.save();
@@ -421,7 +440,8 @@ export class Renderer {
   private drawBeatPulse(ctx: CanvasRenderingContext2D): void {
     const { beatsPerBar } = this.world.clock;
     const beatPhase = ((this.world.clock.absoluteBeat % 1) + 1) % 1;
-    const pulse = Math.max(0, 1 - beatPhase * 2.2);
+    // 演出強度で振れ幅を落とす。0 なら完全に止まる（光過敏対策）
+    const pulse = Math.max(0, 1 - beatPhase * 2.2) * flashAmount(this.effects);
     if (pulse <= 0.01) return;
 
     const isDownbeat = Math.floor(this.world.clock.absoluteBeat) % beatsPerBar === 0;
@@ -571,6 +591,18 @@ export class Renderer {
       ctx.strokeStyle = 'rgba(255, 255, 255, 0.65)';
       ctx.lineWidth = 1.5;
       ctx.stroke();
+
+      // 属性の記号。色だけで見分けさせないための選択肢（06-ui-ux.md 6.7）。
+      // 敵の中央へ黒で置く —— 縁へ出すと減速・停止の輪と混ざる
+      if (this.attributeGlyphs) {
+        ctx.fillStyle = 'rgba(10, 8, 24, 0.85)';
+        ctx.font = `bold ${Math.round(r * 1.25)}px system-ui, sans-serif`;
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        this.upright(ctx, x, y, () => {
+          ctx.fillText(attrGlyph(enemy.attr), x, y);
+        });
+      }
 
       // 減速中は青い縁取りで示す。数値を読まずに効果が分かるように
       if (enemy.slowed) {

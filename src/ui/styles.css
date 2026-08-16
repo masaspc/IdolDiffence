@@ -328,6 +328,85 @@ kbd {
   font-size: 0.6rem;
 }
 
+/* --- コール & レスポンス（02-core-battle.md 2.9） --- */
+
+.call {
+  /* 下部バーの**左上**に浮かせる。盤面の中央へ置くと敵と重なって、
+     「押す」と「見る」で目線が競合する */
+  position: absolute;
+  left: 50%;
+  bottom: calc(100% + 3.2rem);
+  transform: translateX(-50%);
+  /* リングは最大でもこの 1.9 倍まで。大きく広げると盤面を覆って、
+     「押す」ために「見る」を邪魔する本末転倒になる */
+  width: 3rem;
+  height: 3rem;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  border: none;
+  background: none;
+  cursor: pointer;
+  z-index: 2;
+}
+
+.call-ring {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  border: 2px solid rgba(255, 255, 255, 0.35);
+  /* 縮んで消える瞬間が小節の頭。transition は付けない ——
+     毎フレーム値が来るので、補間するとむしろ判定とずれて見える */
+}
+
+.call.is-open .call-ring {
+  border-color: var(--vocal);
+  box-shadow: 0 0 12px rgba(255, 138, 199, 0.55);
+}
+
+.call-core {
+  position: relative;
+  width: 2rem;
+  height: 2rem;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  background: var(--panel);
+  border: 1px solid var(--panel-edge);
+  font-size: 0.52rem;
+  color: var(--text-dim);
+}
+
+.call.is-open .call-core {
+  background: rgba(255, 138, 199, 0.22);
+  color: var(--text);
+}
+
+.call-judge {
+  font-size: 0.6rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+}
+
+.call-judge.is-perfect {
+  color: var(--vocal);
+}
+.call-judge.is-good {
+  color: var(--dance);
+}
+.call-judge.is-miss {
+  color: var(--text-dim);
+}
+
+.call-combo {
+  position: absolute;
+  bottom: -0.9rem;
+  font-size: 0.65rem;
+  color: var(--vocal);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
 .hint {
   /* 下部バーの真上に貼る。パレットが折り返して背が伸びても被らない */
   position: absolute;
@@ -1835,4 +1914,209 @@ kbd {
   font-style: normal;
   font-size: 0.7rem;
   color: var(--visual);
+}
+
+/* --- 設定（06-ui-ux.md 6.7） --- */
+
+.settings-open {
+  width: 2.6rem;
+  height: 2.6rem;
+  border-radius: 10px;
+  border: 1px solid var(--panel-edge);
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--text);
+  font-size: 1.2rem;
+  cursor: pointer;
+}
+
+.settings-open:hover {
+  background: rgba(255, 255, 255, 0.12);
+}
+
+.setting-row {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 0.9rem 1rem;
+  border-radius: 12px;
+  border: 1px solid var(--panel-edge);
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.setting-text {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  min-width: 0;
+}
+
+.setting-toggle {
+  margin-left: auto;
+  flex: 0 0 auto;
+  min-width: 5rem;
+  padding: 0.55rem 1rem;
+  border-radius: 999px;
+  border: 1px solid var(--panel-edge);
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--text-dim);
+  font: inherit;
+  cursor: pointer;
+}
+
+.setting-toggle.is-on {
+  background: rgba(255, 107, 168, 0.22);
+  border-color: var(--vocal);
+  color: var(--text);
+}
+
+.setting-choices {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+}
+
+.setting-choice {
+  flex: 1 1 12rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  align-items: flex-start;
+  padding: 0.8rem 1rem;
+  border-radius: 12px;
+  border: 1px solid var(--panel-edge);
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--text-dim);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.setting-choice strong {
+  color: var(--text);
+}
+
+.setting-choice.is-on {
+  border-color: var(--vocal);
+  background: rgba(255, 107, 168, 0.16);
+  color: var(--text);
+}
+
+.settings-note {
+  margin: 0 0 2rem;
+  font-size: 0.8rem;
+  color: var(--text-dim);
+  line-height: 1.7;
+}
+
+/* --- 称号・実績（03-progression.md ⑬） --- */
+
+.home-title-badge {
+  display: inline-block;
+  margin-right: 0.5rem;
+  padding: 0.1rem 0.5rem;
+  border-radius: 999px;
+  border: 1px solid var(--visual);
+  color: var(--visual);
+  font-size: 0.75rem;
+}
+
+.achievement-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(17rem, 1fr));
+  gap: 0.75rem;
+}
+
+.achievement {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  padding: 0.9rem 1rem;
+  border-radius: 12px;
+  border: 1px solid var(--panel-edge);
+  /* 未達成は沈める。達成済みだけが光って見えるほうが、埋めた実感が出る */
+  background: rgba(255, 255, 255, 0.03);
+  opacity: 0.7;
+}
+
+.achievement.is-unlocked {
+  opacity: 1;
+  border-color: var(--visual);
+  background: rgba(255, 213, 79, 0.08);
+}
+
+.achievement-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.5rem;
+}
+
+.achievement-title {
+  font-size: 0.72rem;
+  color: var(--visual);
+}
+
+.achievement-desc {
+  font-size: 0.8rem;
+  color: var(--text-dim);
+}
+
+.achievement-bar {
+  height: 0.35rem;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.09);
+  overflow: hidden;
+}
+
+.achievement-bar span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, var(--vocal), var(--visual));
+}
+
+.achievement-foot {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.5rem;
+  font-size: 0.75rem;
+  color: var(--text-dim);
+  font-variant-numeric: tabular-nums;
+}
+
+.achievement-reward {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.title-picker {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.title-chip {
+  padding: 0.4rem 0.9rem;
+  border-radius: 999px;
+  border: 1px solid var(--panel-edge);
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--text-dim);
+  font: inherit;
+  font-size: 0.8rem;
+  cursor: pointer;
+}
+
+.title-chip.is-on {
+  border-color: var(--visual);
+  color: var(--visual);
+  background: rgba(255, 213, 79, 0.12);
+}
+
+/*
+ * 演出「最小」では、CSS 側のアニメーションも止める。
+ * canvas の点滅だけ止めても、HUD が動いていたら意味が無い
+ */
+:root[data-effects='minimal'] * {
+  animation: none !important;
+  transition: none !important;
 }
