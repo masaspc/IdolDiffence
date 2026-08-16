@@ -10,7 +10,7 @@
 | UI | React 18（Canvas の上に DOM オーバーレイ） | メニュー・育成画面は DOM の方が圧倒的に速く作れる |
 | 状態管理 | Zustand（メタ層のみ） | バトル層は React の外（後述） |
 | データ検証 | Zod | JSON データとセーブデータのランタイム検証 |
-| 音 | Web Audio API 直叩き | BPM 同期のために `AudioContext.currentTime` 基準のクロックが必要 |
+| 音 | Web Audio API 直叩き | BPM 同期と、`GameClock`（[5.4](#54-時間の一元管理--gameclock)）からの駆動に必要 |
 | テスト | Vitest（単体・シミュレーション）、Playwright（スモーク） | — |
 
 **重要な設計判断**: バトルシミュレーションは React の状態に一切依存させない。
@@ -27,7 +27,7 @@ src/
 │   ├── rng.ts            # mulberry32 seeded PRNG
 │   ├── vec.ts            # ベクトル・幾何
 │   ├── events.ts         # 型付き EventBus
-│   └── clock.ts          # BPM クロック（beat / bar イベント）
+│   └── clock.ts          # GameClock（sim 時刻の唯一の源。BPM / beat / bar を提供）
 │
 ├── sim/                  # バトルシミュレーション（DOM 非依存・決定的）
 │   ├── world.ts          # World 状態のコンテナ
@@ -107,7 +107,34 @@ interface Unit {                 // 配置されたアイドル
 - `stats` は毎フレーム計算しない。**強化・バフの変化イベント時のみ再計算**し、
   `statsDirty` フラグで管理する（200 ユニット × 60fps の再計算を避ける）。
 
-## 5.4 強化の合流点 — `modifiers.ts`
+## 5.4 時間の一元管理 — `GameClock`
+
+**`AudioContext.currentTime` をゲーム進行時刻として各システムから直接読んではいけない。**
+オーディオ時計は一時停止やカード選択モーダルで止まらないため、
+sim を止めた瞬間に「曲だけ進む」状態が生まれ、ウェーブと楽曲がずれる。
+
+```ts
+class GameClock {
+  simTimeMs: number      // sim の唯一の時刻。ポーズ中は進まない
+  bar: number            // simTimeMs と BPM から導出
+  beat: number
+  // audio は追従側。GameClock が音を駆動し、逆はしない
+}
+```
+
+| 状況 | 挙動 |
+|---|---|
+| 通常再生 | `GameClock` が固定タイムステップで進み、BGM をその時刻へ追従させる |
+| 一時停止 | `simTimeMs` を止め、BGM も停止（`AudioContext.suspend()`） |
+| カード選択（◆） | **楽曲を短いループ区間に入れて演奏を継続**し、`simTimeMs` は停止。 決定後、**次の小節境界から** sim を再開する |
+| 速度 2x / 3x | `simTimeMs` の進行倍率と BGM の再生レートを同じ係数で変える |
+
+- カード選択で無音になるとライブ感が切れるため、単純な停止ではなくループ区間方式を採る。
+- 小節境界へスナップして再開することで、再開直後のスポーンがリズムから外れない。
+- オーディオ無効時（ミュート / 自動再生ブロック中）も `GameClock` は同じ挙動をする。
+  **音はゲームプレイの前提ではない**（[5.11](#511-配信--デプロイgithub-pages) の自動再生制限にも関わる）。
+
+## 5.5 強化の合流点 — `modifiers.ts`
 
 15 系統の強化が最終ステータスに合流する箇所を 1 ファイルに集約する。ここが balance の要。
 
@@ -129,24 +156,24 @@ function resolveStats(base: BaseStats, pools: ModifierPool[]): ResolvedStats {
 強化系統を追加するときは「どのプールに入れるか」を決めるだけでよく、
 計算順序の判断がコード中に散らばらない。
 
-## 5.5 データスキーマ（抜粋）
+## 5.6 データスキーマ（抜粋）
 
 ```jsonc
 // data/json/idols.json
 {
   "V1": {
-    "name": "星野 ひかり",
+    "name": "千歳 やちよ",
     "type": "vocal",
     "cost": 30,
     "base": { "atk": 90, "range": 3.0, "attackIntervalMs": 1600, "critRate": 0.05, "critDmg": 0.5 },
     "attack": { "kind": "aoe_ring", "skillMul": 0.9, "radius": 1.2, "pierce": true, "canHitFlying": true },
-    "skill": { "id": "high_tone", "cooldownMs": 12000, "mul": 1.4, "target": "all_in_range" },
+    "skill": { "id": "tooneri", "cooldownMs": 12000, "mul": 1.4, "target": "all_in_range" },
     "awakening": {
-      "A": { "name": "ロングトーン", "mods": { "attackIntervalMs": "*1.5", "radius": "*1.8" } },
-      "B": { "name": "ラップパート", "mods": { "attackIntervalMs": "*0.6", "radius": "*0.7" },
+      "A": { "name": "千代", "mods": { "attackIntervalMs": "*1.5", "radius": "*1.8" } },
+      "B": { "name": "早口", "mods": { "attackIntervalMs": "*0.6", "radius": "*0.7" },
              "onHit": { "status": "echo", "stacks": 1 } }
     },
-    "units": ["arcadia"],
+    "units": ["kaguya_gumi"],
     "levelCurve": { "atkPerLevel": 0.06 }
     // canHitFlying は 歌・ヴィジュアルが true、ダンスは false。
     // ダンスの覚醒 A（D2「旋風」）のみ awakening.mods で true に上書きする
@@ -158,12 +185,12 @@ function resolveStats(base: BaseStats, pools: ModifierPool[]): ResolvedStats {
 // data/json/stages.json（抜粋）
 {
   "S3": {
-    "name": "小箱のライブハウス",
+    "name": "ライブハウス「月光」",
     "grid": { "w": 16, "h": 9 },
     "lanes": [ { "waypoints": [[0,4],[5,4],[5,7],[12,7],[15,5]] }, { "waypoints": [[0,2],[8,2],[8,5],[15,5]] } ],
     "placeable": [[2,3],[3,3],[6,2],[6,5]],
     "cellTypes": { "6,2": "runway", "3,3": "audience" },
-    "song": "silent_cry",
+    "song": "gekko_silence",
     "hpMul": 1.4,
     "waves": [
       { "section": "intro", "bars": 8, "spawns": [] },
@@ -177,7 +204,7 @@ function resolveStats(base: BaseStats, pools: ModifierPool[]): ResolvedStats {
 すべての JSON は Zod スキーマで検証し、**起動時ではなくビルド時**に検証する
 （`npm run validate:data`）。実行時の検証は開発モードのみ。
 
-## 5.6 セーブデータ
+## 5.7 セーブデータ
 
 - 保存先: `localStorage`（キー `idoldiffence.save.v1`）、JSON を LZ 圧縮。
 - 構造: `{ version, producer, idols, inventory, talents, facilities, stageProgress, prestige, settings }`
@@ -188,7 +215,7 @@ function resolveStats(base: BaseStats, pools: ModifierPool[]): ResolvedStats {
 - チート対策は行わない（シングルプレイのため）。ただし壊れたセーブの検出と
   安全な復旧（該当セクションのみ初期化）は行う。
 
-## 5.7 バランス検証
+## 5.8 バランス検証
 
 `src/balance/` にヘッドレスランナーを置く。
 
@@ -202,7 +229,7 @@ npm run sim -- --stage S8 --star 5 --loadout meta_p3 --trials 2000
 - CI で主要 20 パターンを回し、**クリア率が想定レンジ（40〜70%）を外れたら fail**。
   バランス崩壊を PR 時点で検出できるようにする。
 
-## 5.8 パフォーマンス方針
+## 5.9 パフォーマンス方針
 
 | 項目 | 目標 | 手段 |
 |---|---|---|
@@ -212,7 +239,7 @@ npm run sim -- --stage S8 --star 5 --loadout meta_p3 --trials 2000
 | 描画 | draw call を抑える | スプライトアトラス 1 枚、レイヤごとにバッチ、静的背景はオフスクリーンにキャッシュ |
 | 初回ロード | 5MB 以内 | アトラスを WebP、データは gzip、楽曲は手続き生成 |
 
-## 5.9 テスト方針
+## 5.10 テスト方針
 
 | 層 | 内容 |
 |---|---|
@@ -221,7 +248,7 @@ npm run sim -- --stage S8 --star 5 --loadout meta_p3 --trials 2000
 | プロパティ | 「声援は負にならない」「観客ゲージは 0 を下回らない」「攻撃速度は上限を超えない」 |
 | E2E | タイトル→ステージ 1 クリア→報酬反映 のスモーク（Playwright） |
 
-## 5.10 配信 / デプロイ（GitHub Pages）
+## 5.11 配信 / デプロイ（GitHub Pages）
 
 本作はサーバーを必要としない（[5.1](#51-技術選定) の全要素がクライアント完結）ため、
 **GitHub Pages で配信する**。公開 URL は `https://masaspc.github.io/IdolDiffence/`。
@@ -259,7 +286,7 @@ npm run sim -- --stage S8 --star 5 --loadout meta_p3 --trials 2000
 4. **`localStorage` のオリジン共有**
    `masaspc.github.io` 配下の全プロジェクトが同一オリジンで、
    容量（5〜10MB）もキー空間も共有する。キーは `idoldiffence.` プレフィックスで名前空間を分ける
-   （[5.6](#56-セーブデータ)）。他プロジェクトによる `localStorage.clear()` で消える可能性があるため、
+   （[5.7](#57-セーブデータ)）。他プロジェクトによる `localStorage.clear()` で消える可能性があるため、
    エクスポート機能をユーザーに案内する。
 
 - **`COOP` / `COEP` ヘッダーは Pages では設定できない** → `SharedArrayBuffer` は使用不可。
@@ -277,5 +304,5 @@ npm run sim -- --stage S8 --star 5 --loadout meta_p3 --trials 2000
   M0 で雛形を追加した時点で自動的に動き出す。
 - `npm ci` を使うため、M0 では **`package-lock.json` をコミットする**こと。
 - リポジトリ設定 → Pages → Source を **「GitHub Actions」** に切り替える初回操作が必要。
-- ビルド前に `npm run validate:data`（[5.5](#55-データスキーマ抜粋)）を通し、
+- ビルド前に `npm run validate:data`（[5.6](#56-データスキーマ抜粋)）を通し、
   壊れたデータが公開されないようにする。
