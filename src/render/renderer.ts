@@ -396,6 +396,17 @@ export class Renderer {
         ctx.stroke();
       }
 
+      // 魅了・スタンは「止まっている」ことが最も重要なので、破線の輪で強く示す
+      if (enemy.bound) {
+        ctx.strokeStyle = palette.visual;
+        ctx.lineWidth = 2.5;
+        ctx.setLineDash([4, 3]);
+        ctx.beginPath();
+        ctx.arc(x, y, r + 6, 0, Math.PI * 2);
+        ctx.stroke();
+        ctx.setLineDash([]);
+      }
+
       // HP バー
       if (enemy.hpRatio < 1) {
         const bw = r * 2.2;

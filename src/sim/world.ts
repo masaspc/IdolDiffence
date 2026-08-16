@@ -8,13 +8,23 @@
 import { GameClock } from '../core/clock';
 import { EventBus, type BattleEvents } from '../core/events';
 import { createRng, type Rng } from '../core/rng';
-import { cards, getEnemy, getIdol, getSong, getStage, type Song, type Stage } from '../data';
+import {
+  cards,
+  getEnemy,
+  getIdol,
+  getSong,
+  getStage,
+  rosterIds,
+  type Song,
+  type Stage,
+} from '../data';
 import type { IdolType } from '../data/schema/common';
-import type { AwakeningKey } from '../data/schema/idol';
-import { clamp, vec } from '../core/vec';
+import type { AwakeningKey, CenterPassive } from '../data/schema/idol';
+import { clamp, vec, withinRange } from '../core/vec';
 import { buildPaths, type Path } from './path';
 import {
   echoStacks,
+  isImmobilized,
   tickStatuses,
   type Enemy,
   type EntityId,
@@ -22,12 +32,13 @@ import {
   type Unit,
 } from './entities';
 import { buildSpawnSchedule, waveHpMultiplier, type ScheduledSpawn } from './systems/spawn';
-import { advanceEnemy } from './systems/movement';
+import { advanceEnemy, knockbackEnemy } from './systems/movement';
 import { updateUnit } from './systems/combat';
 import { applyCard, drawOffers, type CardOffer } from './systems/cards';
 import { emptyPool, resolveStat, type ModifierPool } from './modifiers';
 import {
   resolveUnit,
+  resolveUnitAura,
   upgradeCost,
   SPECIAL_ENEMY_SPEED_MUL,
   POSITION_LEVELS,
@@ -43,8 +54,16 @@ const INITIAL_AUDIENCE = 100;
 /** 小節ごとの月華（ボルテージ）基礎蓄積。劣勢からの逆転経路を確保するため */
 const VOLTAGE_PER_BAR = 2.0;
 const VOLTAGE_MAX = 100;
-const VOLTAGE_PER_100_DAMAGE = 0.4;
-const VOLTAGE_PER_KILL = 1.5;
+/**
+ * 戦闘による蓄積は「敵 1 体ぶんの HP を削るごと」に与える。
+ *
+ * 以前はダメージの**絶対値**に比例させていたが、それだと `hpMul` の大きい
+ * ステージほど無制限に供給される。実測では S7（hpMul 11）で 1 ライブ 29 回も
+ * 発動し、スペシャルが「ここぞの一撃」ではなく常時バフになっていた。
+ * 削った割合で数えれば、ステージの硬さが変わっても発動回数は敵の**数**にだけ
+ * 比例する（S1 で 4〜5 回、S7 で 8〜10 回）。
+ */
+const VOLTAGE_PER_ENEMY_HP = 1.0;
 /** サビ中は蓄積 1.5 倍 */
 const VOLTAGE_CHORUS_MUL = 1.5;
 
@@ -112,6 +131,8 @@ export interface EnemyView {
   radius: number;
   hpRatio: number;
   slowed: boolean;
+  /** 魅了・スタンで足が止まっている */
+  bound: boolean;
   echo: number;
 }
 
@@ -122,9 +143,23 @@ export interface CardOfferView {
   desc: string;
 }
 
+export interface PaletteEntry {
+  idolId: string;
+  shortName: string;
+  type: string;
+  /** センター補正を反映した実コスト */
+  cost: number;
+  /** センターかどうか。HUD で印を出す */
+  isCenter: boolean;
+}
+
 export interface WorldSnapshot {
   stageId: string;
   stageName: string;
+  /** 出撃メンバー。HUD の配置パレットはこれをそのまま並べる */
+  palette: PaletteEntry[];
+  /** センターの**アイドル名**。HUD は誰がセンターかを出したいのでパッシブ名ではない */
+  centerName: string | null;
   songName: string;
   bpm: number;
   bar: number;
@@ -151,7 +186,12 @@ export interface WorldSnapshot {
   takenCards: { name: string; count: number }[];
 }
 
-export type PlacementError = 'not-placeable' | 'occupied' | 'insufficient-cheer' | 'finished';
+export type PlacementError =
+  | 'not-placeable'
+  | 'occupied'
+  | 'insufficient-cheer'
+  | 'not-in-party'
+  | 'finished';
 export type UpgradeError = 'not-found' | 'max-level' | 'insufficient-cheer' | 'finished';
 
 /** 計測用のイベントログ（07-roadmap.md M2 の計測） */
@@ -165,6 +205,13 @@ export interface LogEntry {
 export interface BattleMeta {
   /** アイドル ID -> 育成後の基礎攻撃力 */
   atkByIdol?: Record<string, number>;
+  /**
+   * 出撃メンバー（最大 5 人）。空なら制限しない。
+   * ヘッドレス計測やテストで毎回 5 人を書きたくないので、既定は「制限なし」にしている
+   */
+  party?: readonly string[];
+  /** センター。party に含まれていないと無視する */
+  center?: string | null;
 }
 
 export class BattleWorld {
@@ -181,6 +228,15 @@ export class BattleWorld {
   private readonly schedule: ScheduledSpawn[];
   private readonly placeableKeys: Set<string>;
   private readonly meta: BattleMeta;
+  /** 出撃メンバーの制限。空なら全員置ける */
+  private readonly partyIds: ReadonlySet<string>;
+  private readonly center: CenterPassive | undefined;
+  private readonly centerName: string | null;
+  /** センターによる配置コスト倍率。彩葉センターで -8% */
+  private readonly costMul: number;
+  /** センターによるスペシャルライブの延長 */
+  private readonly specialBonusMs: number;
+  private readonly palette: PaletteEntry[];
 
   private scheduleCursor = 0;
   private nextEntityId = 1;
@@ -221,6 +277,31 @@ export class BattleWorld {
     this.paths = buildPaths(this.stage);
     this.schedule = buildSpawnSchedule(this.stage, this.song);
     this.placeableKeys = new Set(this.stage.placeable.map(([x, y]) => `${x},${y}`));
+
+    this.partyIds = new Set(meta.party ?? []);
+    // センターは必ず出撃メンバーの中から選ぶ。編成画面で外したのに
+    // パッシブだけ残る、という食い違いを sim の側で塞いでおく
+    const centerId =
+      meta.center && (this.partyIds.size === 0 || this.partyIds.has(meta.center))
+        ? meta.center
+        : null;
+    this.center = centerId ? getIdol(centerId).centerPassive : undefined;
+    this.centerName = this.center && centerId ? getIdol(centerId).name : null;
+    this.costMul = this.center?.mods.costMul ?? 1;
+    this.specialBonusMs = this.center?.mods.specialDurationAddMs ?? 0;
+
+    // パレットはラン中に変わらないので 1 回だけ組む
+    const paletteIds = meta.party && meta.party.length > 0 ? meta.party : rosterIds;
+    this.palette = paletteIds.map((id) => {
+      const def = getIdol(id);
+      return {
+        idolId: id,
+        shortName: def.shortName,
+        type: def.type,
+        cost: Math.round(def.cost * this.costMul),
+        isCenter: id === centerId,
+      };
+    });
 
     let startBar = 0;
     this.waves = this.stage.waves.map((wave, index) => {
@@ -295,24 +376,37 @@ export class BattleWorld {
   }
 
   private spawnEnemy(scheduled: ScheduledSpawn): void {
-    const def = getEnemy(scheduled.enemyId);
-    const path = this.paths[scheduled.lane] ?? this.paths[0];
-    if (!path) return;
-
-    const start = path.segments[0]?.from ?? path.goal;
     // テンポ正規化は**出現数だけ**に掛ける（systems/spawn.ts）。
     // 1 秒あたりの小節数が BPM に比例するので、出現数を 132/BPM 倍すれば
     // 秒あたりの投入数が一定になり、秒基準のプレイヤー火力と釣り合う。
     // HP にも掛けると 132²/BPM に比例してしまい、逆向きのズレが残る。
-    const hp =
-      def.hp *
+    const hpMul =
       waveHpMultiplier(scheduled.waveIndex) *
       sectionHpMultiplier(this.stage.waves[scheduled.waveIndex]?.section) *
       this.stage.hpMul;
+    this.createEnemy(scheduled.enemyId, scheduled.lane, hpMul, null);
+  }
+
+  /**
+   * 敵を 1 体生成する。
+   * `from` を渡すと、その敵の位置と進捗を引き継ぐ（ムラクモの分裂）。
+   */
+  private createEnemy(
+    enemyId: string,
+    lane: number,
+    hpMul: number,
+    from: Enemy | null,
+  ): Enemy | null {
+    const def = getEnemy(enemyId);
+    const path = this.paths[lane] ?? this.paths[0];
+    if (!path) return null;
+
+    const start = from ? from.pos : (path.segments[0]?.from ?? path.goal);
+    const hp = def.hp * hpMul;
 
     const enemy: Enemy = {
       id: this.nextEntityId++,
-      defId: scheduled.enemyId,
+      defId: enemyId,
       name: def.name,
       attr: def.attr,
       hp,
@@ -323,10 +417,11 @@ export class BattleWorld {
       radius: def.radius,
       leak: def.leak,
       bounty: def.bounty,
-      lane: scheduled.lane,
-      pathIndex: 0,
-      pathT: 0,
-      progress: 0,
+      traits: def.traits,
+      lane,
+      pathIndex: from?.pathIndex ?? 0,
+      pathT: from?.pathT ?? 0,
+      progress: from?.progress ?? 0,
       pos: vec(start.x, start.y),
       prevPos: vec(start.x, start.y),
       statuses: [],
@@ -334,10 +429,12 @@ export class BattleWorld {
     };
     this.enemies.push(enemy);
     this.events.emit('enemySpawned', { id: enemy.id, defId: enemy.defId });
+    return enemy;
   }
 
   private updateEnemies(dtMs: number): void {
     const globalSpeedMul = this.specialActive ? SPECIAL_ENEMY_SPEED_MUL : 1;
+    this.applyHealAuras(dtMs);
 
     for (let i = this.enemies.length - 1; i >= 0; i--) {
       const enemy = this.enemies[i];
@@ -374,12 +471,62 @@ export class BattleWorld {
     }
   }
 
+  /**
+   * ツキシズクの回復オーラ。
+   * 「火力を分散させると押し切られる」を作るための敵で、優先撃破の判断を要求する。
+   * 回復側は多くても数体なので、ヒーラーを起点に走査する（全敵の総当たりにしない）。
+   */
+  private applyHealAuras(dtMs: number): void {
+    for (const healer of this.enemies) {
+      const aura = healer.traits.healAura;
+      if (!aura || !healer.alive) continue;
+      for (const target of this.enemies) {
+        if (!target.alive || target.hp >= target.maxHp) continue;
+        if (!withinRange(healer.pos, target.pos, aura.radius)) continue;
+        target.hp = Math.min(
+          target.maxHp,
+          target.hp + (target.maxHp * aura.percentPerSec * dtMs) / 1000,
+        );
+      }
+    }
+  }
+
+  /** トコヤミの攻撃速度デバフ。射程内のメンバーに掛かる */
+  private drainMulFor(unit: Unit): number {
+    let mul = 1;
+    for (const enemy of this.enemies) {
+      const aura = enemy.traits.drainAura;
+      if (!aura || !enemy.alive) continue;
+      if (withinRange(enemy.pos, unit.pos, aura.radius)) mul *= aura.speedMul;
+    }
+    return mul;
+  }
+
+  /** Vi3「たまのえだ」の DEF 低下。位置依存なので攻撃のたびに解決する */
+  private defDownFor(enemy: Enemy): number {
+    let max = 0;
+    for (const unit of this.units) {
+      const aura = unit.aura;
+      if (!aura || aura.enemyDefPct <= 0) continue;
+      if (withinRange(unit.pos, enemy.pos, aura.radius) && aura.enemyDefPct > max) {
+        max = aura.enemyDefPct;
+      }
+    }
+    return max;
+  }
+
   private updateUnits(dtMs: number): void {
     const ctx = {
       rng: this.rng,
       enemies: this.enemies,
       applyDamage: (enemy: Enemy, result: DamageResult) => this.applyDamage(enemy, result),
       echoDps: ECHO_DPS,
+      defDownFor: (enemy: Enemy) => this.defDownFor(enemy),
+      knockback: (enemy: Enemy, dist: number) => {
+        const path = this.paths[enemy.lane] ?? this.paths[0];
+        if (path) knockbackEnemy(enemy, path, dist);
+      },
+      speedMulFor: (unit: Unit) => this.drainMulFor(unit),
     };
     for (const unit of this.units) {
       updateUnit(unit, ctx, dtMs);
@@ -388,8 +535,10 @@ export class BattleWorld {
 
   private applyDamage(enemy: Enemy, result: DamageResult, showText = true): void {
     if (!enemy.alive) return;
+    // 過剰キル分は数えない。硬い敵を溶かした最後の一撃だけが得をするのを避ける
+    const dealt = Math.min(result.amount, enemy.hp);
     enemy.hp -= result.amount;
-    this.addVoltage((result.amount / 100) * VOLTAGE_PER_100_DAMAGE);
+    this.addVoltage((dealt / enemy.maxHp) * VOLTAGE_PER_ENEMY_HP);
 
     if (showText) {
       this.floatingTexts.push({
@@ -407,8 +556,24 @@ export class BattleWorld {
       enemy.alive = false;
       this.killed++;
       this.addCheer(enemy.bounty);
-      this.addVoltage(VOLTAGE_PER_KILL);
       this.events.emit('enemyKilled', { id: enemy.id, defId: enemy.defId, bounty: enemy.bounty });
+      this.spawnOnDeath(enemy);
+    }
+  }
+
+  /**
+   * ムラクモの分裂。倒した位置と進捗を引き継いで子を出す。
+   *
+   * 子の HP には**親と同じステージ・ウェーブ補正を掛ける**。
+   * 素の値で出すと、終盤のウェーブでだけ分裂が実質無害になる。
+   * 親の `maxHp` と定義値の比がそのまま補正なので、それを再利用する。
+   */
+  private spawnOnDeath(parent: Enemy): void {
+    const spawn = parent.traits.onDeathSpawn;
+    if (!spawn) return;
+    const hpMul = parent.maxHp / getEnemy(parent.defId).hp;
+    for (let i = 0; i < spawn.count; i++) {
+      this.createEnemy(spawn.enemy, parent.lane, hpMul, parent);
     }
   }
 
@@ -492,7 +657,7 @@ export class BattleWorld {
 
     this.voltage = 0;
     this.events.emit('voltageChanged', { value: 0 });
-    this.specialRemainingMs = SPECIAL_DURATION_MS;
+    this.specialRemainingMs = SPECIAL_DURATION_MS + this.specialBonusMs;
     this.refreshUnitStats();
     this.events.emit('specialStarted', {});
     this.record('specialStarted', { units: this.units.length });
@@ -514,11 +679,17 @@ export class BattleWorld {
     return this.meta.atkByIdol?.[idolId] ?? getIdol(idolId).base.atk;
   }
 
+  /** センター補正込みの配置コスト。UI と sim で同じ値を使うため公開する */
+  placementCost(idolId: string): number {
+    return Math.round(getIdol(idolId).cost * this.costMul);
+  }
+
   canPlace(idolId: string, x: number, y: number): PlacementError | null {
     if (this.finished) return 'finished';
+    if (this.partyIds.size > 0 && !this.partyIds.has(idolId)) return 'not-in-party';
     if (!this.placeableKeys.has(`${x},${y}`)) return 'not-placeable';
     if (this.units.some((u) => u.cell.x === x && u.cell.y === y)) return 'occupied';
-    if (this.cheer < getIdol(idolId).cost) return 'insufficient-cheer';
+    if (this.cheer < this.placementCost(idolId)) return 'insufficient-cheer';
     return null;
   }
 
@@ -527,7 +698,8 @@ export class BattleWorld {
     if (error) return error;
 
     const def = getIdol(idolId);
-    this.spendCheer(def.cost);
+    const cost = this.placementCost(idolId);
+    this.spendCheer(cost);
 
     const unit: Unit = {
       id: this.nextEntityId++,
@@ -537,7 +709,7 @@ export class BattleWorld {
       type: def.type,
       cell: { x, y },
       pos: vec(x + 0.5, y + 0.5),
-      investedCost: def.cost,
+      investedCost: cost,
       level: 1,
       awakening: null,
       baseAtk: this.baseAtkOf(idolId),
@@ -552,14 +724,21 @@ export class BattleWorld {
         canHitFlying: def.attack.canHitFlying,
         skillMul: def.attack.skillMul,
         multiTarget: 1,
+        defIgnore: def.attack.defIgnore,
+        execute: def.attack.execute,
+        knockback: def.attack.knockback,
+        resetCooldownOnKill: false,
         onHit: def.attack.onHit,
       },
+      aura: null,
       cooldownMs: 0,
+      hitCount: 0,
       lastTargetPos: null,
       lastAttackAgeMs: Number.POSITIVE_INFINITY,
     };
-    this.resolve(unit);
     this.units.push(unit);
+    // 味方オーラは配置で変わる。置いた本人だけでなく全員を解決し直す
+    this.refreshUnitStats();
     this.record('place', { idol: idolId, x, y });
     return unit;
   }
@@ -567,7 +746,7 @@ export class BattleWorld {
   upgradeCostFor(id: EntityId): number | null {
     const unit = this.units.find((u) => u.id === id);
     if (!unit) return null;
-    return upgradeCost(getIdol(unit.idolId).cost, unit.level);
+    return upgradeCost(this.placementCost(unit.idolId), unit.level);
   }
 
   /** ポジション強化。Lv3 に上がると覚醒分岐の選択待ちになる */
@@ -577,7 +756,7 @@ export class BattleWorld {
     if (!unit) return 'not-found';
     if (unit.level >= POSITION_LEVELS.length) return 'max-level';
 
-    const cost = upgradeCost(getIdol(unit.idolId).cost, unit.level);
+    const cost = upgradeCost(this.placementCost(unit.idolId), unit.level);
     if (cost === null) return 'max-level';
     if (this.cheer < cost) return 'insufficient-cheer';
 
@@ -596,7 +775,8 @@ export class BattleWorld {
     if (!getIdol(unit.idolId).awakening) return false;
 
     unit.awakening = branch;
-    this.resolve(unit);
+    // 「合唱」「独唱」はオーラを変える。周囲のバフ量が動くので全員を解決し直す
+    this.refreshUnitStats();
     this.record('awaken', { id, branch });
     return true;
   }
@@ -608,6 +788,7 @@ export class BattleWorld {
     if (!unit) return false;
     this.units.splice(index, 1);
     this.addCheer(Math.floor(unit.investedCost * SELL_REFUND));
+    this.refreshUnitStats();
     this.record('sell', { id });
     return true;
   }
@@ -621,17 +802,38 @@ export class BattleWorld {
   }
 
   private refreshUnitStats(): void {
+    // オーラを先に全員ぶん確定させる。後回しにすると、まだ解決していない
+    // 味方のオーラを取りこぼす順序依存が生まれる
+    for (const unit of this.units) unit.aura = resolveUnitAura(unit);
     for (const unit of this.units) this.resolve(unit);
   }
 
-  /** 配置マスの種別を添えてステータスを解決する */
+  /** 配置マスの種別・センター・味方オーラを添えてステータスを解決する */
   private resolve(unit: Unit): void {
-    resolveUnit(
-      unit,
-      this.runPool,
-      this.specialActive,
-      this.stage.cellTypes[`${unit.cell.x},${unit.cell.y}`],
-    );
+    resolveUnit(unit, {
+      runPool: this.runPool,
+      center: this.center,
+      cellType: this.stage.cellTypes[`${unit.cell.x},${unit.cell.y}`],
+      specialActive: this.specialActive,
+      allyAtkPct: this.allyAtkPctFor(unit),
+    });
+  }
+
+  /**
+   * 周囲の味方から受け取る ATK 加算（V2「かさね」）。
+   *
+   * オーラの提供側の値は「定義 + 覚醒」だけで決まり、受け手のステータスには
+   * 依存しない。したがって解決の順序を気にせず 1 パスで確定できる。
+   */
+  private allyAtkPctFor(unit: Unit): number {
+    let total = 0;
+    for (const other of this.units) {
+      if (other.id === unit.id) continue;
+      const aura = other.aura;
+      if (!aura || aura.allyAtkPct === 0) continue;
+      if (withinRange(other.pos, unit.pos, aura.radius)) total += aura.allyAtkPct;
+    }
+    return total;
   }
 
   /**
@@ -737,6 +939,8 @@ export class BattleWorld {
     return {
       stageId: this.stageId,
       stageName: this.stage.name,
+      palette: this.palette,
+      centerName: this.centerName,
       songName: this.song.name,
       bpm: this.song.bpm,
       bar: this.clock.bar,
@@ -771,7 +975,7 @@ export class BattleWorld {
           ? (getIdol(u.idolId).awakening?.[u.awakening]?.name ?? null)
           : null,
         investedCost: u.investedCost,
-        upgradeCost: upgradeCost(getIdol(u.idolId).cost, u.level),
+        upgradeCost: upgradeCost(this.placementCost(u.idolId), u.level),
         awaitingAwakening: u.level >= 3 && !u.awakening && !!getIdol(u.idolId).awakening,
         lastAttackAgeMs: u.lastAttackAgeMs,
         targetX: u.lastTargetPos?.x ?? null,
@@ -790,6 +994,7 @@ export class BattleWorld {
         radius: e.radius,
         hpRatio: Math.max(0, e.hp / e.maxHp),
         slowed: e.statuses.some((s) => s.kind === 'slow'),
+        bound: isImmobilized(e.statuses),
         echo: echoStacks(e.statuses),
       })),
       floatingTexts: this.floatingTexts,

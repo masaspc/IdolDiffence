@@ -855,3 +855,159 @@ kbd {
   border-color: var(--panel-edge);
   background: var(--panel);
 }
+
+/* --- 編成（M3） --- */
+
+.party-open {
+  display: grid;
+  gap: 0.5rem;
+  width: 100%;
+  padding: 1rem 1.2rem;
+  border-radius: 14px;
+  border: 1px solid var(--panel-edge);
+  background: var(--panel);
+  color: var(--text);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.party-open:hover {
+  border-color: var(--visual);
+  background: rgba(255, 213, 79, 0.08);
+}
+
+.party-members {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+
+.party-chip {
+  padding: 0.25rem 0.6rem;
+  border-radius: 999px;
+  border: 1px solid var(--panel-edge);
+  background: rgba(255, 255, 255, 0.06);
+  font-size: 0.78rem;
+}
+
+.party-chip.type-vocal { border-color: var(--vocal); }
+.party-chip.type-dance { border-color: var(--dance); }
+.party-chip.type-visual { border-color: var(--visual); }
+
+.party-hint {
+  font-size: 0.72rem;
+  color: var(--text-dim);
+}
+
+.party-screen .home-head .ghost {
+  padding: 0.5rem 1rem;
+  border-radius: 8px;
+  border: 1px solid var(--panel-edge);
+  background: transparent;
+  color: var(--text);
+  font: inherit;
+  cursor: pointer;
+}
+
+.center-summary {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.6rem;
+  margin-bottom: 0.5rem;
+  padding: 0.8rem 1rem;
+  border-radius: 12px;
+  border: 1px solid var(--visual);
+  background: rgba(255, 213, 79, 0.08);
+  font-size: 0.85rem;
+}
+
+.center-summary.is-empty {
+  border-color: var(--panel-edge);
+  background: var(--panel);
+  color: var(--text-dim);
+}
+
+.center-badge {
+  padding: 0.15rem 0.5rem;
+  border-radius: 999px;
+  background: var(--visual);
+  color: #1b1436;
+  font-size: 0.7rem;
+  font-weight: bold;
+}
+
+.center-effect {
+  color: var(--text-dim);
+  font-size: 0.78rem;
+}
+
+.roster-card.is-party {
+  background: rgba(255, 255, 255, 0.09);
+}
+
+.roster-card.is-center {
+  outline: 1px solid var(--visual);
+}
+
+.roster-card.is-locked {
+  opacity: 0.5;
+}
+
+.roster-note {
+  margin: 0 0 0.8rem;
+  font-size: 0.74rem;
+  color: var(--text-dim);
+  line-height: 1.5;
+}
+
+.party-actions {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 0.5rem;
+}
+
+.party-actions .lesson.is-on {
+  background: rgba(255, 213, 79, 0.18);
+  border-color: var(--visual);
+}
+
+.party-actions .ghost {
+  padding: 0.55rem 0.8rem;
+  border-radius: 8px;
+  border: 1px solid var(--panel-edge);
+  background: transparent;
+  color: var(--text-dim);
+  font: inherit;
+  font-size: 0.78rem;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.party-actions .ghost:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
+.palette-item.is-center {
+  box-shadow: inset 0 -2px 0 var(--visual);
+}
+
+.song-center {
+  margin-left: 0.6rem;
+  font-style: normal;
+  font-size: 0.72rem;
+  color: var(--text-dim);
+}
+
+/* 「センター」バッジが入ると名前の列が潰れて折り返す。列幅を守る */
+.roster-head > div {
+  flex: 1;
+  min-width: 0;
+}
+
+.roster-level {
+  white-space: nowrap;
+  font-size: 0.78rem;
+}

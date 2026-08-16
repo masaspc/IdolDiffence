@@ -10,7 +10,7 @@ import { GameLoop } from '../core/loop';
 import { Renderer, type HoverState } from '../render/renderer';
 import { createWorld, type BattleMeta, type BattleWorld, type WorldSnapshot } from '../sim/world';
 import { randomSeed } from '../core/rng';
-import { getIdol, rosterIds } from '../data';
+import { getIdol } from '../data';
 import type { AwakeningKey } from '../data/schema/idol';
 import type { BattleOutcome } from '../meta/progression';
 import { Hud } from './Hud';
@@ -286,8 +286,9 @@ export function BattleScreen({ stageId, meta, onFinish, onExit }: BattleScreenPr
         cycleSpeed();
       }
       const index = Number(event.key);
-      if (Number.isInteger(index) && index >= 1 && index <= rosterIds.length) {
-        const id = rosterIds[index - 1];
+      const palette = worldRef.current?.snapshot().palette ?? [];
+      if (Number.isInteger(index) && index >= 1 && index <= palette.length) {
+        const id = palette[index - 1]?.idolId;
         if (id) selectIdol(id);
       }
     };

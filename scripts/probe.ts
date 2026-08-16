@@ -1,60 +1,31 @@
 /**
- * ヘッドレスのバランス検証（簡易版）。
+ * ヘッドレスのバランス検証。
  *
- * M2 は「負ける → 育てる → 勝つ」が成立するかの判断ポイント。
  * 感想ではなく数字で見るために、育成段階 × 強化の使い方を総当たりする
- * （docs/design/07-roadmap.md M2 の計測）。
+ * （docs/design/07-roadmap.md M2 / M3 の計測）。
  *
- *   npx tsx src/balance/probe.ts
+ *   npx tsx scripts/probe.ts          # 全ステージ
+ *   npx tsx scripts/probe.ts S4 S5    # 指定したステージだけ
  */
-import { createWorld } from '../sim/world';
-import { autoplay, type Placement } from '../sim/autoplay';
-import { getIdol, rosterIds } from '../data';
-import { levelAtkMultiplier } from '../meta/progression';
+import { createWorld, type BattleMeta } from '../src/sim/world';
+import { autoplay, type Placement } from '../src/sim/autoplay';
+import { getIdol, rosterIds } from '../src/data';
+import { levelAtkMultiplier } from '../src/meta/progression';
+import { minimalPlan, PLAN_STAGES, STAGE_PLANS } from '../src/balance/plans';
 
 const SEED = 20260816;
 
 /** 育成段階を再現する。レベルだけを変えて他は同条件にする */
-function metaAtLevel(level: number): { atkByIdol: Record<string, number> } {
+function metaAt(stageId: string, level: number): BattleMeta {
+  const plan = STAGE_PLANS[stageId];
   return {
     atkByIdol: Object.fromEntries(
       rosterIds.map((id) => [id, getIdol(id).base.atk * levelAtkMultiplier(level)]),
     ),
+    party: plan?.party ?? [],
+    center: plan?.center ?? null,
   };
 }
-
-/** ステージごとの「経路沿いに置く」プラン。人間の最適解ではなく下限の目安 */
-const PLANS: Record<string, Placement[]> = {
-  S1: [
-    { idolId: 'D1', x: 4, y: 6, upgradeTo: 3, awakening: 'A' },
-    { idolId: 'V1', x: 8, y: 5, upgradeTo: 3, awakening: 'A' },
-    { idolId: 'Vi1', x: 12, y: 5, upgradeTo: 2 },
-    { idolId: 'D1', x: 11, y: 4, upgradeTo: 2 },
-    { idolId: 'V1', x: 3, y: 3, upgradeTo: 2 },
-  ],
-  S2: [
-    { idolId: 'D1', x: 3, y: 5, upgradeTo: 3, awakening: 'A' },
-    { idolId: 'V1', x: 7, y: 4, upgradeTo: 3, awakening: 'A' },
-    { idolId: 'Vi1', x: 12, y: 5, upgradeTo: 2 },
-    { idolId: 'D1', x: 6, y: 3, upgradeTo: 2 },
-    { idolId: 'V1', x: 14, y: 5, upgradeTo: 2 },
-    { idolId: 'D1', x: 1, y: 4 },
-  ],
-  S3: [
-    { idolId: 'V1', x: 5, y: 3, upgradeTo: 3, awakening: 'A' },
-    { idolId: 'V1', x: 9, y: 2, upgradeTo: 3, awakening: 'A' },
-    { idolId: 'D1', x: 9, y: 6, upgradeTo: 3, awakening: 'A' },
-    { idolId: 'Vi1', x: 11, y: 2, upgradeTo: 2 },
-    { idolId: 'Vi1', x: 11, y: 6, upgradeTo: 2 },
-    { idolId: 'D1', x: 2, y: 3, upgradeTo: 2 },
-    { idolId: 'D1', x: 2, y: 5, upgradeTo: 2 },
-    { idolId: 'V1', x: 13, y: 2 },
-  ],
-};
-
-/** 最初の 3 枚だけを置く「最低限」プラン */
-const minimalPlan = (stageId: string): Placement[] =>
-  (PLANS[stageId] ?? []).slice(0, 3).map(({ idolId, x, y }) => ({ idolId, x, y }));
 
 interface Row {
   label: string;
@@ -74,7 +45,7 @@ function run(
   plan: readonly Placement[],
   options: { useSpecial?: boolean; worstCard?: boolean } = {},
 ): Row {
-  const world = createWorld(stageId, SEED, metaAtLevel(level));
+  const world = createWorld(stageId, SEED, metaAt(stageId, level));
   const result = autoplay(world, {
     plan,
     ...(options.useSpecial === undefined ? {} : { useSpecial: options.useSpecial }),
@@ -94,16 +65,20 @@ function run(
   };
 }
 
+const requested = process.argv.slice(2);
+const targets = requested.length > 0 ? requested : PLAN_STAGES;
+
 const rows: Row[] = [];
-for (const stageId of ['S1', 'S2', 'S3']) {
-  const full = PLANS[stageId] ?? [];
+for (const stageId of targets) {
+  const full = STAGE_PLANS[stageId]?.placements ?? [];
   rows.push(run(`${stageId} 無配置`, stageId, 1, []));
   rows.push(run(`${stageId} Lv1・3枚のみ`, stageId, 1, minimalPlan(stageId)));
   rows.push(run(`${stageId} Lv1・フル強化`, stageId, 1, full, { useSpecial: true }));
   rows.push(run(`${stageId} Lv10・フル強化`, stageId, 10, full, { useSpecial: true }));
   rows.push(run(`${stageId} Lv20・フル強化`, stageId, 20, full, { useSpecial: true }));
+  rows.push(run(`${stageId} Lv30・フル強化`, stageId, 30, full, { useSpecial: true }));
   rows.push(
-    run(`${stageId} Lv10・別のカード選択`, stageId, 10, full, { useSpecial: true, worstCard: true }),
+    run(`${stageId} Lv20・別のカード選択`, stageId, 20, full, { useSpecial: true, worstCard: true }),
   );
 }
 

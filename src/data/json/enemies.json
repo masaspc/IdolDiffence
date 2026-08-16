@@ -20,5 +20,94 @@
     "bounty": 8,
     "flying": false,
     "radius": 0.24
+  },
+  "e_swarm": {
+    "name": "ホタル",
+    "attr": "noise",
+    "hp": 45,
+    "def": 0,
+    "speed": 1.2,
+    "leak": 1,
+    "bounty": 4,
+    "flying": false,
+    "radius": 0.18
+  },
+  "e_armor": {
+    "name": "イワクラ",
+    "attr": "glare",
+    "hp": 300,
+    "def": 120,
+    "speed": 0.7,
+    "leak": 2,
+    "bounty": 14,
+    "flying": false,
+    "radius": 0.38
+  },
+  "e_flyer": {
+    "name": "アマツバメ",
+    "attr": "silence",
+    "hp": 150,
+    "def": 20,
+    "speed": 1.5,
+    "leak": 2,
+    "bounty": 12,
+    "flying": true,
+    "radius": 0.26
+  },
+  "e_healer": {
+    "name": "ツキシズク",
+    "attr": "noise",
+    "hp": 200,
+    "def": 40,
+    "speed": 0.9,
+    "leak": 1,
+    "bounty": 16,
+    "flying": false,
+    "radius": 0.32,
+    "traits": {
+      "healAura": { "radius": 2.4, "percentPerSec": 0.03 }
+    }
+  },
+  "e_shield": {
+    "name": "カガミ",
+    "attr": "glare",
+    "hp": 250,
+    "def": 60,
+    "speed": 1.0,
+    "leak": 2,
+    "bounty": 15,
+    "flying": false,
+    "radius": 0.34,
+    "traits": {
+      "frontShield": 0.6
+    }
+  },
+  "e_splitter": {
+    "name": "ムラクモ",
+    "attr": "noise",
+    "hp": 220,
+    "def": 20,
+    "speed": 1.1,
+    "leak": 2,
+    "bounty": 18,
+    "flying": false,
+    "radius": 0.34,
+    "traits": {
+      "onDeathSpawn": { "enemy": "e_swarm", "count": 3 }
+    }
+  },
+  "e_drainer": {
+    "name": "トコヤミ",
+    "attr": "silence",
+    "hp": 400,
+    "def": 80,
+    "speed": 0.8,
+    "leak": 3,
+    "bounty": 25,
+    "flying": false,
+    "radius": 0.4,
+    "traits": {
+      "drainAura": { "radius": 3.0, "speedMul": 0.75 }
+    }
   }
 }

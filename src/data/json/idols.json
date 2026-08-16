@@ -4,120 +4,313 @@
     "shortName": "かぐや",
     "type": "vocal",
     "cost": 30,
-    "base": {
-      "atk": 90,
-      "range": 3.0,
-      "attackIntervalMs": 1600,
-      "critRate": 0.05,
-      "critDmg": 0.5
-    },
+    "tags": ["kaguya"],
+    "base": { "atk": 90, "range": 3.0, "attackIntervalMs": 1600, "critRate": 0.05, "critDmg": 0.5 },
     "attack": {
       "kind": "aoe_ring",
       "skillMul": 0.9,
       "radius": 1.2,
       "canHitFlying": true
     },
+    "centerPassive": {
+      "name": "月に届く声",
+      "desc": "全体 ATK +10%、月華の蓄積 +10%",
+      "mods": { "atkMul": 1.1, "voltageGainMul": 1.1 }
+    },
     "awakening": {
       "A": {
         "name": "フルコーラス",
         "desc": "歌声を大きく広げる。遅くなる代わりに一度で多くを巻き込む",
-        "mods": {
-          "attackIntervalMul": 1.5,
-          "radiusMul": 1.8
-        }
+        "mods": { "attackIntervalMul": 1.5, "radiusMul": 1.8 }
       },
       "B": {
         "name": "ラップコール",
         "desc": "畳みかけるように歌い、命中ごとに Echo を重ねる",
-        "mods": {
-          "attackIntervalMul": 0.6,
-          "radiusMul": 0.7
-        },
-        "onHit": {
-          "status": "echo",
-          "value": 1,
-          "durationMs": 4000
-        }
+        "mods": { "attackIntervalMul": 0.6, "radiusMul": 0.7 },
+        "onHit": [{ "status": "echo", "value": 1, "durationMs": 4000 }]
       }
     }
   },
+
+  "V2": {
+    "name": "篠宮 なゆた",
+    "shortName": "なゆた",
+    "type": "vocal",
+    "cost": 45,
+    "tags": ["gonan"],
+    "base": { "atk": 105, "range": 3.6, "attackIntervalMs": 2000, "critRate": 0.05, "critDmg": 0.5 },
+    "attack": {
+      "kind": "aoe_ring",
+      "skillMul": 0.85,
+      "radius": 1.0,
+      "canHitFlying": true
+    },
+    "aura": {
+      "name": "かさね",
+      "desc": "近くのメンバーの ATK +20%",
+      "radius": 2.4,
+      "allyAtkPct": 0.2
+    },
+    "centerPassive": {
+      "name": "重ねる声",
+      "desc": "全体 ATK +6%、射程 +8%",
+      "mods": { "atkMul": 1.06, "rangeMul": 1.08 }
+    },
+    "awakening": {
+      "A": {
+        "name": "合唱",
+        "desc": "かさねの範囲を大きく広げる（効果量は据え置き）",
+        "mods": { "auraRadiusMul": 2.0 }
+      },
+      "B": {
+        "name": "独唱",
+        "desc": "かさねを手放し、その力を自分に集める。自身の ATK +45%",
+        "mods": { "auraToSelfAtk": 0.45 }
+      }
+    }
+  },
+
+  "V3": {
+    "name": "白鷺 うたげ",
+    "shortName": "うたげ",
+    "type": "vocal",
+    "cost": 60,
+    "tags": ["tsukuyomi"],
+    "base": { "atk": 140, "range": 4.5, "attackIntervalMs": 2400, "critRate": 0.05, "critDmg": 0.5 },
+    "attack": {
+      "kind": "pierce_line",
+      "skillMul": 1.0,
+      "radius": 0.7,
+      "canHitFlying": true,
+      "defIgnore": 0.4
+    },
+    "centerPassive": {
+      "name": "ながれ",
+      "desc": "全体 ATK +8%、射程 +12%",
+      "mods": { "atkMul": 1.08, "rangeMul": 1.12 }
+    },
+    "awakening": {
+      "A": {
+        "name": "咆哮",
+        "desc": "3 発ごとに直線上の敵をまとめて押し戻す",
+        "mods": {},
+        "knockback": { "everyHits": 3, "distance": 1.2 }
+      },
+      "B": {
+        "name": "子守唄",
+        "desc": "命中した敵を 1.2 秒眠らせる",
+        "mods": {},
+        "onHit": [{ "status": "stun", "value": 1, "durationMs": 1200 }]
+      }
+    }
+  },
+
   "D1": {
     "name": "酒寄 彩葉",
     "shortName": "彩葉",
     "type": "dance",
     "cost": 25,
-    "base": {
-      "atk": 130,
-      "range": 2.2,
-      "attackIntervalMs": 700,
-      "critRate": 0.08,
-      "critDmg": 0.5
-    },
+    "tags": ["kaguya"],
+    "base": { "atk": 130, "range": 2.2, "attackIntervalMs": 700, "critRate": 0.08, "critDmg": 0.5 },
     "attack": {
       "kind": "single",
       "skillMul": 0.8,
       "radius": 0,
       "canHitFlying": false,
-      "onHit": {
-        "status": "slow",
-        "value": 0.08,
-        "durationMs": 300
-      }
+      "onHit": [{ "status": "slow", "value": 0.08, "durationMs": 300 }]
+    },
+    "centerPassive": {
+      "name": "あけぼの",
+      "desc": "全体攻撃速度 +8%、配置コスト -8%",
+      "mods": { "attackSpeedMul": 1.08, "costMul": 0.92 }
     },
     "awakening": {
       "A": {
         "name": "乱舞",
         "desc": "同時に 3 体まで捌く",
-        "mods": {
-          "multiTarget": 3
-        }
+        "mods": { "multiTarget": 3 }
       },
       "B": {
         "name": "一閃",
         "desc": "一点に集中する。クリティカル率 +35%",
-        "mods": {
-          "critRateAdd": 0.35
-        }
+        "mods": { "critRateAdd": 0.35 }
       }
     }
   },
+
+  "D2": {
+    "name": "龍胆 りん",
+    "shortName": "りん",
+    "type": "dance",
+    "cost": 50,
+    "tags": ["gonan"],
+    "base": { "atk": 200, "range": 2.0, "attackIntervalMs": 1100, "critRate": 0.08, "critDmg": 0.5 },
+    "attack": {
+      "kind": "single",
+      "skillMul": 0.9,
+      "radius": 0,
+      "canHitFlying": false,
+      "knockback": { "everyHits": 4, "distance": 0.8 }
+    },
+    "centerPassive": {
+      "name": "たまくだき",
+      "desc": "全体 ATK +12%、攻撃速度 -4%",
+      "mods": { "atkMul": 1.12, "attackSpeedMul": 0.96 }
+    },
+    "awakening": {
+      "A": {
+        "name": "旋風",
+        "desc": "攻撃を範囲化し、**対空を獲得する**。ダンスが空を叩ける唯一の道",
+        "mods": { "toAoe": 1.1, "grantFlying": true }
+      },
+      "B": {
+        "name": "貫手",
+        "desc": "DEF を 60% 無視して撃ち抜く",
+        "mods": { "defIgnoreAdd": 0.6 }
+      }
+    }
+  },
+
+  "D3": {
+    "name": "火群 ほむら",
+    "shortName": "ほむら",
+    "type": "dance",
+    "cost": 70,
+    "tags": ["gonan"],
+    "base": { "atk": 260, "range": 1.8, "attackIntervalMs": 1400, "critRate": 0.1, "critDmg": 0.6 },
+    "attack": {
+      "kind": "single",
+      "skillMul": 0.95,
+      "radius": 0,
+      "canHitFlying": false,
+      "execute": { "threshold": 0.3, "mul": 2.2 }
+    },
+    "centerPassive": {
+      "name": "ひねずみ",
+      "desc": "全体 ATK +14%、声援獲得 -6%",
+      "mods": { "atkMul": 1.14, "cheerGainMul": 0.94 }
+    },
+    "awakening": {
+      "A": {
+        "name": "追撃",
+        "desc": "撃破すると次の一撃をすぐ撃てる",
+        "mods": { "resetCooldownOnKill": true }
+      },
+      "B": {
+        "name": "制圧",
+        "desc": "周囲を巻き込み、当たった敵に脆弱 +30% を付ける",
+        "mods": { "toAoe": 1.3 },
+        "onHit": [{ "status": "vulnerable", "value": 0.3, "durationMs": 3000 }]
+      }
+    }
+  },
+
   "Vi1": {
     "name": "月見 ヤチヨ",
     "shortName": "ヤチヨ",
     "type": "visual",
     "cost": 35,
-    "base": {
-      "atk": 60,
-      "range": 3.4,
-      "attackIntervalMs": 1200,
-      "critRate": 0.05,
-      "critDmg": 0.5
-    },
+    "tags": ["kaguya"],
+    "base": { "atk": 60, "range": 3.4, "attackIntervalMs": 1200, "critRate": 0.05, "critDmg": 0.5 },
     "attack": {
       "kind": "single",
       "skillMul": 0.7,
       "radius": 0,
       "canHitFlying": true,
-      "onHit": {
-        "status": "slow",
-        "value": 0.25,
-        "durationMs": 3000
-      }
+      "onHit": [{ "status": "slow", "value": 0.25, "durationMs": 3000 }]
+    },
+    "centerPassive": {
+      "name": "かがやき",
+      "desc": "声援獲得 +15%、スペシャルライブの持続 +2 秒",
+      "mods": { "cheerGainMul": 1.15, "specialDurationAddMs": 2000 }
     },
     "awakening": {
       "A": {
         "name": "管理者権限",
         "desc": "ツクヨミの管理者として、範囲でまとめて減速をかける",
-        "mods": {
-          "toAoe": 1.1
-        }
+        "mods": { "toAoe": 1.1 }
       },
       "B": {
         "name": "モデレート",
         "desc": "一体を強く抑え込む。減速 -45%",
-        "mods": {
-          "slowValue": 0.45
-        }
+        "mods": { "slowValue": 0.45 }
+      }
+    }
+  },
+
+  "Vi2": {
+    "name": "望月 みつき",
+    "shortName": "みつき",
+    "type": "visual",
+    "cost": 55,
+    "tags": ["tsukuyomi"],
+    "base": { "atk": 75, "range": 3.0, "attackIntervalMs": 1500, "critRate": 0.05, "critDmg": 0.5 },
+    "attack": {
+      "kind": "single",
+      "skillMul": 0.75,
+      "radius": 0,
+      "canHitFlying": true,
+      "onHit": [{ "status": "charm", "value": 1, "durationMs": 2000 }]
+    },
+    "centerPassive": {
+      "name": "まどわし",
+      "desc": "状態異常の効果量 +20%、全体 ATK +4%",
+      "mods": { "slowPowerMul": 1.2, "atkMul": 1.04 }
+    },
+    "awakening": {
+      "A": {
+        "name": "魅惑",
+        "desc": "同時に 2 体を魅了する",
+        "mods": { "multiTarget": 2 }
+      },
+      "B": {
+        "name": "幻惑",
+        "desc": "魅了した敵に脆弱 +30% を重ねる",
+        "mods": {},
+        "onHit": [
+          { "status": "charm", "value": 1, "durationMs": 2000 },
+          { "status": "vulnerable", "value": 0.3, "durationMs": 4000 }
+        ]
+      }
+    }
+  },
+
+  "Vi3": {
+    "name": "玉枝 るり",
+    "shortName": "るり",
+    "type": "visual",
+    "cost": 80,
+    "tags": ["tsukuyomi"],
+    "base": { "atk": 95, "range": 4.0, "attackIntervalMs": 1800, "critRate": 0.05, "critDmg": 0.5 },
+    "attack": {
+      "kind": "single",
+      "skillMul": 0.8,
+      "radius": 0,
+      "canHitFlying": true,
+      "onHit": [{ "status": "slow", "value": 0.15, "durationMs": 2000 }]
+    },
+    "aura": {
+      "name": "たまのえだ",
+      "desc": "範囲内の敵の DEF -35%、味方の ATK +15%",
+      "radius": 3.0,
+      "allyAtkPct": 0.15,
+      "enemyDefPct": 0.35
+    },
+    "centerPassive": {
+      "name": "たまのえだ",
+      "desc": "全体 ATK +10%、射程 +6%、声援獲得 +6%",
+      "mods": { "atkMul": 1.1, "rangeMul": 1.06, "cheerGainMul": 1.06 }
+    },
+    "awakening": {
+      "A": {
+        "name": "女王",
+        "desc": "デバフに寄せる。オーラの効果量 ×1.6",
+        "mods": { "auraPowerMul": 1.6 }
+      },
+      "B": {
+        "name": "演出家",
+        "desc": "支援に寄せる。オーラの範囲 ×1.7",
+        "mods": { "auraRadiusMul": 1.7 }
       }
     }
   }

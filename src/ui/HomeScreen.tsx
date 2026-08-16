@@ -4,13 +4,15 @@
  * 「次に何をすればいいか」が一目で分かることを最優先にする。
  * レベルアップ可能なキャラにはバッジを出す（06-ui-ux.md 6.1）。
  */
-import { getIdol, getSong, getStage, requiredStage, rosterIds, stageOrder } from '../data';
+import { getIdol, getSong, getStage, requiredStage, stageOrder } from '../data';
 import {
   canLevelUp,
   idolLevel,
   levelAtkMultiplier,
   levelUpCost,
   MAX_LEVEL,
+  normalizeParty,
+  unlockedIds,
 } from '../meta/progression';
 import type { SaveData } from '../meta/save';
 
@@ -20,12 +22,21 @@ const TYPE_LABEL: Record<string, string> = { vocal: '歌', dance: 'ダンス', v
 interface HomeScreenProps {
   save: SaveData;
   onLevelUp: (idolId: string) => void;
+  onOpenParty: () => void;
   onStart: (stageId: string) => void;
   lastResult: { won: boolean; audience: number; funds: number } | null;
 }
 
-export function HomeScreen({ save, onLevelUp, onStart, lastResult }: HomeScreenProps): React.JSX.Element {
-  const upgradable = rosterIds.filter((id) => canLevelUp(save, id)).length;
+export function HomeScreen({
+  save,
+  onLevelUp,
+  onOpenParty,
+  onStart,
+  lastResult,
+}: HomeScreenProps): React.JSX.Element {
+  const roster = unlockedIds(save);
+  const upgradable = roster.filter((id) => canLevelUp(save, id)).length;
+  const { party, center } = normalizeParty(save);
 
   return (
     <div className="home">
@@ -47,13 +58,30 @@ export function HomeScreen({ save, onLevelUp, onStart, lastResult }: HomeScreenP
         </div>
       )}
 
+      <section className="party-summary">
+        <h2>編成</h2>
+        <button type="button" className="party-open" onClick={onOpenParty}>
+          <span className="party-members">
+            {party.map((id) => (
+              <span key={id} className={`party-chip type-${getIdol(id).type}`}>
+                {TYPE_ICON[getIdol(id).type]} {getIdol(id).shortName}
+                {center === id ? '（センター）' : ''}
+              </span>
+            ))}
+          </span>
+          <span className="party-hint">
+            {roster.length} 人中 {party.length} 人が出撃・タップして変更
+          </span>
+        </button>
+      </section>
+
       <section className="roster">
         <h2>
           レッスン
           {upgradable > 0 && <span className="badge">{upgradable}</span>}
         </h2>
         <div className="roster-list">
-          {rosterIds.map((id) => {
+          {roster.map((id) => {
             const idol = getIdol(id);
             const level = idolLevel(save, id);
             const maxed = level >= MAX_LEVEL;

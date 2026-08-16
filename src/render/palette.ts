@@ -23,6 +23,8 @@ export const palette = {
   runwayEdge: 'rgba(255, 213, 79, 0.6)',
   audienceCell: 'rgba(255, 107, 168, 0.16)',
   audienceCellEdge: 'rgba(255, 107, 168, 0.55)',
+  monitorCell: 'rgba(38, 166, 154, 0.18)',
+  monitorCellEdge: 'rgba(38, 166, 154, 0.6)',
   goal: '#FFD54F',
   text: '#EAE6FF',
   textDim: 'rgba(234, 230, 255, 0.55)',
@@ -57,8 +59,10 @@ export type CellStyle = { fill: string; stroke: string };
 export function cellStyle(type: string | undefined): CellStyle {
   switch (type) {
     case 'runway':
-    case 'monitor':
       return { fill: palette.runway, stroke: palette.runwayEdge };
+    // モニター前は S7 で初登場する。花道と同じ色だと区別が付かない
+    case 'monitor':
+      return { fill: palette.monitorCell, stroke: palette.monitorCellEdge };
     case 'audience':
       return { fill: palette.audienceCell, stroke: palette.audienceCellEdge };
     default:
