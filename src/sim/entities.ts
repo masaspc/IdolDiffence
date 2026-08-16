@@ -1,17 +1,23 @@
 import type { Vec2 } from '../core/vec';
 import type { Attribute, IdolType } from '../data/schema/common';
-import type { AttackDef, AwakeningKey, OnHit } from '../data/schema/idol';
+import type { AttackDef, AwakeningKey, Execute, Knockback, OnHit } from '../data/schema/idol';
+import type { EnemyTraits } from '../data/schema/enemy';
 import type { Effectiveness } from './damage';
 
 export type EntityId = number;
 
 /**
- * 状態異常。
- * - slow: 最大値のみ適用（重複しない）
+ * 状態異常の種別。
+ * - slow: 移動速度低下。最大値のみ適用（重複しない）
  * - echo: 独立にスタックし、毎秒ダメージ（02-core-battle.md 2.8）
+ * - charm / stun: 移動を止める。効果は同じで、由来と表示が違う
+ *   （魅了 = Vi2「まどわし」／スタン = V3 覚醒「子守唄」）
+ * - vulnerable: 被ダメージ増加
  */
+export type StatusKind = 'slow' | 'echo' | 'charm' | 'stun' | 'vulnerable';
+
 export interface StatusEffect {
-  kind: 'slow' | 'echo';
+  kind: StatusKind;
   value: number;
   remainingMs: number;
   /** echo のスタック数 */
@@ -38,6 +44,7 @@ export interface Enemy {
   radius: number;
   leak: number;
   bounty: number;
+  traits: EnemyTraits;
 
   lane: number;
   /** 現在のウェイポイント区間 */
@@ -63,7 +70,20 @@ export interface ResolvedAttack {
   skillMul: number;
   /** 単体攻撃が同時に狙える数。覚醒 A「乱舞」で増える */
   multiTarget: number;
-  onHit: OnHit | undefined;
+  /** 防御無視（0..1） */
+  defIgnore: number;
+  execute: Execute | undefined;
+  knockback: Knockback | undefined;
+  /** 撃破時に攻撃間隔を即座に空ける。D3 覚醒「追撃」 */
+  resetCooldownOnKill: boolean;
+  onHit: readonly OnHit[];
+}
+
+/** 配置している限り効き続けるオーラ。解決済みの実効値 */
+export interface ResolvedAura {
+  radius: number;
+  allyAtkPct: number;
+  enemyDefPct: number;
 }
 
 export interface Unit {
@@ -92,8 +112,11 @@ export interface Unit {
   critRate: number;
   critDmg: number;
   attack: ResolvedAttack;
+  aura: ResolvedAura | null;
 
   cooldownMs: number;
+  /** ノックバックの発動間隔を数えるための命中カウンタ */
+  hitCount: number;
   /** 直近の攻撃対象。描画のためだけに保持する */
   lastTargetPos: Vec2 | null;
   lastAttackAgeMs: number;
@@ -120,6 +143,24 @@ export function slowFactor(statuses: readonly StatusEffect[]): number {
   return 1 - Math.min(max, 0.75);
 }
 
+/** 魅了・スタン中は移動しない */
+export function isImmobilized(statuses: readonly StatusEffect[]): boolean {
+  return statuses.some((s) => s.kind === 'charm' || s.kind === 'stun');
+}
+
+export function isCharmed(statuses: readonly StatusEffect[]): boolean {
+  return statuses.some((s) => s.kind === 'charm');
+}
+
+/** 被ダメージ増加。最大値のみ適用 */
+export function vulnerability(statuses: readonly StatusEffect[]): number {
+  let max = 0;
+  for (const status of statuses) {
+    if (status.kind === 'vulnerable' && status.value > max) max = status.value;
+  }
+  return max;
+}
+
 export function applyStatus(enemy: Enemy, incoming: StatusEffect): void {
   const existing = enemy.statuses.find((s) => s.kind === incoming.kind);
   if (!existing) {
@@ -129,16 +170,13 @@ export function applyStatus(enemy: Enemy, incoming: StatusEffect): void {
 
   if (incoming.kind === 'echo') {
     // Echo はスタックする。上限までは重ねられ、時間は最新で更新
-    existing.stacks = Math.min(
-      ECHO_MAX_STACKS,
-      (existing.stacks ?? 1) + (incoming.stacks ?? 1),
-    );
+    existing.stacks = Math.min(ECHO_MAX_STACKS, (existing.stacks ?? 1) + (incoming.stacks ?? 1));
     existing.dps = Math.max(existing.dps ?? 0, incoming.dps ?? 0);
     existing.remainingMs = Math.max(existing.remainingMs, incoming.remainingMs);
     return;
   }
 
-  // 減速は強い方を採用し、時間は長い方に更新する
+  // それ以外は強い方を採用し、時間は長い方に更新する
   if (incoming.value > existing.value) existing.value = incoming.value;
   if (incoming.remainingMs > existing.remainingMs) existing.remainingMs = incoming.remainingMs;
 }

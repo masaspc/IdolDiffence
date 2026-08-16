@@ -2,7 +2,7 @@
  * 恒久進行（アイドルレベル）と、リザルト報酬。
  * 「負ける → 育てる → 勝つ」のループを成立させる最小構成（03-progression.md ⑦）。
  */
-import { getIdol } from '../data';
+import { getIdol, idolUnlockStage, PARTY_SIZE, rosterIds } from '../data';
 import type { SaveData } from './save';
 
 /** M2 のレベル上限。設計上の最終は 60 だが、限界突破は M3 以降 */
@@ -41,6 +41,68 @@ export function levelUp(save: SaveData, idolId: string): SaveData {
 /** 育成状態を反映した攻撃力。バトル開始時に一度だけ解決する */
 export function resolvedAtk(save: SaveData, idolId: string): number {
   return getIdol(idolId).base.atk * levelAtkMultiplier(idolLevel(save, idolId));
+}
+
+// --- 解放と編成 ---
+
+const ROSTER = new Set<string>(rosterIds);
+
+export function isUnlocked(save: SaveData, idolId: string): boolean {
+  // ロスターに無い ID は「解放前」ではなく**存在しない**。
+  // 手で書き換えたセーブや、キャラを削除した後の古いセーブがここを通ると、
+  // 後段の getIdol() が例外を投げてゲームごと起動しなくなる
+  if (!ROSTER.has(idolId)) return false;
+  const gate = idolUnlockStage[idolId];
+  if (gate === null || gate === undefined) return true;
+  return save.stageProgress[gate]?.cleared === true;
+}
+
+export function unlockedIds(save: SaveData): string[] {
+  return rosterIds.filter((id) => isUnlocked(save, id));
+}
+
+/**
+ * 編成を正規化する。
+ *
+ * 解放前・重複・定員超過を落とし、センターが編成外なら先頭へ寄せる。
+ * セーブは手で書き換えられるうえ、解放条件はバージョンで変わりうるので、
+ * **読み出すたびに通す**。sim 側にも同じ判定を置いているが、
+ * UI が壊れた編成を表示しないようここで整えておく
+ */
+export function normalizeParty(save: SaveData): { party: string[]; center: string | null } {
+  const seen = new Set<string>();
+  const party: string[] = [];
+  for (const id of save.party) {
+    if (seen.has(id) || !isUnlocked(save, id) || party.length >= PARTY_SIZE) continue;
+    seen.add(id);
+    party.push(id);
+  }
+  // 全員外した状態で出撃できてしまうと詰むので、初期メンバーで埋め戻す
+  if (party.length === 0) {
+    for (const id of unlockedIds(save).slice(0, PARTY_SIZE)) party.push(id);
+  }
+  const center = save.center && party.includes(save.center) ? save.center : (party[0] ?? null);
+  return { party, center };
+}
+
+/** 出撃メンバーの入れ替え。定員に達している状態での追加は無視する */
+export function toggleParty(save: SaveData, idolId: string): SaveData {
+  if (!isUnlocked(save, idolId)) return save;
+  const { party, center } = normalizeParty(save);
+
+  if (party.includes(idolId)) {
+    const next = party.filter((id) => id !== idolId);
+    if (next.length === 0) return save; // 空編成は許さない
+    return { ...save, party: next, center: center === idolId ? (next[0] ?? null) : center };
+  }
+  if (party.length >= PARTY_SIZE) return save;
+  return { ...save, party: [...party, idolId], center };
+}
+
+export function setCenter(save: SaveData, idolId: string): SaveData {
+  const { party } = normalizeParty(save);
+  if (!party.includes(idolId)) return save;
+  return { ...save, party, center: idolId };
 }
 
 export interface BattleOutcome {

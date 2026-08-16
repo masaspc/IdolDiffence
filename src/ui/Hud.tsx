@@ -1,4 +1,4 @@
-import { getIdol, rosterIds } from '../data';
+import { getIdol } from '../data';
 import type { AwakeningKey } from '../data/schema/idol';
 import type { WorldSnapshot } from '../sim/world';
 
@@ -60,7 +60,12 @@ export function Hud(props: HudProps): React.JSX.Element {
           <span className="gauge-value">{snapshot.audience}</span>
         </div>
         <div className="song">
-          <span className="song-title">♪ {snapshot.songName}</span>
+          <span className="song-title">
+            ♪ {snapshot.songName}
+            {snapshot.centerName && (
+              <em className="song-center">・センター {snapshot.centerName}</em>
+            )}
+          </span>
           <span className="song-section">
             {sectionLabel}
             {wave ? ` ${wave.index + 1}/${snapshot.waveCount}` : ''} ／ 残り {snapshot.remainingSpawns} 体
@@ -93,24 +98,24 @@ export function Hud(props: HudProps): React.JSX.Element {
         </div>
 
         <div className="palette">
-          {rosterIds.map((id, index) => {
-            const idol = getIdol(id);
-            const affordable = snapshot.cheer >= idol.cost;
+          {snapshot.palette.map((entry, index) => {
+            const affordable = snapshot.cheer >= entry.cost;
             return (
               <button
-                key={id}
+                key={entry.idolId}
                 type="button"
                 className={[
                   'palette-item',
-                  `type-${idol.type}`,
-                  pendingIdolId === id ? 'is-selected' : '',
+                  `type-${entry.type}`,
+                  pendingIdolId === entry.idolId ? 'is-selected' : '',
+                  entry.isCenter ? 'is-center' : '',
                 ].join(' ')}
-                onClick={() => props.onSelectIdol(id)}
-                disabled={!affordable && pendingIdolId !== id}
+                onClick={() => props.onSelectIdol(entry.idolId)}
+                disabled={!affordable && pendingIdolId !== entry.idolId}
               >
-                <span className="palette-icon">{TYPE_ICON[idol.type]}</span>
-                <span className="palette-name">{idol.shortName}</span>
-                <span className="palette-cost">♥{idol.cost}</span>
+                <span className="palette-icon">{TYPE_ICON[entry.type]}</span>
+                <span className="palette-name">{entry.shortName}</span>
+                <span className="palette-cost">♥{entry.cost}</span>
                 <kbd>{index + 1}</kbd>
               </button>
             );

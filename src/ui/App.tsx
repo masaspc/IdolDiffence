@@ -1,18 +1,22 @@
 import { useCallback, useEffect, useState } from 'react';
 import { HomeScreen } from './HomeScreen';
+import { PartyScreen } from './PartyScreen';
 import { BattleScreen } from './BattleScreen';
 import {
   applyReward,
   calcReward,
   levelUp,
+  normalizeParty,
   resolvedAtk,
+  setCenter,
+  toggleParty,
+  unlockedIds,
   type BattleOutcome,
 } from '../meta/progression';
 import { loadSave, saveSave, type SaveData } from '../meta/save';
 import type { BattleMeta } from '../sim/world';
-import { rosterIds } from '../data';
 
-type Screen = 'home' | 'battle';
+type Screen = 'home' | 'party' | 'battle';
 
 export function App(): React.JSX.Element {
   const [save, setSave] = useState<SaveData>(() => {
@@ -63,17 +67,34 @@ export function App(): React.JSX.Element {
     );
   }
 
+  if (screen === 'party') {
+    return (
+      <PartyScreen
+        save={save}
+        onToggle={(id) => setSave((current) => toggleParty(current, id))}
+        onSetCenter={(id) => setSave((current) => setCenter(current, id))}
+        onBack={() => setScreen('home')}
+      />
+    );
+  }
+
   return (
     <HomeScreen
       save={save}
       lastResult={lastResult}
       onLevelUp={handleLevelUp}
+      onOpenParty={() => setScreen('party')}
       onStart={(id) => {
         setStageId(id);
         setLastResult(null);
         // sim にメタ層を触らせないための境界。ここで解決して以後は固定
+        const { party, center } = normalizeParty(save);
         setBattleMeta({
-          atkByIdol: Object.fromEntries(rosterIds.map((rid) => [rid, resolvedAtk(save, rid)])),
+          atkByIdol: Object.fromEntries(
+            unlockedIds(save).map((rid) => [rid, resolvedAtk(save, rid)]),
+          ),
+          party,
+          center,
         });
         setScreen('battle');
       }}

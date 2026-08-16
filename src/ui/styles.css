@@ -41,10 +41,19 @@ body {
   grid-row: 1 / -1;
   position: absolute;
   inset: 0;
+  overflow: hidden;
 }
 
+/*
+ * canvas は絶対配置にして、親の大きさを決める側に回らせない。
+ * 通常フローに置くと「renderer が付けた px の高さ」がグリッドの 1fr を押し広げ、
+ * 次のリサイズでさらに広がる、というループになる
+ */
 .stage canvas {
   display: block;
+  position: absolute;
+  top: 0;
+  left: 0;
 }
 
 .hud {
@@ -854,4 +863,422 @@ kbd {
 .stage-card.is-locked:hover {
   border-color: var(--panel-edge);
   background: var(--panel);
+}
+
+/* --- 編成（M3） --- */
+
+.party-open {
+  display: grid;
+  gap: 0.5rem;
+  width: 100%;
+  padding: 1rem 1.2rem;
+  border-radius: 14px;
+  border: 1px solid var(--panel-edge);
+  background: var(--panel);
+  color: var(--text);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.party-open:hover {
+  border-color: var(--visual);
+  background: rgba(255, 213, 79, 0.08);
+}
+
+.party-members {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+
+.party-chip {
+  padding: 0.25rem 0.6rem;
+  border-radius: 999px;
+  border: 1px solid var(--panel-edge);
+  background: rgba(255, 255, 255, 0.06);
+  font-size: 0.78rem;
+}
+
+.party-chip.type-vocal { border-color: var(--vocal); }
+.party-chip.type-dance { border-color: var(--dance); }
+.party-chip.type-visual { border-color: var(--visual); }
+
+.party-hint {
+  font-size: 0.72rem;
+  color: var(--text-dim);
+}
+
+.party-screen .home-head .ghost {
+  padding: 0.5rem 1rem;
+  border-radius: 8px;
+  border: 1px solid var(--panel-edge);
+  background: transparent;
+  color: var(--text);
+  font: inherit;
+  cursor: pointer;
+}
+
+.center-summary {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.6rem;
+  margin-bottom: 0.5rem;
+  padding: 0.8rem 1rem;
+  border-radius: 12px;
+  border: 1px solid var(--visual);
+  background: rgba(255, 213, 79, 0.08);
+  font-size: 0.85rem;
+}
+
+.center-summary.is-empty {
+  border-color: var(--panel-edge);
+  background: var(--panel);
+  color: var(--text-dim);
+}
+
+.center-badge {
+  padding: 0.15rem 0.5rem;
+  border-radius: 999px;
+  background: var(--visual);
+  color: #1b1436;
+  font-size: 0.7rem;
+  font-weight: bold;
+}
+
+.center-effect {
+  color: var(--text-dim);
+  font-size: 0.78rem;
+}
+
+.roster-card.is-party {
+  background: rgba(255, 255, 255, 0.09);
+}
+
+.roster-card.is-center {
+  outline: 1px solid var(--visual);
+}
+
+.roster-card.is-locked {
+  opacity: 0.5;
+}
+
+.roster-note {
+  margin: 0 0 0.8rem;
+  font-size: 0.74rem;
+  color: var(--text-dim);
+  line-height: 1.5;
+}
+
+.party-actions {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 0.5rem;
+}
+
+.party-actions .lesson.is-on {
+  background: rgba(255, 213, 79, 0.18);
+  border-color: var(--visual);
+}
+
+.party-actions .ghost {
+  padding: 0.55rem 0.8rem;
+  border-radius: 8px;
+  border: 1px solid var(--panel-edge);
+  background: transparent;
+  color: var(--text-dim);
+  font: inherit;
+  font-size: 0.78rem;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.party-actions .ghost:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
+.palette-item.is-center {
+  box-shadow: inset 0 -2px 0 var(--visual);
+}
+
+.song-center {
+  margin-left: 0.6rem;
+  font-style: normal;
+  font-size: 0.72rem;
+  color: var(--text-dim);
+}
+
+/* 「センター」バッジが入ると名前の列が潰れて折り返す。列幅を守る */
+.roster-head > div {
+  flex: 1;
+  min-width: 0;
+}
+
+.roster-level {
+  white-space: nowrap;
+  font-size: 0.78rem;
+}
+
+/* ==========================================================================
+   狭い画面（縦持ちスマホ）
+
+   盤面は Renderer が 90° 倒して画面いっぱいに使う。ここで直すのは HUD 側で、
+   方針は 3 つ:
+     1. 横一列に並べない —— 幅 390px に 5 人ぶんのパレットと操作ボタンは入らない
+     2. 浮いているパネルはボトムシートにする —— 盤面の上に重ねると盤が読めない
+     3. 指で押せる大きさを確保する —— 44px を下回るボタンを作らない
+   ========================================================================== */
+
+@media (max-width: 640px) {
+  .hud {
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    padding: 0.5rem 0.75rem;
+  }
+
+  .hud-top {
+    /* 観客ゲージと曲情報を 1 行ずつに分ける */
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.35rem;
+  }
+
+  .hud-top .gauge {
+    justify-content: space-between;
+  }
+
+  .bar {
+    /* 固定幅をやめて残り幅に追従させる。はみ出しの主因だった */
+    flex: 1;
+    width: auto;
+    min-width: 0;
+  }
+
+  .song {
+    margin-left: 0;
+    text-align: left;
+    flex-direction: row;
+    flex-wrap: wrap;
+    gap: 0.15rem 0.6rem;
+    align-items: baseline;
+  }
+
+  .song-title,
+  .song-section {
+    font-size: 0.72rem;
+  }
+
+  .song-center {
+    margin-left: 0;
+  }
+
+  .hud-bottom {
+    /* パレットと操作ボタンを同じ行に載せて、HUD が食う高さを 1 段ぶん減らす。
+       盤面に回せる高さがそのまま 1 マスの大きさになる */
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-areas:
+      'res res'
+      'pal ctl';
+    align-items: center;
+    gap: 0.4rem 0.5rem;
+    padding-bottom: max(0.4rem, env(safe-area-inset-bottom));
+  }
+
+  .hud-bottom .resources {
+    grid-area: res;
+  }
+
+  .hud-bottom .palette {
+    grid-area: pal;
+  }
+
+  .hud-bottom .controls {
+    grid-area: ctl;
+  }
+
+  .resources {
+    gap: 0.6rem;
+    justify-content: space-between;
+  }
+
+  .cheer {
+    font-size: 1rem;
+  }
+
+  .gauge-voltage {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .gauge-voltage .gauge-label {
+    display: none;
+  }
+
+  .special {
+    min-height: 2.75rem;
+  }
+
+  .palette {
+    /* 5 人ぶんは並びきらないので横スクロールにする。
+       縮めて全員入れると 1 枚あたりが指で押せない大きさになる。
+       右端をぼかして「まだ続く」ことを見せる */
+    overflow-x: auto;
+    scrollbar-width: none;
+    padding-bottom: 0.15rem;
+    gap: 0.4rem;
+    mask-image: linear-gradient(90deg, #000 calc(100% - 1.5rem), transparent);
+  }
+
+  .palette::-webkit-scrollbar {
+    display: none;
+  }
+
+  .palette-item {
+    flex: 0 0 auto;
+    min-height: 2.75rem;
+    padding: 0.35rem 0.6rem 0.35rem 0.45rem;
+  }
+
+  /* キーボードが無いのでショートカット表示は場所の無駄 */
+  .palette-item kbd,
+  .controls kbd,
+  .special kbd {
+    display: none;
+  }
+
+  .controls {
+    justify-content: flex-end;
+  }
+
+  .controls button {
+    min-height: 2.5rem;
+    padding: 0.45rem 1rem;
+  }
+
+  /* 開発用の数値は狭い画面では盤面を隠すだけ */
+  .debug {
+    display: none;
+  }
+
+  .hint {
+    left: 0.75rem;
+    right: 0.75rem;
+    bottom: auto;
+    top: 5.5rem;
+    transform: none;
+    text-align: center;
+    font-size: 0.75rem;
+  }
+
+  /* 選択中のメンバーはボトムシートで出す。
+     盤面へ重ねると、確認したいはずの周囲が見えなくなる */
+  .unit-panel {
+    left: 0;
+    right: 0;
+    top: auto;
+    bottom: 0;
+    min-width: 0;
+    border-radius: 14px 14px 0 0;
+    padding: 0.8rem 1rem max(0.8rem, env(safe-area-inset-bottom));
+    /* 盤面を半分以上は残す。選んだメンバーの周りが見えないと
+       強化するか売るかの判断ができない */
+    max-height: 45vh;
+    overflow-y: auto;
+  }
+
+  .overlay {
+    padding: 1rem;
+    align-items: end;
+  }
+
+  .card-choice,
+  .overlay-card {
+    width: 100%;
+    max-height: 88vh;
+    overflow-y: auto;
+    padding: 0.9rem 0.9rem max(0.9rem, env(safe-area-inset-bottom));
+  }
+
+  .card-choice h2 {
+    font-size: 1.05rem;
+  }
+
+  .card-choice-note {
+    margin-bottom: 0.6rem;
+  }
+
+  .card {
+    /* 3 枚が一画面に収まる高さまで詰める。スクロールさせると
+       「下にもう 1 枚ある」ことに気づかないまま選んでしまう */
+    gap: 0.15rem;
+    padding: 0.6rem 0.75rem;
+  }
+
+  .card-list {
+    /* 3 枚を横に並べると 1 枚 100px 弱になり、説明文が読めない */
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+
+  .card {
+    width: 100%;
+  }
+
+  .overlay-actions {
+    flex-direction: column;
+  }
+
+  /* --- ホームと編成 --- */
+
+  .home {
+    padding: 1.25rem 1rem 3rem;
+  }
+
+  .home-head {
+    flex-wrap: wrap;
+    gap: 0.5rem;
+  }
+
+  .home-head h1 {
+    font-size: 1.4rem;
+  }
+
+  .funds-value {
+    font-size: 1.15rem;
+  }
+
+  .roster-list,
+  .stage-list {
+    grid-template-columns: 1fr;
+  }
+
+  .stage-card {
+    max-width: none;
+  }
+
+  .party-actions .lesson,
+  .party-actions .ghost,
+  .lesson {
+    min-height: 2.75rem;
+  }
+}
+
+/* 横持ちでも高さが足りない端末では、HUD の余白だけ詰める */
+@media (max-height: 480px) and (orientation: landscape) {
+  .hud {
+    padding: 0.4rem 0.9rem;
+  }
+
+  .debug {
+    top: 3.4rem;
+  }
+
+  .unit-panel {
+    top: 3.4rem;
+    max-height: 70vh;
+    overflow-y: auto;
+  }
 }

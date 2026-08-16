@@ -10,7 +10,7 @@
 import { z } from 'zod';
 
 export const SAVE_KEY = 'idoldiffence.save';
-export const CURRENT_VERSION = 1;
+export const CURRENT_VERSION = 2;
 
 export const saveSchema = z.object({
   version: z.number().int().positive(),
@@ -26,9 +26,16 @@ export const saveSchema = z.object({
       plays: z.number().int().nonnegative(),
     }),
   ),
+  /** 出撃メンバー（最大 5 人）。並び順が HUD のパレット順になる */
+  party: z.array(z.string()),
+  /** センター。party に含まれない ID は無視される */
+  center: z.string().nullable(),
 });
 
 export type SaveData = z.infer<typeof saveSchema>;
+
+/** 初期メンバー。原作の 3 人（04-content.md 4.1） */
+export const STARTER_IDS = ['V1', 'D1', 'Vi1'] as const;
 
 export function createNewSave(): SaveData {
   return {
@@ -36,6 +43,8 @@ export function createNewSave(): SaveData {
     funds: 0,
     idolLevels: { V1: 1, D1: 1, Vi1: 1 },
     stageProgress: {},
+    party: [...STARTER_IDS],
+    center: 'V1',
   };
 }
 
@@ -46,8 +55,9 @@ export function createNewSave(): SaveData {
 type Migration = (old: Record<string, unknown>) => Record<string, unknown>;
 
 const migrations: Record<number, Migration> = {
-  // 例）v1 -> v2 でスキルレベルを足すとき:
-  // 1: (old) => ({ ...old, version: 2, skillLevels: {} }),
+  // v1 -> v2: 編成（出撃 5 人 + センター）を追加した（M3）。
+  // 既存プレイヤーは初期 3 人で遊んでいたので、それをそのまま編成として引き継ぐ
+  1: (old) => ({ ...old, version: 2, party: [...STARTER_IDS], center: 'V1' }),
 };
 
 export function migrate(raw: Record<string, unknown>): Record<string, unknown> {

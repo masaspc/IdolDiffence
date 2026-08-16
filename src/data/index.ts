@@ -56,14 +56,37 @@ export function getIdol(id: string): IdolDef {
   return idol;
 }
 
-/** 出撃可能なアイドル。M2 はメイン 3 人のみ */
-export const rosterIds = ['V1', 'D1', 'Vi1'] as const;
+/** 全アイドル。表示順もこの並びに従う */
+export const rosterIds = ['V1', 'V2', 'V3', 'D1', 'D2', 'D3', 'Vi1', 'Vi2', 'Vi3'] as const;
+
+/** 1 ライブに出撃できる人数（03-progression.md ⑤） */
+export const PARTY_SIZE = 5;
+
+/**
+ * アイドルの解放条件。値のステージをクリアすると使えるようになる。
+ *
+ * 設計ではプロデューサーランク（⑫）で配る予定だが、ランクは M4。
+ * それまでは**ステージクリア**を解放の鍵にする。
+ * 「新しい敵が出る回の前に、その敵への答えを配る」順にしてある
+ * （S3 クリアで対空を持つ Vi2 / S4 クリアで DEF 無視の V3・D2 覚醒）。
+ */
+export const idolUnlockStage: Record<string, string | null> = {
+  V1: null,
+  D1: null,
+  Vi1: null,
+  V2: 'S1',
+  D2: 'S2',
+  Vi2: 'S3',
+  V3: 'S4',
+  D3: 'S5',
+  Vi3: 'S5',
+};
 
 /**
  * ステージの並びと解放条件。
  * 前のステージをクリアすると次が開く（06-ui-ux.md 6.5 の段階解放）。
  */
-export const stageOrder = ['S1', 'S2', 'S3'] as const;
+export const stageOrder = ['S1', 'S2', 'S3', 'S4', 'S5', 'S6', 'S7'] as const;
 
 export function requiredStage(stageId: string): string | null {
   const index = stageOrder.indexOf(stageId as (typeof stageOrder)[number]);

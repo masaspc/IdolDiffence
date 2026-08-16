@@ -74,6 +74,11 @@ if (idols.success) {
     if (idol.attack.kind === 'aoe_ring' && idol.attack.radius <= 0) {
       errors.push(`idols.json: ${id} は aoe_ring ですが radius が 0 です`);
     }
+    if (!idol.art) {
+      // 無いと黙って丸へフォールバックする。9 人のうち 1 人だけ丸、という
+      // 気付きにくい抜けを防ぐ
+      errors.push(`idols.json: ${id} に art（ドット絵の指定）がありません`);
+    }
     if (idol.type === 'dance' && idol.attack.canHitFlying) {
       errors.push(
         `idols.json: ${id} はダンス系統ですが canHitFlying=true です。` +

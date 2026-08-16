@@ -4,6 +4,9 @@
     "shortName": "かぐや",
     "type": "vocal",
     "cost": 30,
+    "tags": [
+      "kaguya_irop"
+    ],
     "base": {
       "atk": 90,
       "range": 3.0,
@@ -16,6 +19,23 @@
       "skillMul": 0.9,
       "radius": 1.2,
       "canHitFlying": true
+    },
+    "art": {
+      "hairStyle": "long",
+      "hair": "#f4e6b0",
+      "outfit": "#2b2748",
+      "accent": "#ff6ba8",
+      "eye": "#7a5bd0",
+      "body": "skirt",
+      "ahoge": true
+    },
+    "centerPassive": {
+      "name": "自由奔放",
+      "desc": "全体 ATK +10%、月華の蓄積 +10%",
+      "mods": {
+        "atkMul": 1.1,
+        "voltageGainMul": 1.1
+      }
     },
     "awakening": {
       "A": {
@@ -33,11 +53,136 @@
           "attackIntervalMul": 0.6,
           "radiusMul": 0.7
         },
-        "onHit": {
-          "status": "echo",
-          "value": 1,
-          "durationMs": 4000
+        "onHit": [
+          {
+            "status": "echo",
+            "value": 1,
+            "durationMs": 4000
+          }
+        ]
+      }
+    }
+  },
+  "V2": {
+    "name": "忠犬オタ公",
+    "shortName": "オタ公",
+    "type": "vocal",
+    "cost": 45,
+    "tags": [
+      "tsukuyomi_liver"
+    ],
+    "base": {
+      "atk": 105,
+      "range": 3.6,
+      "attackIntervalMs": 2000,
+      "critRate": 0.05,
+      "critDmg": 0.5
+    },
+    "attack": {
+      "kind": "aoe_ring",
+      "skillMul": 0.85,
+      "radius": 1.0,
+      "canHitFlying": true
+    },
+    "art": {
+      "hairStyle": "short",
+      "hair": "#c79a6a",
+      "outfit": "#4a3a2c",
+      "accent": "#ff6ba8",
+      "eye": "#5a3a20",
+      "body": "pants",
+      "ears": true
+    },
+    "aura": {
+      "name": "NEWS TSUKUYOMI!!",
+      "desc": "番組で場を温める。近くのメンバーの ATK +20%",
+      "radius": 2.4,
+      "allyAtkPct": 0.2
+    },
+    "centerPassive": {
+      "name": "今日のトピック",
+      "desc": "全体 ATK +6%、射程 +8%",
+      "mods": {
+        "atkMul": 1.06,
+        "rangeMul": 1.08
+      }
+    },
+    "awakening": {
+      "A": {
+        "name": "号外",
+        "desc": "放送を全域へ流す。効果範囲 ×2.0",
+        "mods": {
+          "auraRadiusMul": 2.0
         }
+      },
+      "B": {
+        "name": "独占スクープ",
+        "desc": "自分で伝えにいく。放送をやめる代わりに自身の ATK +45%",
+        "mods": {
+          "auraToSelfAtk": 0.45
+        }
+      }
+    }
+  },
+  "V3": {
+    "name": "乙事 照琴",
+    "shortName": "照琴",
+    "type": "vocal",
+    "cost": 60,
+    "tags": [
+      "tsukuyomi_liver"
+    ],
+    "base": {
+      "atk": 140,
+      "range": 4.5,
+      "attackIntervalMs": 2400,
+      "critRate": 0.05,
+      "critDmg": 0.5
+    },
+    "attack": {
+      "kind": "pierce_line",
+      "skillMul": 1.0,
+      "radius": 0.7,
+      "canHitFlying": true,
+      "defIgnore": 0.4
+    },
+    "art": {
+      "hairStyle": "spiky",
+      "hair": "#6e5b8a",
+      "outfit": "#1f2340",
+      "accent": "#ff6ba8",
+      "eye": "#3b2a4d",
+      "body": "pants"
+    },
+    "centerPassive": {
+      "name": "実況席",
+      "desc": "全体 ATK +8%、射程 +12%",
+      "mods": {
+        "atkMul": 1.08,
+        "rangeMul": 1.12
+      }
+    },
+    "awakening": {
+      "A": {
+        "name": "煽り実況",
+        "desc": "3 発ごとに、直線上の敵をまとめて押し戻す",
+        "mods": {},
+        "knockback": {
+          "everyHits": 3,
+          "distance": 1.2
+        }
+      },
+      "B": {
+        "name": "冷静な解説",
+        "desc": "動きを読み切って止める。命中した敵を 1.2 秒沈黙させる",
+        "mods": {},
+        "onHit": [
+          {
+            "status": "stun",
+            "value": 1,
+            "durationMs": 1200
+          }
+        ]
       }
     }
   },
@@ -46,6 +191,9 @@
     "shortName": "彩葉",
     "type": "dance",
     "cost": 25,
+    "tags": [
+      "kaguya_irop"
+    ],
     "base": {
       "atk": 130,
       "range": 2.2,
@@ -58,10 +206,28 @@
       "skillMul": 0.8,
       "radius": 0,
       "canHitFlying": false,
-      "onHit": {
-        "status": "slow",
-        "value": 0.08,
-        "durationMs": 300
+      "onHit": [
+        {
+          "status": "slow",
+          "value": 0.08,
+          "durationMs": 300
+        }
+      ]
+    },
+    "art": {
+      "hairStyle": "bob",
+      "hair": "#4a3550",
+      "outfit": "#3a4f7a",
+      "accent": "#4fc3f7",
+      "eye": "#2f6f8f",
+      "body": "skirt"
+    },
+    "centerPassive": {
+      "name": "いろP",
+      "desc": "全体攻撃速度 +8%、配置コスト -8%",
+      "mods": {
+        "attackSpeedMul": 1.08,
+        "costMul": 0.92
       }
     },
     "awakening": {
@@ -81,11 +247,138 @@
       }
     }
   },
+  "D2": {
+    "name": "帝 アキラ",
+    "shortName": "アキラ",
+    "type": "dance",
+    "cost": 50,
+    "tags": [
+      "black_onyx"
+    ],
+    "base": {
+      "atk": 200,
+      "range": 2.0,
+      "attackIntervalMs": 1100,
+      "critRate": 0.08,
+      "critDmg": 0.5
+    },
+    "attack": {
+      "kind": "single",
+      "skillMul": 0.9,
+      "radius": 0,
+      "canHitFlying": false,
+      "knockback": {
+        "everyHits": 4,
+        "distance": 0.8
+      }
+    },
+    "art": {
+      "hairStyle": "short",
+      "hair": "#20222e",
+      "outfit": "#141824",
+      "accent": "#4fc3f7",
+      "eye": "#2b3550",
+      "body": "pants"
+    },
+    "centerPassive": {
+      "name": "Black onyX",
+      "desc": "全体 ATK +12%、攻撃速度 -4%",
+      "mods": {
+        "atkMul": 1.12,
+        "attackSpeedMul": 0.96
+      }
+    },
+    "awakening": {
+      "A": {
+        "name": "フルダイブ",
+        "desc": "攻撃を範囲化し、**対空を獲得する**。ダンスが空を叩ける唯一の道",
+        "mods": {
+          "toAoe": 1.1,
+          "grantFlying": true
+        }
+      },
+      "B": {
+        "name": "ヘッドショット",
+        "desc": "急所だけを抜く。DEF を 60% 無視",
+        "mods": {
+          "defIgnoreAdd": 0.6
+        }
+      }
+    }
+  },
+  "D3": {
+    "name": "駒沢 雷",
+    "shortName": "雷",
+    "type": "dance",
+    "cost": 70,
+    "tags": [
+      "black_onyx"
+    ],
+    "base": {
+      "atk": 260,
+      "range": 1.8,
+      "attackIntervalMs": 1400,
+      "critRate": 0.1,
+      "critDmg": 0.6
+    },
+    "attack": {
+      "kind": "single",
+      "skillMul": 0.95,
+      "radius": 0,
+      "canHitFlying": false,
+      "execute": {
+        "threshold": 0.3,
+        "mul": 2.2
+      }
+    },
+    "art": {
+      "hairStyle": "spiky",
+      "hair": "#2f3550",
+      "outfit": "#1a1e2e",
+      "accent": "#4fc3f7",
+      "eye": "#3050a0",
+      "body": "pants"
+    },
+    "centerPassive": {
+      "name": "寡黙",
+      "desc": "全体 ATK +14%、声援獲得 -6%",
+      "mods": {
+        "atkMul": 1.14,
+        "cheerGainMul": 0.94
+      }
+    },
+    "awakening": {
+      "A": {
+        "name": "追撃",
+        "desc": "撃破すると次の一撃をすぐ撃てる",
+        "mods": {
+          "resetCooldownOnKill": true
+        }
+      },
+      "B": {
+        "name": "制圧",
+        "desc": "周囲を巻き込み、当たった敵に脆弱 +30% を付ける",
+        "mods": {
+          "toAoe": 1.3
+        },
+        "onHit": [
+          {
+            "status": "vulnerable",
+            "value": 0.3,
+            "durationMs": 3000
+          }
+        ]
+      }
+    }
+  },
   "Vi1": {
     "name": "月見 ヤチヨ",
     "shortName": "ヤチヨ",
     "type": "visual",
     "cost": 35,
+    "tags": [
+      "tsukuyomi_liver"
+    ],
     "base": {
       "atk": 60,
       "range": 3.4,
@@ -98,16 +391,34 @@
       "skillMul": 0.7,
       "radius": 0,
       "canHitFlying": true,
-      "onHit": {
-        "status": "slow",
-        "value": 0.25,
-        "durationMs": 3000
+      "onHit": [
+        {
+          "status": "slow",
+          "value": 0.25,
+          "durationMs": 3000
+        }
+      ]
+    },
+    "art": {
+      "hairStyle": "long",
+      "hair": "#dfe6f5",
+      "outfit": "#3b2f5e",
+      "accent": "#ffd54f",
+      "eye": "#8f7ad0",
+      "body": "skirt"
+    },
+    "centerPassive": {
+      "name": "ツクヨミの創造主",
+      "desc": "声援獲得 +15%、スペシャルライブの持続 +2 秒",
+      "mods": {
+        "cheerGainMul": 1.15,
+        "specialDurationAddMs": 2000
       }
     },
     "awakening": {
       "A": {
         "name": "管理者権限",
-        "desc": "ツクヨミの管理者として、範囲でまとめて減速をかける",
+        "desc": "ツクヨミを作った者として、範囲でまとめて減速をかける",
         "mods": {
           "toAoe": 1.1
         }
@@ -117,6 +428,146 @@
         "desc": "一体を強く抑え込む。減速 -45%",
         "mods": {
           "slowValue": 0.45
+        }
+      }
+    }
+  },
+  "Vi2": {
+    "name": "駒沢 乃依",
+    "shortName": "乃依",
+    "type": "visual",
+    "cost": 55,
+    "tags": [
+      "black_onyx"
+    ],
+    "base": {
+      "atk": 75,
+      "range": 3.0,
+      "attackIntervalMs": 1500,
+      "critRate": 0.05,
+      "critDmg": 0.5
+    },
+    "attack": {
+      "kind": "single",
+      "skillMul": 0.75,
+      "radius": 0,
+      "canHitFlying": true,
+      "onHit": [
+        {
+          "status": "charm",
+          "value": 1,
+          "durationMs": 2000
+        }
+      ]
+    },
+    "art": {
+      "hairStyle": "twin",
+      "hair": "#3a2f4a",
+      "outfit": "#22263a",
+      "accent": "#ffd54f",
+      "eye": "#c05aa0",
+      "body": "skirt"
+    },
+    "centerPassive": {
+      "name": "ギャップ",
+      "desc": "状態異常の効果量 +20%、全体 ATK +4%",
+      "mods": {
+        "slowPowerMul": 1.2,
+        "atkMul": 1.04
+      }
+    },
+    "awakening": {
+      "A": {
+        "name": "二画面",
+        "desc": "同時に 2 体を釘付けにする",
+        "mods": {
+          "multiTarget": 2
+        }
+      },
+      "B": {
+        "name": "煽り耐性ゼロ",
+        "desc": "釘付けにした敵に脆弱 +30% を重ねる",
+        "mods": {},
+        "onHit": [
+          {
+            "status": "charm",
+            "value": 1,
+            "durationMs": 2000
+          },
+          {
+            "status": "vulnerable",
+            "value": 0.3,
+            "durationMs": 4000
+          }
+        ]
+      }
+    }
+  },
+  "Vi3": {
+    "name": "綾紬 芦花",
+    "shortName": "芦花",
+    "type": "visual",
+    "cost": 80,
+    "tags": [
+      "ayaha_friend"
+    ],
+    "base": {
+      "atk": 95,
+      "range": 4.0,
+      "attackIntervalMs": 1800,
+      "critRate": 0.05,
+      "critDmg": 0.5
+    },
+    "attack": {
+      "kind": "single",
+      "skillMul": 0.8,
+      "radius": 0,
+      "canHitFlying": true,
+      "onHit": [
+        {
+          "status": "slow",
+          "value": 0.15,
+          "durationMs": 2000
+        }
+      ]
+    },
+    "art": {
+      "hairStyle": "ponytail",
+      "hair": "#6a4a3a",
+      "outfit": "#4a3a55",
+      "accent": "#ffd54f",
+      "eye": "#7a6a40",
+      "body": "skirt"
+    },
+    "aura": {
+      "name": "茶目っ気",
+      "desc": "場をかき回す。範囲内の敵の DEF -35%、味方の ATK +15%",
+      "radius": 3.0,
+      "allyAtkPct": 0.15,
+      "enemyDefPct": 0.35
+    },
+    "centerPassive": {
+      "name": "クールな親友",
+      "desc": "全体 ATK +10%、射程 +6%、声援獲得 +6%",
+      "mods": {
+        "atkMul": 1.1,
+        "rangeMul": 1.06,
+        "cheerGainMul": 1.06
+      }
+    },
+    "awakening": {
+      "A": {
+        "name": "本気",
+        "desc": "かき回しを強める。オーラの効果量 ×1.6",
+        "mods": {
+          "auraPowerMul": 1.6
+        }
+      },
+      "B": {
+        "name": "見守り",
+        "desc": "広く目を配る。オーラの範囲 ×1.7",
+        "mods": {
+          "auraRadiusMul": 1.7
         }
       }
     }

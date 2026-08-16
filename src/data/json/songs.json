@@ -16,5 +16,17 @@
     "bpm": 118,
     "beatsPerBar": 4,
     "tempoBase": 132
+  },
+  "hinezumi_overdrive": {
+    "name": "火鼠オーバードライヴ",
+    "bpm": 172,
+    "beatsPerBar": 4,
+    "tempoBase": 132
+  },
+  "hagoromo_encore": {
+    "name": "羽衣アンコール",
+    "bpm": 140,
+    "beatsPerBar": 4,
+    "tempoBase": 132
   }
 }
