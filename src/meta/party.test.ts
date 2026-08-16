@@ -15,6 +15,7 @@ import {
 } from './progression';
 import { PARTY_SIZE, rosterIds } from '../data';
 import { createWorld } from '../sim/world';
+import { runHeadless } from '../core/loop';
 
 function cleared(...stageIds: string[]): SaveData {
   const save = createNewSave();
@@ -84,6 +85,28 @@ describe('編成', () => {
     expect(party).toEqual(['V1', 'D1']);
     expect(center).toBe('V1');
   });
+
+  it('ロスターに無い ID は落とす（手書きセーブでゲームが起動しなくなるのを防ぐ）', () => {
+    // 「未解放」と「存在しない」を混同すると、後段の getIdol() が例外を投げて
+    // ホーム画面ごと落ちる。解放条件の表に無い ID は存在しない扱いにする
+    expect(isUnlocked(createNewSave(), 'ZZ9')).toBe(false);
+
+    const broken: SaveData = {
+      ...createNewSave(),
+      party: ['V1', 'ZZ9', 'D1'],
+      center: 'ZZ9',
+    };
+    const { party, center } = normalizeParty(broken);
+    expect(party).toEqual(['V1', 'D1']);
+    expect(center).toBe('V1');
+  });
+
+  it('編成が丸ごと未知でも、空にせず解放済みメンバーで埋め戻す', () => {
+    const broken: SaveData = { ...createNewSave(), party: ['ZZ9', 'ZZ8'], center: 'ZZ9' };
+    const { party, center } = normalizeParty(broken);
+    expect(party.length).toBeGreaterThan(0);
+    expect(party).toContain(center!);
+  });
 });
 
 describe('センターパッシブ', () => {
@@ -107,6 +130,28 @@ describe('センターパッシブ', () => {
   it('編成外を center に指定しても効かない', () => {
     const world = createWorld('S1', 1, { party: ['D1'], center: 'V1' });
     expect(world.snapshot().centerName).toBeNull();
+  });
+
+  it('声援獲得を上げるセンターが、実際に声援の回復を速くする', () => {
+    // ユニットのローカルプールへ積むだけだと経済計算に届かない。
+    // 「表示されている効果が実際には何もしていない」を防ぐための検証
+    const cheerAfter = (center: string): number => {
+      const world = createWorld('S1', 1, { party: ['V1', 'D1', 'Vi1'], center });
+      runHeadless(5000, (dt) => world.update(dt));
+      return world.snapshot().cheer;
+    };
+    // ヤチヨ = 声援獲得 +15% / 彩葉 = 声援に触らない
+    expect(cheerAfter('Vi1')).toBeGreaterThan(cheerAfter('D1'));
+  });
+
+  it('月華の蓄積を上げるセンターが、実際にゲージを速く溜める', () => {
+    const voltageAfter = (center: string): number => {
+      const world = createWorld('S1', 1, { party: ['V1', 'D1', 'Vi1'], center });
+      runHeadless(20_000, (dt) => world.update(dt));
+      return world.snapshot().voltage;
+    };
+    // かぐや = 月華 +10% / 彩葉 = 月華に触らない
+    expect(voltageAfter('V1')).toBeGreaterThan(voltageAfter('D1'));
   });
 
   it('編成外のメンバーは配置できない', () => {

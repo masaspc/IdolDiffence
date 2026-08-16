@@ -14,6 +14,14 @@ import { attrColor, cellStyle, palette, typeColor } from './palette';
 /** 論理解像度。1 マス = 64px、16×9 マスで 1024×576 */
 export const CELL_SIZE = 64;
 
+/**
+ * 盤面を倒すと決めるしきい値。
+ *
+ * 「倒したほうが大きく入るなら倒す」でよい。ただし完全な同点だと
+ * 端末を少し傾けただけで向きが行き来するので、わずかに手前で止める。
+ */
+const ROTATE_GAIN = 1.02;
+
 export interface HoverState {
   cell: { x: number; y: number } | null;
   /** 配置プレビュー中のアイドル */
@@ -29,6 +37,11 @@ export class Renderer {
   private dpr = 1;
   private widthCss = 0;
   private heightCss = 0;
+  /** 直近の draw で盤面を 90° 倒したか */
+  private rotated = false;
+  /** HUD が覆っている上下の帯。背景は全面に描くが、盤面はこの内側へ収める */
+  private insetTop = 0;
+  private insetBottom = 0;
 
   constructor(
     private readonly canvas: HTMLCanvasElement,
@@ -48,6 +61,10 @@ export class Renderer {
   }
 
   resize(cssWidth: number, cssHeight: number, dpr: number): void {
+    // 同じ大きさで呼ばれても作り直さない。静的レイヤの再生成が高くつくので、
+    // 呼び出し側が定期的に測り直せるようにここで弾く
+    if (this.widthCss === cssWidth && this.heightCss === cssHeight && this.dpr === dpr) return;
+
     this.widthCss = cssWidth;
     this.heightCss = cssHeight;
     this.dpr = dpr;
@@ -58,12 +75,32 @@ export class Renderer {
     this.staticLayer = null; // スケールが変わったので静的レイヤを作り直す
   }
 
+  /**
+   * HUD が覆っている領域を伝える。
+   *
+   * canvas 自体は画面いっぱいのままにして背景を端まで見せる一方、
+   * **盤面は HUD に隠れない範囲へ収める**。canvas ごと HUD の内側へ縮めると、
+   * 縦持ちで盤面を倒しても中央の細い帯にしか収まらず、倒す意味が消える。
+   */
+  setSafeArea(top: number, bottom: number): void {
+    this.insetTop = Math.max(0, top);
+    this.insetBottom = Math.max(0, bottom);
+  }
+
   /** 画面座標をセル座標に変換する。範囲外なら null */
   cellFromClient(clientX: number, clientY: number): { x: number; y: number } | null {
     const rect = this.canvas.getBoundingClientRect();
-    const scale = this.viewScale();
-    const x = Math.floor((clientX - rect.left - this.offsetX()) / scale / CELL_SIZE);
-    const y = Math.floor((clientY - rect.top - this.offsetY()) / scale / CELL_SIZE);
+    const view = this.view();
+    const px = (clientX - rect.left - view.offsetX) / view.scale;
+    const py = (clientY - rect.top - view.offsetY) / view.scale;
+
+    // 回転しているときは描画と逆の変換をかける。
+    // 盤面の当たり判定を描画と別々に持つと、必ずどちらかがずれる
+    const lx = view.rotated ? py : px;
+    const ly = view.rotated ? this.logicalHeight - px : py;
+
+    const x = Math.floor(lx / CELL_SIZE);
+    const y = Math.floor(ly / CELL_SIZE);
     const { w, h } = this.world.stage.grid;
     if (x < 0 || y < 0 || x >= w || y >= h) return null;
     return { x, y };
@@ -75,14 +112,22 @@ export class Renderer {
    */
   draw(snapshot: WorldSnapshot, hover: HoverState, alpha: number): void {
     const { ctx } = this;
-    const scale = this.viewScale();
+    const view = this.view();
+    this.rotated = view.rotated;
 
     ctx.setTransform(this.dpr, 0, 0, this.dpr, 0, 0);
     ctx.clearRect(0, 0, this.widthCss, this.heightCss);
 
     ctx.save();
-    ctx.translate(this.offsetX(), this.offsetY());
-    ctx.scale(scale, scale);
+    ctx.translate(view.offsetX, view.offsetY);
+    ctx.scale(view.scale, view.scale);
+    if (view.rotated) {
+      // 縦持ちでは盤面を 90° 倒して画面いっぱいに使う。
+      // 16:9 の盤を縦画面へそのまま入れると 1 マスが 20px 台になり、
+      // 指で押し分けられる大きさにならない
+      ctx.translate(this.logicalHeight, 0);
+      ctx.rotate(Math.PI / 2);
+    }
 
     this.drawStaticLayer(ctx);
     this.drawBeatPulse(ctx);
@@ -96,16 +141,44 @@ export class Renderer {
     ctx.restore();
   }
 
-  private viewScale(): number {
-    return Math.min(this.widthCss / this.logicalWidth, this.heightCss / this.logicalHeight);
+  /**
+   * 画面へ盤面をはめ込む変換。
+   *
+   * 縦画面では 90° 倒したほうが大きく入るので、**十分に得なときだけ**倒す。
+   * わずかな差で倒すと、少し傾けただけで向きが変わってしまう
+   */
+  private view(): { scale: number; offsetX: number; offsetY: number; rotated: boolean } {
+    const availH = Math.max(1, this.heightCss - this.insetTop - this.insetBottom);
+    const upright = Math.min(this.widthCss / this.logicalWidth, availH / this.logicalHeight);
+    const turned = Math.min(this.widthCss / this.logicalHeight, availH / this.logicalWidth);
+    const rotated = turned > upright * ROTATE_GAIN;
+
+    const scale = rotated ? turned : upright;
+    const drawnW = (rotated ? this.logicalHeight : this.logicalWidth) * scale;
+    const drawnH = (rotated ? this.logicalWidth : this.logicalHeight) * scale;
+    return {
+      scale,
+      offsetX: (this.widthCss - drawnW) / 2,
+      offsetY: this.insetTop + (availH - drawnH) / 2,
+      rotated,
+    };
   }
 
-  private offsetX(): number {
-    return (this.widthCss - this.logicalWidth * this.viewScale()) / 2;
-  }
-
-  private offsetY(): number {
-    return (this.heightCss - this.logicalHeight * this.viewScale()) / 2;
+  /**
+   * 文字だけは倒さない。
+   * ダメージ数字とメンバー名が横倒しになると、盤面を大きくした意味が薄れる
+   */
+  private uprightText(ctx: CanvasRenderingContext2D, x: number, y: number, draw: () => void): void {
+    if (!this.rotated) {
+      draw();
+      return;
+    }
+    ctx.save();
+    ctx.translate(x, y);
+    ctx.rotate(-Math.PI / 2);
+    ctx.translate(-x, -y);
+    draw();
+    ctx.restore();
   }
 
   // --- 静的レイヤ ---
@@ -451,15 +524,17 @@ export class Renderer {
       ctx.stroke();
 
       // 系統は色だけでなく形アイコンでも示す（色覚配慮 / 06-ui-ux.md 6.7）
-      ctx.fillStyle = color;
-      ctx.font = `bold ${Math.round(CELL_SIZE * 0.34)}px system-ui, sans-serif`;
-      ctx.textAlign = 'center';
-      ctx.textBaseline = 'middle';
-      ctx.fillText(typeIcon(unit.type), x, y + 1);
+      this.uprightText(ctx, x, y, () => {
+        ctx.fillStyle = color;
+        ctx.font = `bold ${Math.round(CELL_SIZE * 0.34)}px system-ui, sans-serif`;
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(typeIcon(unit.type), x, y + 1);
 
-      ctx.fillStyle = palette.text;
-      ctx.font = `${Math.round(CELL_SIZE * 0.17)}px system-ui, sans-serif`;
-      ctx.fillText(unit.shortName, x, y + r + 10);
+        ctx.fillStyle = palette.text;
+        ctx.font = `${Math.round(CELL_SIZE * 0.17)}px system-ui, sans-serif`;
+        ctx.fillText(unit.shortName, x, y + r + 10);
+      });
       ctx.restore();
     }
   }
@@ -484,7 +559,9 @@ export class Renderer {
             ? palette.textDim
             : palette.text;
       ctx.font = `${text.crit ? 'bold ' : ''}${Math.round(size)}px system-ui, sans-serif`;
-      ctx.fillText(text.crit ? `${text.amount}!` : String(text.amount), x, y);
+      this.uprightText(ctx, x, y, () => {
+        ctx.fillText(text.crit ? `${text.amount}!` : String(text.amount), x, y);
+      });
     }
     ctx.restore();
   }

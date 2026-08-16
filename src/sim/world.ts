@@ -37,6 +37,7 @@ import { updateUnit } from './systems/combat';
 import { applyCard, drawOffers, type CardOffer } from './systems/cards';
 import { emptyPool, resolveStat, type ModifierPool } from './modifiers';
 import {
+  centerEconomyPool,
   resolveUnit,
   resolveUnitAura,
   upgradeCost,
@@ -236,6 +237,11 @@ export class BattleWorld {
   private readonly costMul: number;
   /** センターによるスペシャルライブの延長 */
   private readonly specialBonusMs: number;
+  /**
+   * センターのうち経済（声援・月華）に効くぶん。
+   * ユニットのローカルプールへ積んでも経済計算には届かないので、別に持つ
+   */
+  private readonly centerPool: ModifierPool;
   private readonly palette: PaletteEntry[];
 
   private scheduleCursor = 0;
@@ -287,6 +293,7 @@ export class BattleWorld {
         : null;
     this.center = centerId ? getIdol(centerId).centerPassive : undefined;
     this.centerName = this.center && centerId ? getIdol(centerId).name : null;
+    this.centerPool = centerEconomyPool(this.center);
     this.costMul = this.center?.mods.costMul ?? 1;
     this.specialBonusMs = this.center?.mods.specialDurationAddMs ?? 0;
 
@@ -360,7 +367,8 @@ export class BattleWorld {
   }
 
   private updateEconomy(dtMs: number): void {
-    const gain = resolveStat(1, 'cheerGain', [this.runPool]) * this.cheerGainFromCells();
+    const gain =
+      resolveStat(1, 'cheerGain', [this.runPool, this.centerPool]) * this.cheerGainFromCells();
     const regen = (CHEER_REGEN_BASE + CHEER_REGEN_PER_AUDIENCE * this.audience) * gain;
     this.addCheer((regen * dtMs) / 1000);
   }
@@ -868,7 +876,7 @@ export class BattleWorld {
     // 溜め続けると終了と同時に次が撃てて、実質「常時バフ」になる
     if (delta > 0 && this.specialActive) return;
 
-    let scaled = delta * resolveStat(1, 'voltageGain', [this.runPool]);
+    let scaled = delta * resolveStat(1, 'voltageGain', [this.runPool, this.centerPool]);
     if (delta > 0 && this.currentWave?.section === 'chorus') scaled *= VOLTAGE_CHORUS_MUL;
 
     const next = clamp(this.voltage + scaled, 0, VOLTAGE_MAX);

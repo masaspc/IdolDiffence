@@ -12,9 +12,10 @@ import type { SaveData } from '../meta/save';
 const TYPE_ICON: Record<string, string> = { vocal: '♪', dance: '★', visual: '♥' };
 const TYPE_LABEL: Record<string, string> = { vocal: '歌', dance: 'ダンス', visual: 'ヴィジュアル' };
 const TAG_LABEL: Record<string, string> = {
-  kaguya: 'かぐや組',
-  gonan: '五難',
-  tsukuyomi: '月詠',
+  kaguya_irop: 'かぐや・いろP',
+  black_onyx: 'Black onyX',
+  tsukuyomi_liver: 'ツクヨミのライバー',
+  ayaha_friend: '彩葉の友人',
 };
 
 interface PartyScreenProps {

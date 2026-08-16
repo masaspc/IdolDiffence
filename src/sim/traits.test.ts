@@ -180,6 +180,34 @@ describe('ノックバック', () => {
   });
 });
 
+describe('モニター前のマス', () => {
+  /** 配置して、解決済みの減速効果を読む */
+  function slowEffect(idolId: string, x: number, y: number): { value: number; durationMs: number } {
+    const world = richWorld('S7');
+    const unit = world.placeUnit(idolId, x, y);
+    if (typeof unit === 'string') throw new Error(unit);
+    const slow = unit.attack.onHit.find((o) => o.status === 'slow');
+    if (!slow) throw new Error(`${idolId} は減速を持っていない`);
+    return { value: slow.value, durationMs: slow.durationMs };
+  }
+
+  it('ヴィジュアルの状態異常は「効果時間」が伸びる（効果量ではない）', () => {
+    // 02-core-battle.md 2.1 の定義は「ヴィジュアル系スキルの効果時間 +25%」
+    const onMonitor = slowEffect('Vi1', 7, 3); // monitor
+    const elsewhere = slowEffect('Vi1', 7, 5); // runway
+    expect(onMonitor.durationMs).toBeCloseTo(elsewhere.durationMs * 1.25, 5);
+    expect(onMonitor.value).toBeCloseTo(elsewhere.value, 5);
+  });
+
+  it('ヴィジュアル以外は伸びない', () => {
+    // 全系統に効かせると、妨害が本業でない系統をモニター前へ置くのが
+    // 常に得になり、マスの性格が消える
+    const onMonitor = slowEffect('D1', 7, 3);
+    const elsewhere = slowEffect('D1', 1, 0); // 本舞台
+    expect(onMonitor.durationMs).toBeCloseTo(elsewhere.durationMs, 5);
+  });
+});
+
 describe('アイドルの固有挙動', () => {
   it('V3 は防御無視を持ち、貫通線で攻撃する', () => {
     const def = getIdol('V3');

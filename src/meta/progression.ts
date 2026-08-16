@@ -45,7 +45,13 @@ export function resolvedAtk(save: SaveData, idolId: string): number {
 
 // --- 解放と編成 ---
 
+const ROSTER = new Set<string>(rosterIds);
+
 export function isUnlocked(save: SaveData, idolId: string): boolean {
+  // ロスターに無い ID は「解放前」ではなく**存在しない**。
+  // 手で書き換えたセーブや、キャラを削除した後の古いセーブがここを通ると、
+  // 後段の getIdol() が例外を投げてゲームごと起動しなくなる
+  if (!ROSTER.has(idolId)) return false;
   const gate = idolUnlockStage[idolId];
   if (gate === null || gate === undefined) return true;
   return save.stageProgress[gate]?.cleared === true;

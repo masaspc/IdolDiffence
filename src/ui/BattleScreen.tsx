@@ -25,6 +25,7 @@ interface BattleScreenProps {
 export function BattleScreen({ stageId, meta, onFinish, onExit }: BattleScreenProps): React.JSX.Element {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
+  const rootRef = useRef<HTMLDivElement>(null);
   const worldRef = useRef<BattleWorld | null>(null);
   /** 描画のたびに読むので ref。setState だと 60Hz の再レンダリングになる */
   const hoverRef = useRef<HoverState>({
@@ -52,16 +53,25 @@ export function BattleScreen({ stageId, meta, onFinish, onExit }: BattleScreenPr
     const renderer = new Renderer(canvas, world);
     worldRef.current = world;
 
+    // HUD が覆う高さを測って渡す。canvas は全面のままにして背景を端まで見せ、
+    // 盤面だけを HUD の内側へ収める（renderer.setSafeArea）。
+    // 狭い画面では HUD が折り返して高さが変わるので、毎回測り直す
     const applyResize = (): void => {
       const rect = container.getBoundingClientRect();
+      const root = rootRef.current;
+      const top = root?.querySelector('.hud-top')?.getBoundingClientRect().height ?? 0;
+      const bottom = root?.querySelector('.hud-bottom')?.getBoundingClientRect().height ?? 0;
+      renderer.setSafeArea(top, bottom);
       renderer.resize(rect.width, rect.height, window.devicePixelRatio || 1);
     };
     applyResize();
 
     const observer = new ResizeObserver(applyResize);
     observer.observe(container);
+    if (rootRef.current) observer.observe(rootRef.current);
 
     let sinceUiUpdate = 0;
+    let sinceLayoutCheck = 0;
     let publishedFinish = false;
     let wasChoosing = false;
 
@@ -74,6 +84,14 @@ export function BattleScreen({ stageId, meta, onFinish, onExit }: BattleScreenPr
         for (let i = 0; i < steps; i++) world.update(dtMs);
       },
       render: (alpha) => {
+        // HUD の高さは中身（覚醒の選択肢、取得カードの一覧）で変わるが、
+        // .battle 自体の大きさは変わらないので ResizeObserver では拾えない。
+        // 毎秒 2 回測り直す。同じ寸法なら renderer 側で弾かれる
+        if (++sinceLayoutCheck >= 30) {
+          sinceLayoutCheck = 0;
+          applyResize();
+        }
+
         const latest = world.snapshot();
         renderer.draw(latest, hoverRef.current, alpha);
 
@@ -297,7 +315,7 @@ export function BattleScreen({ stageId, meta, onFinish, onExit }: BattleScreenPr
   }, [togglePause, cycleSpeed, selectIdol, activateSpecial]);
 
   return (
-    <div className="battle">
+    <div className="battle" ref={rootRef}>
       <div className="stage" ref={containerRef}>
         <canvas ref={canvasRef} />
       </div>

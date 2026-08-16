@@ -62,7 +62,9 @@ export function Hud(props: HudProps): React.JSX.Element {
         <div className="song">
           <span className="song-title">
             ♪ {snapshot.songName}
-            {snapshot.centerName && <em className="song-center">センター: {snapshot.centerName}</em>}
+            {snapshot.centerName && (
+              <em className="song-center">・センター {snapshot.centerName}</em>
+            )}
           </span>
           <span className="song-section">
             {sectionLabel}

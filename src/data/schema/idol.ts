@@ -130,8 +130,20 @@ export const centerPassiveSchema = z.object({
     .default({}),
 });
 
-/** ユニットタグ。フォーメーションの配置条件として使う（04-content.md ユニットタグ） */
-export const unitTagSchema = z.enum(['kaguya', 'gonan', 'tsukuyomi']);
+/**
+ * ユニットタグ。フォーメーションの配置条件として使う（04-content.md ユニットタグ）。
+ * **すべて原作にある関係**をそのまま持ってきている（本作で作ったグループ分けではない）。
+ */
+export const unitTagSchema = z.enum([
+  /** 原作のユニット「かぐや・いろPチャンネル」 */
+  'kaguya_irop',
+  /** 原作のプロゲーマーグループ「Black onyX」 */
+  'black_onyx',
+  /** 仮想空間ツクヨミのライバー */
+  'tsukuyomi_liver',
+  /** 彩葉の友人 */
+  'ayaha_friend',
+]);
 
 export const idolSchema = z.object({
   name: z.string().min(1),

@@ -19,7 +19,9 @@ export type StatKey =
   | 'critDmg'
   | 'cheerGain'
   | 'voltageGain'
-  | 'slowPower';
+  | 'slowPower'
+  /** 状態異常の**継続時間**。効果量（slowPower）とは別枠 */
+  | 'statusDuration';
 
 /** 上限のあるステータス（03-progression.md E-3） */
 const CAPS: Partial<Record<StatKey, number>> = {
