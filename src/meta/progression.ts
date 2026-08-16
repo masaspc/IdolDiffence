@@ -3,7 +3,8 @@
  * 「負ける → 育てる → 勝つ」のループを成立させる最小構成（03-progression.md ⑦）。
  */
 import { getIdol, idolUnlockStage, PARTY_SIZE, rosterIds } from '../data';
-import type { SaveData } from './save';
+import { dropCount, grantDrops } from './costumes';
+import type { CostumeInstance, SaveData } from './save';
 
 /** M2 のレベル上限。設計上の最終は 60 だが、限界突破は M3 以降 */
 export const MAX_LEVEL = 30;
@@ -135,9 +136,20 @@ export function calcReward(outcome: BattleOutcome): Reward {
   };
 }
 
-export function applyReward(save: SaveData, outcome: BattleOutcome, reward: Reward): SaveData {
+/**
+ * リザルトをセーブへ反映する。
+ *
+ * **出た衣装も一緒に返す。** 「反映」と「何が出たか」を別の関数に分けると、
+ * 表示側がもう一度引いてしまい、セーブに入ったものと画面に出るものが
+ * 食い違う（乱数はセーブの状態を進めるので、2 回引けば 2 組できる）。
+ */
+export function applyReward(
+  save: SaveData,
+  outcome: BattleOutcome,
+  reward: Reward,
+): { save: SaveData; dropped: CostumeInstance[] } {
   const previous = save.stageProgress[outcome.stageId];
-  return {
+  const updated: SaveData = {
     ...save,
     funds: save.funds + reward.funds,
     stageProgress: {
@@ -149,4 +161,6 @@ export function applyReward(save: SaveData, outcome: BattleOutcome, reward: Rewa
       },
     },
   };
+  // 衣装のドロップ（03-progression.md ⑨）。資金と同じく**負けても出る**
+  return grantDrops(updated, dropCount(outcome.won, outcome.audience));
 }

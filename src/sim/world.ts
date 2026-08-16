@@ -55,6 +55,8 @@ import {
 import { defenseReduction, type DamageResult } from './damage';
 import { ECHO_MAX_STACKS } from './entities';
 import type { TalentEffects } from '../meta/talents';
+import type { PartyCostumeEffects } from '../meta/costumes';
+import type { CostumeCombatBonus } from './unitStats';
 
 /** 声援の自然回復。観客ゲージへの依存は意図的に浅い（02-core-battle.md 2.3） */
 const CHEER_REGEN_BASE = 5.0;
@@ -98,6 +100,62 @@ function sectionHpMultiplier(section: string | undefined): number {
 const ECHO_DPS = 18;
 
 const FLOATING_TEXT_LIFE_MS = 700;
+
+/**
+ * 衣装の合算結果を加算プールへ移す。
+ *
+ * 才能と同じ器（加算）。乗算にすると 4 スロット × セット効果で
+ * 掛け算が積み上がり、恒久強化の目標（03 E-2 の 2.9 倍）を軽く超える。
+ *
+ * クリティカルだけは定数加算にする理由も才能と同じ ―― 率そのものだから。
+ */
+function buildCostumePool(effects: PartyCostumeEffects['byIdol'][string] | undefined): ModifierPool {
+  const pool = emptyPool();
+  if (!effects) return pool;
+
+  for (const [stat, value] of Object.entries(effects.stats)) {
+    if (value === undefined || value === 0) continue;
+    switch (stat) {
+      case 'critRateAdd':
+        addFlat(pool, 'critRate', value);
+        break;
+      case 'critDmgAdd':
+        addFlat(pool, 'critDmg', value);
+        break;
+      case 'atkPct':
+        addPct(pool, 'atk', value);
+        break;
+      case 'rangePct':
+        addPct(pool, 'range', value);
+        break;
+      case 'attackSpeedPct':
+        addPct(pool, 'attackSpeed', value);
+        break;
+      // 声援獲得と月華の蓄積は**ここへ入れない**。
+      // ユニットのローカルプールへ積んでも `updateEconomy` / `addVoltage` は
+      // 見に来ないので、着ても何も起きない衣装になる。
+      // 経済は編成全体の話なので `costumeEconomyPool` が別に持つ
+      case 'cheerGainPct':
+      case 'voltageGainPct':
+        break;
+      case 'statusPowerPct':
+        addPct(pool, 'slowPower', value);
+        break;
+      case 'statusDurationPct':
+        addPct(pool, 'statusDuration', value);
+        break;
+      case 'aoeRadiusPct':
+        addPct(pool, 'aoeRadius', value);
+        break;
+      case 'echoPowerPct':
+        addPct(pool, 'echoPower', value);
+        break;
+      default:
+        break;
+    }
+  }
+  return pool;
+}
 
 /**
  * 才能ボードの合算結果を加算プールへ移す。
@@ -279,6 +337,11 @@ export interface BattleMeta {
   talents?: TalentEffects;
   /** 進化（Ray）を解放済みのアイドル ID（03-progression.md ⑦-2） */
   evolved?: readonly string[];
+  /**
+   * 衣装（03-progression.md ⑨）。**アイドルごと**に効く。
+   * 才能と同じく、セーブの形ではなく畳んだ結果だけを渡す
+   */
+  costumes?: PartyCostumeEffects;
 }
 
 export class BattleWorld {
@@ -314,9 +377,13 @@ export class BattleWorld {
   private readonly talentPool: ModifierPool;
   private readonly talents: TalentEffects | undefined;
   private readonly echoMaxStacks: number;
-  private readonly echoDps: number;
   /** 進化済みのアイドル。配置時に引き当てるので Set で持つ */
   private readonly evolvedIds: ReadonlySet<string>;
+  /** 衣装の加算プール（アイドルごと）。ラン中は変わらないので 1 回だけ組む */
+  private readonly costumePools: ReadonlyMap<string, ModifierPool>;
+  private readonly costumeBonuses: ReadonlyMap<string, CostumeCombatBonus>;
+  /** 衣装のうち経済（声援・月華）に効くぶん。センターと同じく世界が持つ */
+  private readonly costumeEconomyPool: ModifierPool;
 
   private scheduleCursor = 0;
   private nextEntityId = 1;
@@ -370,6 +437,23 @@ export class BattleWorld {
     this.evolvedIds = new Set(
       (meta.evolved ?? []).filter((id) => getIdol(id).evolution !== undefined),
     );
+
+    const costumePools = new Map<string, ModifierPool>();
+    const costumeBonuses = new Map<string, CostumeCombatBonus>();
+    for (const [idolId, effects] of Object.entries(meta.costumes?.byIdol ?? {})) {
+      costumePools.set(idolId, buildCostumePool(effects));
+      costumeBonuses.set(idolId, {
+        defIgnoreAdd: effects.defIgnoreAdd,
+        shieldPierce: effects.shieldPierce,
+        specialDmgPct: effects.specialDmgPct,
+      });
+    }
+    this.costumePools = costumePools;
+    this.costumeBonuses = costumeBonuses;
+
+    this.costumeEconomyPool = emptyPool();
+    addPct(this.costumeEconomyPool, 'cheerGain', meta.costumes?.cheerGainPct ?? 0);
+    addPct(this.costumeEconomyPool, 'voltageGain', meta.costumes?.voltageGainPct ?? 0);
     // センターは必ず出撃メンバーの中から選ぶ。編成画面で外したのに
     // パッシブだけ残る、という食い違いを sim の側で塞いでおく
     const centerId =
@@ -381,8 +465,10 @@ export class BattleWorld {
     this.centerIdolId = centerId;
     this.talents = meta.talents;
     this.talentPool = buildTalentPool(meta.talents);
-    this.echoMaxStacks = ECHO_MAX_STACKS + (meta.talents?.echoMaxStacksAdd ?? 0);
-    this.echoDps = ECHO_DPS * (1 + (meta.talents?.echoPowerPct ?? 0));
+    this.echoMaxStacks =
+      ECHO_MAX_STACKS +
+      (meta.talents?.echoMaxStacksAdd ?? 0) +
+      (meta.costumes?.echoMaxStacksAdd ?? 0);
     this.centerPool = centerEconomyPool(this.center);
     this.costMul = this.center?.mods.costMul ?? 1;
     this.specialBonusMs = this.center?.mods.specialDurationAddMs ?? 0;
@@ -413,6 +499,10 @@ export class BattleWorld {
       return info;
     });
     this.totalBars = startBar;
+
+    // 「燕の子安貝」4 着の開始時声援。イベントを出さずに直接足す
+    // （まだ誰も購読していない時点なので、通知しても届かない）
+    this.cheer += meta.costumes?.startCheer ?? 0;
 
     this.record('battleStart', { seed, stage: stageId });
   }
@@ -461,8 +551,12 @@ export class BattleWorld {
 
   private updateEconomy(dtMs: number): void {
     const gain =
-      resolveStat(1, 'cheerGain', [this.runPool, this.talentPool, this.centerPool]) *
-      this.cheerGainFromCells();
+      resolveStat(1, 'cheerGain', [
+        this.runPool,
+        this.talentPool,
+        this.centerPool,
+        this.costumeEconomyPool,
+      ]) * this.cheerGainFromCells();
     const regen = (CHEER_REGEN_BASE + CHEER_REGEN_PER_AUDIENCE * this.audience) * gain;
     this.addCheer((regen * dtMs) / 1000);
   }
@@ -622,7 +716,6 @@ export class BattleWorld {
       rng: this.rng,
       enemies: this.enemies,
       applyDamage: (enemy: Enemy, result: DamageResult) => this.applyDamage(enemy, result),
-      echoDps: this.echoDps,
       echoMaxStacks: this.echoMaxStacks,
       defDownFor: (enemy: Enemy) => this.defDownFor(enemy),
       knockback: (enemy: Enemy, dist: number) => {
@@ -881,12 +974,14 @@ export class BattleWorld {
         skillMul: def.attack.skillMul,
         multiTarget: 1,
         defIgnore: def.attack.defIgnore,
+        shieldPierce: 0,
         execute: def.attack.execute,
         knockback: def.attack.knockback,
         resetCooldownOnKill: false,
         onHit: def.attack.onHit,
       },
       aura: null,
+      echoDps: ECHO_DPS,
       cooldownMs: 0,
       hitCount: 0,
       lastTargetPos: null,
@@ -1001,9 +1096,12 @@ export class BattleWorld {
     resolveUnit(unit, {
       runPool: this.runPool,
       talentPool: this.talentPool,
+      costumePool: this.costumePools.get(unit.idolId) ?? emptyPool(),
+      costume: this.costumeBonuses.get(unit.idolId),
       center: this.center,
       cellType: this.stage.cellTypes[`${unit.cell.x},${unit.cell.y}`],
       specialActive: this.specialActive,
+      baseEchoDps: ECHO_DPS,
       allyAtkPct: this.allyAtkPctFor(unit),
       formation: formationModsFor(this.formation, unit.id),
       killSpeedBonus: this.killSpeedBonus,
@@ -1061,7 +1159,12 @@ export class BattleWorld {
 
     let scaled =
       delta *
-      resolveStat(1, 'voltageGain', [this.runPool, this.talentPool, this.centerPool]) *
+      resolveStat(1, 'voltageGain', [
+        this.runPool,
+        this.talentPool,
+        this.centerPool,
+        this.costumeEconomyPool,
+      ]) *
       this.formation.voltageMul;
     if (delta > 0 && this.currentWave?.section === 'chorus') scaled *= VOLTAGE_CHORUS_MUL;
 

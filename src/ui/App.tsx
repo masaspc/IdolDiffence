@@ -1,7 +1,8 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { HomeScreen } from './HomeScreen';
 import { PartyScreen } from './PartyScreen';
 import { TalentScreen } from './TalentScreen';
+import { CostumeScreen } from './CostumeScreen';
 import { BattleScreen } from './BattleScreen';
 import {
   applyReward,
@@ -16,16 +17,41 @@ import {
 } from '../meta/progression';
 import { respecTalents, resolveTalents, takeTalent } from '../meta/talents';
 import { evolve, evolvedForBattle } from '../meta/evolution';
-import { loadSave, saveSave, type SaveData } from '../meta/save';
+import {
+  enhanceCostume,
+  equipCostume,
+  resolvePartyCostumes,
+  salvageCostumes,
+  unequipSlot,
+} from '../meta/costumes';
+import { randomSeed } from '../core/rng';
+import {
+  DEFAULT_RNG_STATE,
+  loadSave,
+  saveSave,
+  type CostumeInstance,
+  type SaveData,
+} from '../meta/save';
+import type { CostumeSlot } from '../data/schema/costume';
 import type { BattleMeta } from '../sim/world';
 
-type Screen = 'home' | 'party' | 'talents' | 'battle';
+type Screen = 'home' | 'party' | 'talents' | 'costumes' | 'battle';
 
 export function App(): React.JSX.Element {
   const [save, setSave] = useState<SaveData>(() => {
     const result = loadSave(window.localStorage);
     if (result.recoveredFrom) {
       console.warn(`セーブデータを初期化しました: ${result.recoveredFrom}`);
+    }
+    // ドロップの種は**まだ個人化されていなければ**引き直す。
+    //
+    // 対象は 3 通りある: 新規セーブ・v4 以前からの移行・壊れて作り直したもの。
+    // 「壊れたときだけ」にしていたら、いちばん多い**新規プレイヤー**が既定値のまま
+    // 残り、全員が同じ順で衣装を引くことになっていた。
+    // 既定値と一致するのは「一度も引いていない」状態だけなので、これで見分けられる
+    // （偶然一致しても、種を引き直すだけで害はない）。
+    if (result.data.rngState === DEFAULT_RNG_STATE) {
+      return { ...result.data, rngState: randomSeed() };
     }
     return result.data;
   });
@@ -42,12 +68,19 @@ export function App(): React.JSX.Element {
     won: boolean;
     audience: number;
     funds: number;
+    drops: CostumeInstance[];
   } | null>(null);
 
   // 変更のたびに保存する。タブを閉じても進行が残るように
   useEffect(() => {
     saveSave(window.localStorage, save);
   }, [save]);
+
+  // リザルト処理は setSave の更新関数の**外**で行う。
+  // 更新関数は純粋でなければならず、中でドロップを引くと
+  // StrictMode の二重呼び出しで 2 組できてしまう
+  const saveRef = useRef(save);
+  saveRef.current = save;
 
   const handleLevelUp = useCallback((idolId: string) => {
     setSave((current) => levelUp(current, idolId));
@@ -59,8 +92,14 @@ export function App(): React.JSX.Element {
 
   const handleFinish = useCallback((outcome: BattleOutcome) => {
     const reward = calcReward(outcome);
-    setSave((current) => applyReward(current, outcome, reward));
-    setLastResult({ won: outcome.won, audience: outcome.audience, funds: reward.funds });
+    const { save: next, dropped } = applyReward(saveRef.current, outcome, reward);
+    setSave(next);
+    setLastResult({
+      won: outcome.won,
+      audience: outcome.audience,
+      funds: reward.funds,
+      drops: dropped,
+    });
   }, []);
 
   if (screen === 'battle') {
@@ -70,6 +109,23 @@ export function App(): React.JSX.Element {
         meta={battleMeta}
         onFinish={handleFinish}
         onExit={() => setScreen('home')}
+      />
+    );
+  }
+
+  if (screen === 'costumes') {
+    return (
+      <CostumeScreen
+        save={save}
+        onEquip={(idolId, costumeId) =>
+          setSave((current) => equipCostume(current, idolId, costumeId))
+        }
+        onUnequip={(idolId, slot: CostumeSlot) =>
+          setSave((current) => unequipSlot(current, idolId, slot))
+        }
+        onEnhance={(costumeId) => setSave((current) => enhanceCostume(current, costumeId))}
+        onSalvage={(ids) => setSave((current) => salvageCostumes(current, ids).save)}
+        onBack={() => setScreen('home')}
       />
     );
   }
@@ -104,6 +160,7 @@ export function App(): React.JSX.Element {
       onEvolve={handleEvolve}
       onOpenParty={() => setScreen('party')}
       onOpenTalents={() => setScreen('talents')}
+      onOpenCostumes={() => setScreen('costumes')}
       onStart={(id) => {
         setStageId(id);
         setLastResult(null);
@@ -117,6 +174,7 @@ export function App(): React.JSX.Element {
           center,
           talents: resolveTalents(save),
           evolved: evolvedForBattle(save),
+          costumes: resolvePartyCostumes(save, party),
         });
         setScreen('battle');
       }}

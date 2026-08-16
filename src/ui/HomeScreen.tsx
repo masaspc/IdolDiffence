@@ -22,7 +22,7 @@ import {
   normalizeParty,
   unlockedIds,
 } from '../meta/progression';
-import type { SaveData } from '../meta/save';
+import type { CostumeInstance, SaveData } from '../meta/save';
 
 const TYPE_ICON: Record<string, string> = { vocal: '♪', dance: '★', visual: '♥' };
 const TYPE_LABEL: Record<string, string> = { vocal: '歌', dance: 'ダンス', visual: 'ヴィジュアル' };
@@ -52,8 +52,14 @@ interface HomeScreenProps {
   onEvolve: (idolId: string) => void;
   onOpenParty: () => void;
   onOpenTalents: () => void;
+  onOpenCostumes: () => void;
   onStart: (stageId: string) => void;
-  lastResult: { won: boolean; audience: number; funds: number } | null;
+  lastResult: {
+    won: boolean;
+    audience: number;
+    funds: number;
+    drops: CostumeInstance[];
+  } | null;
 }
 
 export function HomeScreen({
@@ -62,6 +68,7 @@ export function HomeScreen({
   onEvolve,
   onOpenParty,
   onOpenTalents,
+  onOpenCostumes,
   onStart,
   lastResult,
 }: HomeScreenProps): React.JSX.Element {
@@ -88,6 +95,12 @@ export function HomeScreen({
         <div className={`last-result ${lastResult.won ? 'won' : 'lost'}`}>
           前回のライブ: {lastResult.won ? '完走' : '中断'}（観客 {lastResult.audience}）
           <strong>＋¥{lastResult.funds.toLocaleString()}</strong>
+          {lastResult.drops.length > 0 && (
+            <span className="last-drops">
+              衣装 {lastResult.drops.length} 着（
+              {lastResult.drops.map((drop) => drop.rarity).join('・')}）
+            </span>
+          )}
         </div>
       )}
 
@@ -118,6 +131,20 @@ export function HomeScreen({
             {talentPoints > 0
               ? `未使用の才能ポイントが ${talentPoints} pt あります`
               : '取得済みの才能を確認・振り直し'}
+          </span>
+        </button>
+      </section>
+
+      <section className="party-summary">
+        <h2>
+          衣装
+          {save.costumes.length > 0 && <span className="badge">{save.costumes.length}</span>}
+        </h2>
+        <button type="button" className="party-open" onClick={onOpenCostumes}>
+          <span className="party-hint">
+            {save.costumes.length === 0
+              ? 'ライブのリザルトで手に入ります（負けても 1 着）'
+              : `${save.costumes.length} 着を所持・着せ替えと強化、錬成`}
           </span>
         </button>
       </section>

@@ -72,6 +72,11 @@ export interface ResolvedAttack {
   multiTarget: number;
   /** 防御無視（0..1） */
   defIgnore: number;
+  /**
+   * 前面シールドの貫通（0..1）。1 でシールドを完全に無視する。
+   * 衣装セット「仏の御石の鉢」4 着でのみ得られる（03-progression.md ⑨）
+   */
+  shieldPierce: number;
   execute: Execute | undefined;
   knockback: Knockback | undefined;
   /** 撃破時に攻撃間隔を即座に空ける。D3 覚醒「追撃」 */
@@ -120,6 +125,14 @@ export interface Unit {
   critDmg: number;
   attack: ResolvedAttack;
   aura: ResolvedAura | null;
+  /**
+   * このユニットが付ける Echo の毎秒ダメージ（1 スタックあたり）。
+   *
+   * **付けた本人の強化で決まる。** world がひとつの値を配ると、
+   * 才能はともかく衣装（着ている人ごとに違う）を反映できない。
+   * 付与時に状態へ焼き付けるので、あとから着替えても既に付いた Echo は変わらない
+   */
+  echoDps: number;
 
   cooldownMs: number;
   /** ノックバックの発動間隔を数えるための命中カウンタ */
