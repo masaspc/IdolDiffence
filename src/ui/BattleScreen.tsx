@@ -16,6 +16,15 @@ import type { BattleOutcome } from '../meta/progression';
 import type { EffectLevel } from '../meta/settings';
 import { Hud } from './Hud';
 
+/**
+ * Space を渡してはいけない相手か。
+ * ボタン・リンク・入力欄では Space は「そのコントロールの操作」
+ */
+function isInteractive(target: EventTarget | null): boolean {
+  if (!(target instanceof HTMLElement)) return false;
+  return target.closest('button, a, input, select, textarea, [role="button"]') !== null;
+}
+
 interface BattleScreenProps {
   stageId: string;
   meta: BattleMeta;
@@ -355,8 +364,12 @@ export function BattleScreen({
     const onKeyDown = (event: KeyboardEvent): void => {
       if (event.repeat) return;
       if (event.key === ' ') {
-        // ボタンにフォーカスがある状態の Space は「押す」なので、
-        // 画面がスクロールしないようにだけしてコールへは回さない
+        // ボタンにフォーカスがある状態の Space は**そのボタンを押す**操作。
+        // ここで奪うと、キーボードだけで遊ぶ人が一時停止もカード選択も
+        // 押せなくなる（06-ui-ux.md 6.7 フルキーボード操作）
+        if (isInteractive(event.target)) return;
+        // 盤面にフォーカスがあるときだけコールへ回す。
+        // preventDefault は画面のスクロールを止めるため
         event.preventDefault();
         doCall();
         return;

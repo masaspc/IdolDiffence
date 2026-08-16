@@ -16,7 +16,7 @@
  * やり込みが義務になる。報酬は才能ポイントと資金で、
  * **やり込みを素材ではなく育成へ**還元する。
  */
-import { achievements, getStage, stageOrder } from '../data';
+import { achievements, canonIds, getStage, mainStageIds, stageOrder } from '../data';
 import type { AchievementDef, AchievementStat } from '../data/schema/achievement';
 import { unlockedIds } from './progression';
 import { rankOf, songIds, songLevelOf } from './rank';
@@ -42,6 +42,8 @@ export function statValue(save: SaveData, stat: AchievementStat): number {
   switch (stat) {
     case 'clearedStages':
       return progress.filter((p) => p.cleared).length;
+    case 'clearedMainStages':
+      return mainStageIds.filter((id) => save.stageProgress[id]?.cleared).length;
     case 'perfectStages':
       return progress.filter((p) => p.bestAudience >= 100).length;
     case 'bossStages':
@@ -58,7 +60,9 @@ export function statValue(save: SaveData, stat: AchievementStat): number {
     case 'maxIdolLevel':
       return Math.max(1, ...Object.values(save.idolLevels));
     case 'roster':
-      return unlockedIds(save).length;
+      // 隠しキャラを混ぜない。GM を出しただけで「原作の 12 人すべて」が
+      // 立ってしまう（`rosterIds` は 12 人 + GM の 13 件）
+      return unlockedIds(save).filter((id) => canonIds.includes(id)).length;
     case 'evolved':
       return save.evolved.length;
     case 'talents':

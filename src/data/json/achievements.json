@@ -19,9 +19,9 @@
   },
   "all_main": {
     "name": "本編制覇",
-    "desc": "本編ステージを 10 すべてクリアする",
+    "desc": "本編ステージ 10 すべてをクリアする（ボスを除く）",
     "title": "ツクヨミの顔",
-    "stat": "clearedStages",
+    "stat": "clearedMainStages",
     "goal": 10,
     "points": 3,
     "funds": 20000
