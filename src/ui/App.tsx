@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { HomeScreen } from './HomeScreen';
 import { PartyScreen } from './PartyScreen';
+import { TalentScreen } from './TalentScreen';
 import { BattleScreen } from './BattleScreen';
 import {
   applyReward,
@@ -13,10 +14,12 @@ import {
   unlockedIds,
   type BattleOutcome,
 } from '../meta/progression';
+import { respecTalents, resolveTalents, takeTalent } from '../meta/talents';
+import { evolve, evolvedForBattle } from '../meta/evolution';
 import { loadSave, saveSave, type SaveData } from '../meta/save';
 import type { BattleMeta } from '../sim/world';
 
-type Screen = 'home' | 'party' | 'battle';
+type Screen = 'home' | 'party' | 'talents' | 'battle';
 
 export function App(): React.JSX.Element {
   const [save, setSave] = useState<SaveData>(() => {
@@ -50,6 +53,10 @@ export function App(): React.JSX.Element {
     setSave((current) => levelUp(current, idolId));
   }, []);
 
+  const handleEvolve = useCallback((idolId: string) => {
+    setSave((current) => evolve(current, idolId));
+  }, []);
+
   const handleFinish = useCallback((outcome: BattleOutcome) => {
     const reward = calcReward(outcome);
     setSave((current) => applyReward(current, outcome, reward));
@@ -63,6 +70,17 @@ export function App(): React.JSX.Element {
         meta={battleMeta}
         onFinish={handleFinish}
         onExit={() => setScreen('home')}
+      />
+    );
+  }
+
+  if (screen === 'talents') {
+    return (
+      <TalentScreen
+        save={save}
+        onTake={(id) => setSave((current) => takeTalent(current, id))}
+        onRespec={() => setSave((current) => respecTalents(current))}
+        onBack={() => setScreen('home')}
       />
     );
   }
@@ -83,7 +101,9 @@ export function App(): React.JSX.Element {
       save={save}
       lastResult={lastResult}
       onLevelUp={handleLevelUp}
+      onEvolve={handleEvolve}
       onOpenParty={() => setScreen('party')}
+      onOpenTalents={() => setScreen('talents')}
       onStart={(id) => {
         setStageId(id);
         setLastResult(null);
@@ -95,6 +115,8 @@ export function App(): React.JSX.Element {
           ),
           party,
           center,
+          talents: resolveTalents(save),
+          evolved: evolvedForBattle(save),
         });
         setScreen('battle');
       }}

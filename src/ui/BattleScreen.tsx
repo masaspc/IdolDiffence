@@ -53,6 +53,12 @@ export function BattleScreen({ stageId, meta, onFinish, onExit }: BattleScreenPr
     const renderer = new Renderer(canvas, world);
     worldRef.current = world;
 
+    // 演出は sim ではなく描画側で数える。sim 時刻に紐付けると、
+    // 一時停止で止まり、倍速で早送りされてしまう
+    const offSpecial = world.events.on('specialStarted', () => {
+      renderer.startSpecialEffect(world.snapshot().centerName);
+    });
+
     // HUD が覆う高さを測って渡す。canvas は全面のままにして背景を端まで見せ、
     // 盤面だけを HUD の内側へ収める（renderer.setSafeArea）。
     // 狭い画面では HUD が折り返して高さが変わるので、毎回測り直す
@@ -83,7 +89,8 @@ export function BattleScreen({ stageId, meta, onFinish, onExit }: BattleScreenPr
         const steps = world.clock.playbackSpeed;
         for (let i = 0; i < steps; i++) world.update(dtMs);
       },
-      render: (alpha) => {
+      render: (alpha, frameMs) => {
+        renderer.advanceEffects(frameMs);
         // HUD の高さは中身（覚醒の選択肢、取得カードの一覧）で変わるが、
         // .battle 自体の大きさは変わらないので ResizeObserver では拾えない。
         // 毎秒 2 回測り直す。同じ寸法なら renderer 側で弾かれる
@@ -183,6 +190,7 @@ export function BattleScreen({ stageId, meta, onFinish, onExit }: BattleScreenPr
 
     return () => {
       loop.stop();
+      offSpecial();
       observer.disconnect();
       canvas.removeEventListener('pointermove', updateHoverFromPointer);
       canvas.removeEventListener('pointerleave', clearHover);

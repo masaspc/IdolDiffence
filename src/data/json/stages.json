@@ -285,7 +285,7 @@
       "12,5": "audience"
     },
     "song": "neon_horai",
-    "hpMul": 4,
+    "hpMul": 12,
     "waves": [
       {
         "section": "intro",
@@ -542,7 +542,7 @@
       "4,5": "audience"
     },
     "song": "gekko_silence",
-    "hpMul": 16,
+    "hpMul": 32,
     "waves": [
       {
         "section": "intro",
@@ -864,7 +864,7 @@
       "2,2": "audience"
     },
     "song": "hagoromo_encore",
-    "hpMul": 8,
+    "hpMul": 20,
     "waves": [
       {
         "section": "intro",
@@ -1220,7 +1220,7 @@
       "2,6": "audience"
     },
     "song": "hinezumi_overdrive",
-    "hpMul": 16,
+    "hpMul": 40,
     "waves": [
       {
         "section": "intro",
@@ -1676,7 +1676,7 @@
       "2,6": "audience"
     },
     "song": "neon_horai",
-    "hpMul": 10,
+    "hpMul": 20,
     "waves": [
       {
         "section": "intro",
@@ -2096,7 +2096,7 @@
       "1,4": "audience"
     },
     "song": "gekko_silence",
-    "hpMul": 6,
+    "hpMul": 24,
     "waves": [
       {
         "section": "intro",

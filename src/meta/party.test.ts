@@ -5,7 +5,7 @@
  * プレイヤーから原因の見えない不具合になるので、境界を厚めに固めておく。
  */
 import { describe, expect, it } from 'vitest';
-import { createNewSave, migrate, saveSchema, type SaveData } from './save';
+import { createNewSave, CURRENT_VERSION, migrate, saveSchema, type SaveData } from './save';
 import {
   isUnlocked,
   normalizeParty,
@@ -169,7 +169,7 @@ describe('センターパッシブ', () => {
 });
 
 describe('セーブの移行', () => {
-  it('v1 のセーブに編成が補われる', () => {
+  it('v1 のセーブが最新まで上がり、編成と才能が補われる', () => {
     const old = {
       version: 1,
       funds: 500,
@@ -177,9 +177,10 @@ describe('セーブの移行', () => {
       stageProgress: { S1: { cleared: true, bestAudience: 90, plays: 2 } },
     };
     const migrated = saveSchema.parse(migrate(old));
-    expect(migrated.version).toBe(2);
+    expect(migrated.version).toBe(CURRENT_VERSION);
     expect(migrated.funds).toBe(500);
     expect(migrated.party).toEqual(['V1', 'D1', 'Vi1']);
     expect(migrated.center).toBe('V1');
+    expect(migrated.talents).toEqual([]);
   });
 });

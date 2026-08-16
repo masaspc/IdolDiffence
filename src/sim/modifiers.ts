@@ -21,7 +21,11 @@ export type StatKey =
   | 'voltageGain'
   | 'slowPower'
   /** 状態異常の**継続時間**。効果量（slowPower）とは別枠 */
-  | 'statusDuration';
+  | 'statusDuration'
+  /** 範囲攻撃の半径 */
+  | 'aoeRadius'
+  /** Echo の 1 スタックあたりのダメージ */
+  | 'echoPower';
 
 /** 上限のあるステータス（03-progression.md E-3） */
 const CAPS: Partial<Record<StatKey, number>> = {

@@ -39,14 +39,51 @@ describe('ポジション強化', () => {
     expect(world.upgradeUnit(unit.id)).toBe('insufficient-cheer');
   });
 
-  it('Lv3 より上には上げられない', () => {
+  it('Lv3 で覚醒を選ぶまで、その先へは上げられない', () => {
     const world = richWorld();
     const unit = world.placeUnit('D1', 4, 6);
     if (typeof unit === 'string') throw new Error(unit);
     world.upgradeUnit(unit.id);
     world.upgradeUnit(unit.id);
     expect(world.snapshot().units[0]?.level).toBe(3);
+    // 選ばないまま進めると Lv6 で「もう一方」が決まらなくなる
+    expect(world.upgradeUnit(unit.id)).toBe('awakening-required');
+  });
+
+  it('Lv6 が上限で、そこで選ばなかった方の覚醒も開く', () => {
+    const world = richWorld();
+    const unit = world.placeUnit('D1', 4, 6);
+    if (typeof unit === 'string') throw new Error(unit);
+    world.upgradeUnit(unit.id);
+    world.upgradeUnit(unit.id);
+    expect(world.chooseAwakening(unit.id, 'A')).toBe(true);
+    expect(world.snapshot().units[0]!.awakeningNames).toEqual(['乱舞']);
+
+    world.upgradeUnit(unit.id);
+    world.upgradeUnit(unit.id);
+    world.upgradeUnit(unit.id);
+
+    const view = world.snapshot().units[0]!;
+    expect(view.level).toBe(6);
+    expect(view.maxLevel).toBe(6);
+    expect(view.awakeningNames).toEqual(['乱舞', '一閃']);
     expect(world.upgradeUnit(unit.id)).toBe('max-level');
+  });
+
+  it('Lv6 では両方の効果が乗る', () => {
+    // D1 は A「乱舞」で 3 体同時、B「一閃」でクリティカル率 +35%。
+    // 6 まで上げると両取りになる
+    const world = richWorld();
+    const unit = world.placeUnit('D1', 4, 6);
+    if (typeof unit === 'string') throw new Error(unit);
+    for (let i = 0; i < 2; i++) world.upgradeUnit(unit.id);
+    world.chooseAwakening(unit.id, 'A');
+    const critAtLv3 = world.snapshot().units[0]!.atk;
+    void critAtLv3;
+    for (let i = 0; i < 3; i++) world.upgradeUnit(unit.id);
+
+    expect(unit.attack.multiTarget).toBe(3);
+    expect(unit.critRate).toBeGreaterThan(0.35);
   });
 
   it('売却額は強化ぶんも含む', () => {
@@ -109,7 +146,7 @@ describe('覚醒分岐', () => {
     world.upgradeUnit(unit.id);
     world.upgradeUnit(unit.id);
     world.chooseAwakening(unit.id, 'B');
-    expect(world.snapshot().units[0]?.awakeningName).toBe('モデレート');
+    expect(world.snapshot().units[0]?.awakeningNames[0]).toBe('モデレート');
   });
 
   it('覚醒 A の管理者権限で単体攻撃が範囲化する', () => {

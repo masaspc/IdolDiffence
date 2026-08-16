@@ -9,14 +9,31 @@
  */
 import { createWorld, type BattleMeta } from '../src/sim/world';
 import { autoplay, type Placement } from '../src/sim/autoplay';
-import { getIdol, rosterIds } from '../src/data';
+import { getIdol, getTalent, rosterIds } from '../src/data';
 import { levelAtkMultiplier } from '../src/meta/progression';
+import { emptyTalentEffects, resolveTalents, type TalentEffects } from '../src/meta/talents';
+import { createNewSave } from '../src/meta/save';
 import { minimalPlan, PLAN_STAGES, STAGE_PLANS } from '../src/balance/plans';
 
 const SEED = 20260816;
 
+/**
+ * 才能ボードを 1 ブランチぶん取り切った状態。
+ * 「才能に投資するとどれだけ変わるか」を 1 行で見るために使う
+ */
+function fullBranchTalents(branch: 'vo' | 'da' | 'vi'): TalentEffects {
+  const ids: string[] = [];
+  // 片方の枝を末端まで。キーストーンは 1 つしか取れない
+  for (const suffix of ['s1', 's2', 's3', 'm1', 'm2', 'k1', 's4', 's5', 's6', 'm3', 'm4']) {
+    const id = `${branch}_${suffix}`;
+    getTalent(id); // 存在しなければここで落ちる
+    ids.push(id);
+  }
+  return resolveTalents({ ...createNewSave(), talents: ids });
+}
+
 /** 育成段階を再現する。レベルだけを変えて他は同条件にする */
-function metaAt(stageId: string, level: number): BattleMeta {
+function metaAt(stageId: string, level: number, talents?: TalentEffects): BattleMeta {
   const plan = STAGE_PLANS[stageId];
   return {
     atkByIdol: Object.fromEntries(
@@ -24,6 +41,7 @@ function metaAt(stageId: string, level: number): BattleMeta {
     ),
     party: plan?.party ?? [],
     center: plan?.center ?? null,
+    talents: talents ?? emptyTalentEffects(),
   };
 }
 
@@ -43,9 +61,9 @@ function run(
   stageId: string,
   level: number,
   plan: readonly Placement[],
-  options: { useSpecial?: boolean; worstCard?: boolean } = {},
+  options: { useSpecial?: boolean; worstCard?: boolean; talents?: TalentEffects } = {},
 ): Row {
-  const world = createWorld(stageId, SEED, metaAt(stageId, level));
+  const world = createWorld(stageId, SEED, metaAt(stageId, level, options.talents));
   const result = autoplay(world, {
     plan,
     ...(options.useSpecial === undefined ? {} : { useSpecial: options.useSpecial }),
@@ -79,6 +97,14 @@ for (const stageId of targets) {
   rows.push(run(`${stageId} Lv30・フル強化`, stageId, 30, full, { useSpecial: true }));
   rows.push(
     run(`${stageId} Lv20・別のカード選択`, stageId, 20, full, { useSpecial: true, worstCard: true }),
+  );
+  // 才能ボードに投資した状態。参照盤面は才能なしで測っているので、
+  // ここが「投資したぶん楽になっている」ことの確認になる
+  rows.push(
+    run(`${stageId} Lv20・才能フル(歌)`, stageId, 20, full, {
+      useSpecial: true,
+      talents: fullBranchTalents('vo'),
+    }),
   );
 }
 

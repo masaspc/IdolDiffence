@@ -150,7 +150,10 @@ export function Hud(props: HudProps): React.JSX.Element {
               {TYPE_ICON[selected.type]}
             </span>
             <span>{selected.shortName}</span>
-            <span className="unit-level">Lv{selected.level}</span>
+            <span className="unit-level">
+              Lv{selected.level}
+              <span className="unit-level-max">/{selected.maxLevel}</span>
+            </span>
           </div>
 
           <dl>
@@ -162,10 +165,10 @@ export function Hud(props: HudProps): React.JSX.Element {
               <dt>射程</dt>
               <dd>{selected.range.toFixed(1)} マス</dd>
             </div>
-            {selected.awakeningName && (
+            {selected.awakeningNames.length > 0 && (
               <div>
                 <dt>覚醒</dt>
-                <dd>{selected.awakeningName}</dd>
+                <dd>{selected.awakeningNames.join(' + ')}</dd>
               </div>
             )}
           </dl>
@@ -197,12 +200,26 @@ export function Hud(props: HudProps): React.JSX.Element {
               disabled={!canUpgrade}
             >
               Lv{selected.level + 1} へ強化（♥{selected.upgradeCost}）
+              {selected.level + 1 === selected.maxLevel && (
+                <em className="upgrade-note">もう一方の覚醒も開く</em>
+              )}
             </button>
           ) : null}
 
           <button type="button" className="sell" onClick={props.onSellSelected}>
             売却（♥{Math.floor(selected.investedCost * 0.6)} 返却）
           </button>
+        </div>
+      )}
+
+      {snapshot.formations.length > 0 && (
+        <div className="formations">
+          {snapshot.formations.map((f) => (
+            <span key={f.id} className="formation-chip" title={f.desc}>
+              {f.name}
+              {f.count > 1 ? ` ×${f.count}` : ''}
+            </span>
+          ))}
         </div>
       )}
 

@@ -28,7 +28,7 @@ export interface StatusEffect {
   accumulator?: number;
 }
 
-/** Echo の最大スタック（才能ボードのキーストーンで 8 まで伸びる想定） */
+/** Echo の最大スタック。才能ボードのキーストーン「無限旋律」で 8 まで伸びる */
 export const ECHO_MAX_STACKS = 5;
 
 export interface Enemy {
@@ -97,10 +97,17 @@ export interface Unit {
   pos: Vec2;
   /** 累計投入コスト。売却額の算出に使う */
   investedCost: number;
-  /** ポジション強化のレベル 1〜3 */
-  level: 1 | 2 | 3;
+  /** ポジション強化のレベル 1〜6 */
+  level: number;
   /** Lv3 で選んだ覚醒分岐。未選択なら null */
   awakening: AwakeningKey | null;
+  /** Lv6 で自動的に付く、選ばなかった方の分岐 */
+  awakeningSecond: AwakeningKey | null;
+  /**
+   * 進化（Ray）を解放済みか。ホームで恒久解放するものなので、ラン中は変わらない。
+   * ポジション強化と違って**配置した瞬間から**乗る
+   */
+  evolved: boolean;
 
   /** 育成（メタ）を反映した基礎攻撃力。ラン中は変わらない */
   baseAtk: number;
@@ -161,7 +168,11 @@ export function vulnerability(statuses: readonly StatusEffect[]): number {
   return max;
 }
 
-export function applyStatus(enemy: Enemy, incoming: StatusEffect): void {
+export function applyStatus(
+  enemy: Enemy,
+  incoming: StatusEffect,
+  echoMaxStacks = ECHO_MAX_STACKS,
+): void {
   const existing = enemy.statuses.find((s) => s.kind === incoming.kind);
   if (!existing) {
     enemy.statuses.push({ ...incoming, accumulator: 0 });
@@ -170,7 +181,7 @@ export function applyStatus(enemy: Enemy, incoming: StatusEffect): void {
 
   if (incoming.kind === 'echo') {
     // Echo はスタックする。上限までは重ねられ、時間は最新で更新
-    existing.stacks = Math.min(ECHO_MAX_STACKS, (existing.stacks ?? 1) + (incoming.stacks ?? 1));
+    existing.stacks = Math.min(echoMaxStacks, (existing.stacks ?? 1) + (incoming.stacks ?? 1));
     existing.dps = Math.max(existing.dps ?? 0, incoming.dps ?? 0);
     existing.remainingMs = Math.max(existing.remainingMs, incoming.remainingMs);
     return;

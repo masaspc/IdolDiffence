@@ -32,19 +32,29 @@ import {
   type Unit,
 } from './entities';
 import { buildSpawnSchedule, waveHpMultiplier, type ScheduledSpawn } from './systems/spawn';
+import {
+  evaluateFormations,
+  formationModsFor,
+  type FormationHit,
+  type FormationResult,
+} from './systems/formation';
+
 import { advanceEnemy, knockbackEnemy } from './systems/movement';
 import { updateUnit } from './systems/combat';
 import { applyCard, drawOffers, type CardOffer } from './systems/cards';
-import { emptyPool, resolveStat, type ModifierPool } from './modifiers';
+import { addFlat, addPct, addTypePct, emptyPool, resolveStat, type ModifierPool } from './modifiers';
 import {
   centerEconomyPool,
   resolveUnit,
   resolveUnitAura,
   upgradeCost,
+  AWAKENING_LEVEL,
+  MAX_POSITION_LEVEL,
   SPECIAL_ENEMY_SPEED_MUL,
-  POSITION_LEVELS,
 } from './unitStats';
 import { defenseReduction, type DamageResult } from './damage';
+import { ECHO_MAX_STACKS } from './entities';
+import type { TalentEffects } from '../meta/talents';
 
 /** 声援の自然回復。観客ゲージへの依存は意図的に浅い（02-core-battle.md 2.3） */
 const CHEER_REGEN_BASE = 5.0;
@@ -89,6 +99,38 @@ const ECHO_DPS = 18;
 
 const FLOATING_TEXT_LIFE_MS = 700;
 
+/**
+ * 才能ボードの合算結果を加算プールへ移す。
+ *
+ * 才能は**加算**（03-progression.md E-1）。乗算にすると、系統を寄せたときだけ
+ * 掛け算が伸びて他の系統が置き去りになる。
+ *
+ * ただしクリティカル率とクリティカルダメージだけは `addFlat` を使う。
+ * これらは倍率ではなく**確率と割合そのもの**で、「+3%」は
+ * 「0.05 → 0.08」の意味であって「0.05 × 1.03 = 0.0515」ではない。
+ * `addPct` に通すとノードがほぼ無価値になり、
+ * カード（`applyCard` は同じ意味で `addFlat` を使う）とも食い違う。
+ */
+function buildTalentPool(effects: TalentEffects | undefined): ModifierPool {
+  const pool = emptyPool();
+  if (!effects) return pool;
+
+  addPct(pool, 'atk', effects.atkPct);
+  addPct(pool, 'range', effects.rangePct);
+  addPct(pool, 'attackSpeed', effects.attackSpeedPct);
+  addFlat(pool, 'critRate', effects.critRateAdd);
+  addFlat(pool, 'critDmg', effects.critDmgAdd);
+  addPct(pool, 'cheerGain', effects.cheerGainPct);
+  addPct(pool, 'voltageGain', effects.voltageGainPct);
+  addPct(pool, 'slowPower', effects.statusPowerPct);
+  addPct(pool, 'statusDuration', effects.statusDurationPct);
+  addPct(pool, 'aoeRadius', effects.aoeRadiusPct);
+  for (const [type, value] of Object.entries(effects.typeAtkPct)) {
+    if (value !== undefined) addTypePct(pool, type as IdolType, value);
+  }
+  return pool;
+}
+
 export interface WaveInfo {
   index: number;
   section: string;
@@ -100,6 +142,8 @@ export interface WaveInfo {
 export interface UnitView {
   id: EntityId;
   idolId: string;
+  /** ドット絵の引き当てキー。進化していると `"V1:evolved"` になる */
+  spriteId: string;
   shortName: string;
   type: string;
   cell: { x: number; y: number };
@@ -107,9 +151,11 @@ export interface UnitView {
   y: number;
   range: number;
   atk: number;
-  level: 1 | 2 | 3;
+  level: number;
+  maxLevel: number;
   awakening: AwakeningKey | null;
-  awakeningName: string | null;
+  /** 乗っている覚醒の名前。Lv6 では 2 つ並ぶ */
+  awakeningNames: string[];
   investedCost: number;
   upgradeCost: number | null;
   /** Lv3 に到達して覚醒未選択なら true */
@@ -185,6 +231,13 @@ export interface WorldSnapshot {
   /** 提示中のセットリスト。null なら選択中でない */
   offers: CardOfferView[] | null;
   takenCards: { name: string; count: number }[];
+  /** 成立中のフォーメーション。同じ種類はまとめて数える */
+  formations: { id: string; name: string; desc: string; count: number }[];
+  /**
+   * 才能「ステップアップ」の現在の累積（0.4 = 攻撃速度 +40%）。
+   * ウェーブ内でしか続かないので、HUD に出すなら残量として見せる
+   */
+  killSpeedBonus: number;
 }
 
 export type PlacementError =
@@ -193,7 +246,13 @@ export type PlacementError =
   | 'insufficient-cheer'
   | 'not-in-party'
   | 'finished';
-export type UpgradeError = 'not-found' | 'max-level' | 'insufficient-cheer' | 'finished';
+export type UpgradeError =
+  | 'not-found'
+  | 'max-level'
+  | 'insufficient-cheer'
+  | 'finished'
+  /** Lv3 の覚醒分岐を選ぶまで、その先へは上げられない */
+  | 'awakening-required';
 
 /** 計測用のイベントログ（07-roadmap.md M2 の計測） */
 export interface LogEntry {
@@ -213,6 +272,13 @@ export interface BattleMeta {
   party?: readonly string[];
   /** センター。party に含まれていないと無視する */
   center?: string | null;
+  /**
+   * 才能ボードの合算結果。**セーブそのものは渡さない**。
+   * sim がメタ層の形を知ると、ヘッドレス計測が回しづらくなる
+   */
+  talents?: TalentEffects;
+  /** 進化（Ray）を解放済みのアイドル ID（03-progression.md ⑦-2） */
+  evolved?: readonly string[];
 }
 
 export class BattleWorld {
@@ -233,6 +299,7 @@ export class BattleWorld {
   private readonly partyIds: ReadonlySet<string>;
   private readonly center: CenterPassive | undefined;
   private readonly centerName: string | null;
+  private readonly centerIdolId: string | null;
   /** センターによる配置コスト倍率。彩葉センターで -8% */
   private readonly costMul: number;
   /** センターによるスペシャルライブの延長 */
@@ -243,6 +310,13 @@ export class BattleWorld {
    */
   private readonly centerPool: ModifierPool;
   private readonly palette: PaletteEntry[];
+  /** 才能ボード（恒久）の加算プール。ラン中は変わらない */
+  private readonly talentPool: ModifierPool;
+  private readonly talents: TalentEffects | undefined;
+  private readonly echoMaxStacks: number;
+  private readonly echoDps: number;
+  /** 進化済みのアイドル。配置時に引き当てるので Set で持つ */
+  private readonly evolvedIds: ReadonlySet<string>;
 
   private scheduleCursor = 0;
   private nextEntityId = 1;
@@ -257,6 +331,12 @@ export class BattleWorld {
   private offers: CardOffer[] | null = null;
   /** カード選択済みのウェーブ。同じ ◆ で二度出さないため */
   private resolvedPicks = new Set<number>();
+
+  /** フォーメーションの成立状況。配置が変わったときだけ数え直す */
+  private formation: FormationResult = { byUnit: new Map(), voltageMul: 1, hits: [] };
+  /** 才能「ステップアップ」の累積。ウェーブが変わるとリセットする */
+  private killSpeedBonus = 0;
+  private killSpeedWave = -1;
 
   private specialRemainingMs = 0;
   private cheer = INITIAL_CHEER;
@@ -285,6 +365,11 @@ export class BattleWorld {
     this.placeableKeys = new Set(this.stage.placeable.map(([x, y]) => `${x},${y}`));
 
     this.partyIds = new Set(meta.party ?? []);
+    // 進化先を持たない ID が混ざっていても害はないが、
+    // パレットの表示名を引くたびに定義を見に行くので絞っておく
+    this.evolvedIds = new Set(
+      (meta.evolved ?? []).filter((id) => getIdol(id).evolution !== undefined),
+    );
     // センターは必ず出撃メンバーの中から選ぶ。編成画面で外したのに
     // パッシブだけ残る、という食い違いを sim の側で塞いでおく
     const centerId =
@@ -292,7 +377,12 @@ export class BattleWorld {
         ? meta.center
         : null;
     this.center = centerId ? getIdol(centerId).centerPassive : undefined;
-    this.centerName = this.center && centerId ? getIdol(centerId).name : null;
+    this.centerName = this.center && centerId ? this.displayOf(centerId).name : null;
+    this.centerIdolId = centerId;
+    this.talents = meta.talents;
+    this.talentPool = buildTalentPool(meta.talents);
+    this.echoMaxStacks = ECHO_MAX_STACKS + (meta.talents?.echoMaxStacksAdd ?? 0);
+    this.echoDps = ECHO_DPS * (1 + (meta.talents?.echoPowerPct ?? 0));
     this.centerPool = centerEconomyPool(this.center);
     this.costMul = this.center?.mods.costMul ?? 1;
     this.specialBonusMs = this.center?.mods.specialDurationAddMs ?? 0;
@@ -303,7 +393,7 @@ export class BattleWorld {
       const def = getIdol(id);
       return {
         idolId: id,
-        shortName: def.shortName,
+        shortName: this.displayOf(id).shortName,
         type: def.type,
         cost: Math.round(def.cost * this.costMul),
         isCenter: id === centerId,
@@ -335,6 +425,9 @@ export class BattleWorld {
     const advanced = this.clock.advance(dtMs, (info) => {
       this.events.emit('beat', { bar: info.bar, beat: info.beat });
       if (info.beat === 0) {
+        // 期限切れは通知より先に。購読側が「もう終わったウェーブの累積」を
+        // 読んでしまうのを避ける
+        this.expireKillStack();
         this.events.emit('bar', { bar: info.bar });
         this.addVoltage(VOLTAGE_PER_BAR);
         this.checkCardPick(info.bar);
@@ -368,7 +461,8 @@ export class BattleWorld {
 
   private updateEconomy(dtMs: number): void {
     const gain =
-      resolveStat(1, 'cheerGain', [this.runPool, this.centerPool]) * this.cheerGainFromCells();
+      resolveStat(1, 'cheerGain', [this.runPool, this.talentPool, this.centerPool]) *
+      this.cheerGainFromCells();
     const regen = (CHEER_REGEN_BASE + CHEER_REGEN_PER_AUDIENCE * this.audience) * gain;
     this.addCheer((regen * dtMs) / 1000);
   }
@@ -528,7 +622,8 @@ export class BattleWorld {
       rng: this.rng,
       enemies: this.enemies,
       applyDamage: (enemy: Enemy, result: DamageResult) => this.applyDamage(enemy, result),
-      echoDps: ECHO_DPS,
+      echoDps: this.echoDps,
+      echoMaxStacks: this.echoMaxStacks,
       defDownFor: (enemy: Enemy) => this.defDownFor(enemy),
       knockback: (enemy: Enemy, dist: number) => {
         const path = this.paths[enemy.lane] ?? this.paths[0];
@@ -565,8 +660,41 @@ export class BattleWorld {
       this.killed++;
       this.addCheer(enemy.bounty);
       this.events.emit('enemyKilled', { id: enemy.id, defId: enemy.defId, bounty: enemy.bounty });
+      this.addKillStack();
       this.spawnOnDeath(enemy);
     }
+  }
+
+  /**
+   * 才能「ステップアップ」。撃破するたび攻撃速度が上がり、ウェーブが変わると戻る。
+   * ステータス解決は重いので、**刻みが変わったときだけ**掛け直す。
+   */
+  private addKillStack(): void {
+    const stack = this.talents?.killSpeedStack;
+    if (!stack) return;
+
+    this.killSpeedWave = this.currentWave?.index ?? -1;
+    const next = Math.min(stack.max, this.killSpeedBonus + stack.perKill);
+    if (next === this.killSpeedBonus) return;
+    this.killSpeedBonus = next;
+    this.refreshUnitStats();
+  }
+
+  /**
+   * ウェーブが変わったら累積を落とす。
+   *
+   * 撃破時にだけ見ていると、**次のウェーブの最初の 1 体を倒すまで前の
+   * ウェーブのぶんが乗り続ける**。ウェーブは楽曲の時計で進むので、
+   * 撃破とは無関係に切り替わる。小節の頭で見れば取りこぼさない
+   * （ウェーブの長さは小節単位なので、境界は必ず小節の頭に来る）。
+   */
+  private expireKillStack(): void {
+    const wave = this.currentWave?.index ?? -1;
+    if (wave === this.killSpeedWave) return;
+    this.killSpeedWave = wave;
+    if (this.killSpeedBonus === 0) return;
+    this.killSpeedBonus = 0;
+    this.refreshUnitStats();
   }
 
   /**
@@ -687,6 +815,23 @@ export class BattleWorld {
     return this.meta.atkByIdol?.[idolId] ?? getIdol(idolId).base.atk;
   }
 
+  /**
+   * 進化を反映した表示。
+   *
+   * 進化しても**アイドル ID は変えない**（別 ID にすると編成・才能・解放条件の
+   * すべてが「どちらを指すか」を判断することになる）。名前と絵だけがここで割れる。
+   */
+  private displayOf(idolId: string): { name: string; shortName: string; spriteId: string } {
+    const def = getIdol(idolId);
+    const evolution = this.evolvedIds.has(idolId) ? def.evolution : undefined;
+    if (!evolution) return { name: def.name, shortName: def.shortName, spriteId: idolId };
+    return {
+      name: evolution.name,
+      shortName: evolution.shortName,
+      spriteId: `${idolId}:evolved`,
+    };
+  }
+
   /** センター補正込みの配置コスト。UI と sim で同じ値を使うため公開する */
   placementCost(idolId: string): number {
     return Math.round(getIdol(idolId).cost * this.costMul);
@@ -709,17 +854,20 @@ export class BattleWorld {
     const cost = this.placementCost(idolId);
     this.spendCheer(cost);
 
+    const display = this.displayOf(idolId);
     const unit: Unit = {
       id: this.nextEntityId++,
       idolId,
-      name: def.name,
-      shortName: def.shortName,
+      name: display.name,
+      shortName: display.shortName,
       type: def.type,
       cell: { x, y },
       pos: vec(x + 0.5, y + 0.5),
       investedCost: cost,
       level: 1,
       awakening: null,
+      awakeningSecond: null,
+      evolved: this.evolvedIds.has(idolId),
       baseAtk: this.baseAtkOf(idolId),
       atk: 0,
       range: 0,
@@ -757,12 +905,25 @@ export class BattleWorld {
     return upgradeCost(this.placementCost(unit.idolId), unit.level);
   }
 
-  /** ポジション強化。Lv3 に上がると覚醒分岐の選択待ちになる */
+  /**
+   * ポジション強化。Lv3 で覚醒分岐の選択待ちになり、Lv6 でもう一方も手に入る
+   * （03-progression.md ①②）。
+   */
   upgradeUnit(id: EntityId): UpgradeError | null {
     if (this.finished) return 'finished';
     const unit = this.units.find((u) => u.id === id);
     if (!unit) return 'not-found';
-    if (unit.level >= POSITION_LEVELS.length) return 'max-level';
+    if (unit.level >= MAX_POSITION_LEVEL) return 'max-level';
+
+    // 選ばないまま先へ進めると、Lv6 で「もう一方」が決まらない。
+    // 分岐を持つキャラは、ここで必ず選ばせる
+    if (
+      unit.level >= AWAKENING_LEVEL &&
+      !unit.awakening &&
+      getIdol(unit.idolId).awakening !== undefined
+    ) {
+      return 'awakening-required';
+    }
 
     const cost = upgradeCost(this.placementCost(unit.idolId), unit.level);
     if (cost === null) return 'max-level';
@@ -770,8 +931,16 @@ export class BattleWorld {
 
     this.spendCheer(cost);
     unit.investedCost += cost;
-    unit.level = (unit.level + 1) as 1 | 2 | 3;
-    this.resolve(unit);
+    unit.level += 1;
+
+    // Lv6 到達で、選ばなかった方の分岐も開く
+    if (unit.level >= MAX_POSITION_LEVEL && unit.awakening && !unit.awakeningSecond) {
+      unit.awakeningSecond = unit.awakening === 'A' ? 'B' : 'A';
+      this.record('awakenSecond', { id, branch: unit.awakeningSecond });
+    }
+
+    // オーラを持つキャラは Lv6 の追加分岐で効果が変わる。全員を解決し直す
+    this.refreshUnitStats();
     this.record('upgrade', { id, level: unit.level });
     return null;
   }
@@ -779,7 +948,7 @@ export class BattleWorld {
   /** 覚醒分岐の選択。ラン中の変更は不可 */
   chooseAwakening(id: EntityId, branch: AwakeningKey): boolean {
     const unit = this.units.find((u) => u.id === id);
-    if (!unit || unit.level < 3 || unit.awakening) return false;
+    if (!unit || unit.level < AWAKENING_LEVEL || unit.awakening) return false;
     if (!getIdol(unit.idolId).awakening) return false;
 
     unit.awakening = branch;
@@ -810,9 +979,20 @@ export class BattleWorld {
   }
 
   private refreshUnitStats(): void {
-    // オーラを先に全員ぶん確定させる。後回しにすると、まだ解決していない
-    // 味方のオーラを取りこぼす順序依存が生まれる
+    // オーラとフォーメーションを先に全員ぶん確定させる。後回しにすると、
+    // まだ解決していない味方のぶんを取りこぼす順序依存が生まれる
     for (const unit of this.units) unit.aura = resolveUnitAura(unit);
+    this.formation = evaluateFormations(
+      this.units.map((u) => ({
+        id: u.id,
+        idolId: u.idolId,
+        type: u.type,
+        cell: u.cell,
+        pos: u.pos,
+        tags: getIdol(u.idolId).tags,
+      })),
+      this.centerIdolId,
+    );
     for (const unit of this.units) this.resolve(unit);
   }
 
@@ -820,10 +1000,13 @@ export class BattleWorld {
   private resolve(unit: Unit): void {
     resolveUnit(unit, {
       runPool: this.runPool,
+      talentPool: this.talentPool,
       center: this.center,
       cellType: this.stage.cellTypes[`${unit.cell.x},${unit.cell.y}`],
       specialActive: this.specialActive,
       allyAtkPct: this.allyAtkPctFor(unit),
+      formation: formationModsFor(this.formation, unit.id),
+      killSpeedBonus: this.killSpeedBonus,
     });
   }
 
@@ -876,7 +1059,10 @@ export class BattleWorld {
     // 溜め続けると終了と同時に次が撃てて、実質「常時バフ」になる
     if (delta > 0 && this.specialActive) return;
 
-    let scaled = delta * resolveStat(1, 'voltageGain', [this.runPool, this.centerPool]);
+    let scaled =
+      delta *
+      resolveStat(1, 'voltageGain', [this.runPool, this.talentPool, this.centerPool]) *
+      this.formation.voltageMul;
     if (delta > 0 && this.currentWave?.section === 'chorus') scaled *= VOLTAGE_CHORUS_MUL;
 
     const next = clamp(this.voltage + scaled, 0, VOLTAGE_MAX);
@@ -970,6 +1156,7 @@ export class BattleWorld {
       units: this.units.map((u) => ({
         id: u.id,
         idolId: u.idolId,
+        spriteId: u.evolved ? `${u.idolId}:evolved` : u.idolId,
         shortName: u.shortName,
         type: u.type,
         cell: u.cell,
@@ -978,13 +1165,16 @@ export class BattleWorld {
         range: u.range,
         atk: Math.round(u.atk),
         level: u.level,
+        maxLevel: MAX_POSITION_LEVEL,
         awakening: u.awakening,
-        awakeningName: u.awakening
-          ? (getIdol(u.idolId).awakening?.[u.awakening]?.name ?? null)
-          : null,
+        awakeningNames: [u.awakening, u.awakeningSecond]
+          .filter((key): key is AwakeningKey => key !== null)
+          .map((key) => getIdol(u.idolId).awakening?.[key]?.name)
+          .filter((name): name is string => name !== undefined),
         investedCost: u.investedCost,
         upgradeCost: upgradeCost(this.placementCost(u.idolId), u.level),
-        awaitingAwakening: u.level >= 3 && !u.awakening && !!getIdol(u.idolId).awakening,
+        awaitingAwakening:
+          u.level >= AWAKENING_LEVEL && !u.awakening && !!getIdol(u.idolId).awakening,
         lastAttackAgeMs: u.lastAttackAgeMs,
         targetX: u.lastTargetPos?.x ?? null,
         targetY: u.lastTargetPos?.y ?? null,
@@ -1018,8 +1208,23 @@ export class BattleWorld {
         name: cards[id]?.name ?? id,
         count,
       })),
+      formations: summariseFormations(this.formation.hits),
+      killSpeedBonus: this.killSpeedBonus,
     };
   }
+}
+
+/** 同じ種類のボーナスは 1 行にまとめる。3 組成立していても 3 行は要らない */
+function summariseFormations(
+  hits: readonly FormationHit[],
+): { id: string; name: string; desc: string; count: number }[] {
+  const byId = new Map<string, { id: string; name: string; desc: string; count: number }>();
+  for (const hit of hits) {
+    const existing = byId.get(hit.id);
+    if (existing) existing.count += 1;
+    else byId.set(hit.id, { id: hit.id, name: hit.name, desc: hit.desc, count: 1 });
+  }
+  return [...byId.values()];
 }
 
 export function createWorld(stageId: string, seed: number, meta: BattleMeta = {}): BattleWorld {
