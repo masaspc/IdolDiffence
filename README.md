@@ -58,7 +58,8 @@ npx tsx scripts/sweep-difficulty.ts S5   # 採用した hpMul の周辺を掃く
 | `src/sim/world.ts` | バトル状態。DOM 非依存で、React はスナップショットを読むだけ |
 | `src/sim/modifiers.ts` | 強化の合流点。加算プール / 乗算プール / 定数加算を分離 |
 | `src/sim/systems/` | 移動・戦闘・スポーン・ターゲティング・カード |
-| `src/render/renderer.ts` | Canvas 2D。静的レイヤをオフスクリーンにキャッシュ |
+| `src/render/renderer.ts` | Canvas 2D。静的レイヤをオフスクリーンにキャッシュ。縦画面では盤面を 90° 倒す |
+| `src/render/sprites.ts` | 配置メンバーのドット絵をコードで生成（差し替え可能な `SpriteProvider`） |
 | `src/data/` | JSON + Zod スキーマ。ビルド時に検証 |
 | `src/balance/` | 参照盤面とバランスの CI 検証 |
 
@@ -84,6 +85,8 @@ npx tsx scripts/sweep-difficulty.ts S5   # 採用した hpMul の周辺を掃く
 - **敵が問いを出す**: 高 DEF・飛行・回復・分裂・前面シールドなど、それぞれ別の答えを要求する
 - **ツクヨミが舞台**: 和風建築にネオンを重ねた仮想空間のライブワールドを守り抜く
 - **縦持ちスマホ対応**: 縦画面では盤面を 90° 倒して画面いっぱいに使い、HUD は 1 行ぶん畳む
+- **ドット絵はコード生成**: 画像ファイルを持たず `src/render/sprites.ts` が 32×32 の
+  スプライトを組み立てる。手描きに差し替えるときは `SpriteProvider` を渡すだけ
 
 ## 技術スタック
 

@@ -7,7 +7,7 @@
  */
 import { describe, expect, it } from 'vitest';
 import { createWorld, type BattleWorld } from './world';
-import { getEnemy, getIdol } from '../data';
+import { getEnemy, getIdol, rosterIds } from '../data';
 import { runHeadless } from '../core/loop';
 import { applyStatus, isImmobilized, type Enemy } from './entities';
 import { advanceEnemy, knockbackEnemy } from './systems/movement';
@@ -177,6 +177,28 @@ describe('ノックバック', () => {
     advanceEnemy(enemy, path, 200);
     knockbackEnemy(enemy, path, 99);
     expect(enemy.progress).toBe(0);
+  });
+});
+
+describe('ドット絵の指定', () => {
+  it('9 人全員に art がある（欠けると黙って丸に戻る）', () => {
+    for (const id of rosterIds) {
+      expect(getIdol(id).art, `${id} に art が無い`).toBeDefined();
+    }
+  });
+
+  it('同じ系統の中では髪型か髪色が違う（盤面で見分けられること）', () => {
+    const byType = new Map<string, string[]>();
+    for (const id of rosterIds) {
+      const def = getIdol(id);
+      const key = `${def.art!.hairStyle}/${def.art!.hair}`;
+      const list = byType.get(def.type) ?? [];
+      list.push(key);
+      byType.set(def.type, list);
+    }
+    for (const [type, keys] of byType) {
+      expect(new Set(keys).size, `${type} に見分けの付かない組み合わせがある`).toBe(keys.length);
+    }
   });
 });
 

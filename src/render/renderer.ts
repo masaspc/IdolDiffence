@@ -10,6 +10,7 @@
  */
 import type { BattleWorld, EnemyView, UnitView, WorldSnapshot } from '../sim/world';
 import { attrColor, cellStyle, palette, typeColor } from './palette';
+import { GeneratedSprites, SPRITE_SIZE, type SpriteProvider } from './sprites';
 
 /** 論理解像度。1 マス = 64px、16×9 マスで 1024×576 */
 export const CELL_SIZE = 64;
@@ -46,6 +47,11 @@ export class Renderer {
   constructor(
     private readonly canvas: HTMLCanvasElement,
     private readonly world: BattleWorld,
+    /**
+     * 配置メンバーの絵。差し替えたいときはここへ別の実装を渡す。
+     * 手描きの PNG アトラスに移るときも Renderer 側は触らずに済む
+     */
+    private readonly sprites: SpriteProvider = new GeneratedSprites(),
   ) {
     const ctx = canvas.getContext('2d', { alpha: false });
     if (!ctx) throw new Error('2D コンテキストを取得できませんでした');
@@ -165,10 +171,10 @@ export class Renderer {
   }
 
   /**
-   * 文字だけは倒さない。
-   * ダメージ数字とメンバー名が横倒しになると、盤面を大きくした意味が薄れる
+   * 盤面を倒していても、文字とスプライトは正立させる。
+   * ダメージ数字やキャラクターが横倒しになると、盤面を大きくした意味が薄れる
    */
-  private uprightText(ctx: CanvasRenderingContext2D, x: number, y: number, draw: () => void): void {
+  private upright(ctx: CanvasRenderingContext2D, x: number, y: number, draw: () => void): void {
     if (!this.rotated) {
       draw();
       return;
@@ -507,36 +513,83 @@ export class Renderer {
       const r = CELL_SIZE * 0.34;
 
       ctx.save();
-      const glow = ctx.createRadialGradient(x, y, r * 0.4, x, y, r * 1.9);
-      glow.addColorStop(0, `${color}55`);
+
+      // 足元の光。系統の色をここに置くと、スプライトの色に頼らずに
+      // 「誰がどの系統か」が分かる（色覚配慮 / 06-ui-ux.md 6.7）
+      const glow = ctx.createRadialGradient(x, y + r * 0.7, 2, x, y + r * 0.7, r * 1.6);
+      glow.addColorStop(0, `${color}66`);
       glow.addColorStop(1, `${color}00`);
       ctx.fillStyle = glow;
       ctx.beginPath();
-      ctx.arc(x, y, r * 1.9, 0, Math.PI * 2);
+      ctx.ellipse(x, y + r * 0.7, r * 1.6, r * 0.7, 0, 0, Math.PI * 2);
       ctx.fill();
 
-      ctx.fillStyle = palette.unitBody;
-      ctx.strokeStyle = color;
-      ctx.lineWidth = selectedId === unit.id ? 4 : 2.5;
-      ctx.beginPath();
-      ctx.arc(x, y, r, 0, Math.PI * 2);
-      ctx.fill();
-      ctx.stroke();
+      const sprite = this.sprites.get(unit.idolId);
+      if (sprite) {
+        this.drawSprite(ctx, sprite, x, y, color, selectedId === unit.id);
+      } else {
+        this.drawUnitDisc(ctx, unit, x, y, color, r, selectedId === unit.id);
+      }
 
-      // 系統は色だけでなく形アイコンでも示す（色覚配慮 / 06-ui-ux.md 6.7）
-      this.uprightText(ctx, x, y, () => {
-        ctx.fillStyle = color;
-        ctx.font = `bold ${Math.round(CELL_SIZE * 0.34)}px system-ui, sans-serif`;
-        ctx.textAlign = 'center';
-        ctx.textBaseline = 'middle';
-        ctx.fillText(typeIcon(unit.type), x, y + 1);
-
+      this.upright(ctx, x, y, () => {
         ctx.fillStyle = palette.text;
         ctx.font = `${Math.round(CELL_SIZE * 0.17)}px system-ui, sans-serif`;
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
         ctx.fillText(unit.shortName, x, y + r + 10);
       });
       ctx.restore();
     }
+  }
+
+  private drawSprite(
+    ctx: CanvasRenderingContext2D,
+    sprite: CanvasImageSource,
+    x: number,
+    y: number,
+    color: string,
+    selected: boolean,
+  ): void {
+    // 1 ドット = 2 論理 px の整数倍で貼る。半端な倍率だとドットの太さが揃わない
+    const size = SPRITE_SIZE * 2;
+    this.upright(ctx, x, y, () => {
+      if (selected) {
+        ctx.strokeStyle = color;
+        ctx.lineWidth = 3;
+        ctx.strokeRect(x - size / 2 + 4, y - size / 2 + 2, size - 8, size - 4);
+      }
+      const smoothing = ctx.imageSmoothingEnabled;
+      ctx.imageSmoothingEnabled = false;
+      ctx.drawImage(sprite, x - size / 2, y - size / 2, size, size);
+      ctx.imageSmoothingEnabled = smoothing;
+    });
+  }
+
+  /** スプライトが無いときの暫定表示。系統の色と形アイコンだけで見分ける */
+  private drawUnitDisc(
+    ctx: CanvasRenderingContext2D,
+    unit: UnitView,
+    x: number,
+    y: number,
+    color: string,
+    r: number,
+    selected: boolean,
+  ): void {
+    ctx.fillStyle = palette.unitBody;
+    ctx.strokeStyle = color;
+    ctx.lineWidth = selected ? 4 : 2.5;
+    ctx.beginPath();
+    ctx.arc(x, y, r, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.stroke();
+
+    this.upright(ctx, x, y, () => {
+      ctx.fillStyle = color;
+      ctx.font = `bold ${Math.round(CELL_SIZE * 0.34)}px system-ui, sans-serif`;
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(typeIcon(unit.type), x, y + 1);
+    });
   }
 
   private drawFloatingTexts(ctx: CanvasRenderingContext2D, snapshot: WorldSnapshot): void {
@@ -559,7 +612,7 @@ export class Renderer {
             ? palette.textDim
             : palette.text;
       ctx.font = `${text.crit ? 'bold ' : ''}${Math.round(size)}px system-ui, sans-serif`;
-      this.uprightText(ctx, x, y, () => {
+      this.upright(ctx, x, y, () => {
         ctx.fillText(text.crit ? `${text.amount}!` : String(text.amount), x, y);
       });
     }

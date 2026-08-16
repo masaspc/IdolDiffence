@@ -145,6 +145,29 @@ export const unitTagSchema = z.enum([
   'ayaha_friend',
 ]);
 
+/**
+ * 盤面のドット絵を組み立てるための指定（render/sprites.ts）。
+ *
+ * **原作の外見の再現ではない。** 各キャラクターの容姿は一次情報で確認できていないため
+ * （04-content.md の未確認事項）、ここで決めているのは
+ * **盤面で誰がどこにいるかを見分けるための記号**でしかない。
+ * 公式のビジュアルが確認できたら、手描きのスプライトへ差し替える。
+ */
+export const spriteArtSchema = z.object({
+  hairStyle: z.enum(['long', 'bob', 'short', 'twin', 'ponytail', 'spiky']),
+  /** 髪の色 */
+  hair: z.string().regex(/^#[0-9a-f]{6}$/i),
+  /** 服の主色 */
+  outfit: z.string().regex(/^#[0-9a-f]{6}$/i),
+  /** 差し色。省略すると系統色を使う */
+  accent: z.string().regex(/^#[0-9a-f]{6}$/i).optional(),
+  eye: z.string().regex(/^#[0-9a-f]{6}$/i).optional(),
+  body: z.enum(['skirt', 'pants']).default('skirt'),
+  /** けもの耳。忠犬オタ公のような姿を見分けるため */
+  ears: z.boolean().default(false),
+  ahoge: z.boolean().default(false),
+});
+
 export const idolSchema = z.object({
   name: z.string().min(1),
   /** 表示用の短縮名。HUD の配置パレットで使う */
@@ -161,6 +184,7 @@ export const idolSchema = z.object({
     critDmg: z.number().nonnegative().default(0.5),
   }),
   attack: attackSchema,
+  art: spriteArtSchema.optional(),
   aura: auraSchema.optional(),
   centerPassive: centerPassiveSchema.optional(),
   awakening: z.object({ A: awakeningBranchSchema, B: awakeningBranchSchema }).optional(),
@@ -173,6 +197,7 @@ export type Knockback = z.infer<typeof knockbackSchema>;
 export type Execute = z.infer<typeof executeSchema>;
 export type AttackDef = z.infer<typeof attackSchema>;
 export type AuraDef = z.infer<typeof auraSchema>;
+export type SpriteArt = z.infer<typeof spriteArtSchema>;
 export type AwakeningBranch = z.infer<typeof awakeningBranchSchema>;
 export type CenterPassive = z.infer<typeof centerPassiveSchema>;
 export type UnitTag = z.infer<typeof unitTagSchema>;
