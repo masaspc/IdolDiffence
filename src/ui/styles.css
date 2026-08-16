@@ -809,6 +809,47 @@ kbd {
   cursor: not-allowed;
 }
 
+/* 進化（Ray）。レッスンとは別枠にして、一度きりの解放だと分かるようにする */
+.roster-card.is-evolved {
+  border-color: rgba(255, 212, 94, 0.5);
+  box-shadow: 0 0 0 1px rgba(255, 212, 94, 0.18) inset;
+}
+
+.evolve {
+  margin-top: 0.7rem;
+  padding-top: 0.7rem;
+  border-top: 1px dashed var(--panel-edge);
+}
+
+.evolve-name {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  margin: 0 0 0.25rem;
+  font-size: 0.82rem;
+  font-weight: bold;
+  color: #ffd45e;
+}
+
+.evolve-done {
+  padding: 0.05rem 0.4rem;
+  border-radius: 999px;
+  background: rgba(255, 212, 94, 0.18);
+  font-size: 0.65rem;
+  font-weight: normal;
+}
+
+.evolve-desc {
+  margin: 0 0 0.5rem;
+  font-size: 0.72rem;
+  line-height: 1.5;
+  color: var(--text-dim);
+}
+
+.evolve-button {
+  border-color: rgba(255, 212, 94, 0.45);
+}
+
 .stage-card {
   display: grid;
   gap: 0.25rem;
@@ -1281,4 +1322,188 @@ kbd {
     max-height: 70vh;
     overflow-y: auto;
   }
+}
+
+/* --- フォーメーション（M3-2） --- */
+
+.formations {
+  position: absolute;
+  left: 1.25rem;
+  bottom: 5.5rem;
+  z-index: 2;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.3rem;
+  max-width: 22rem;
+  pointer-events: none;
+}
+
+.formation-chip {
+  padding: 0.15rem 0.55rem;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 213, 79, 0.5);
+  background: rgba(255, 213, 79, 0.12);
+  font-size: 0.7rem;
+  color: var(--text);
+}
+
+/* --- 才能ボード（M3-2） --- */
+
+.talent-note {
+  margin: 0 0 1rem;
+  font-size: 0.78rem;
+  color: var(--text-dim);
+  line-height: 1.7;
+}
+
+.talent-branches {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(18rem, 1fr));
+  gap: 1rem;
+  align-items: start;
+}
+
+.talent-branch {
+  padding: 1rem;
+  border-radius: 14px;
+  border: 1px solid var(--panel-edge);
+  background: var(--panel);
+}
+
+.talent-branch.type-vocal { border-top: 3px solid var(--vocal); }
+.talent-branch.type-dance { border-top: 3px solid var(--dance); }
+.talent-branch.type-visual { border-top: 3px solid var(--visual); }
+
+.talent-branch h2 {
+  margin: 0 0 0.8rem;
+  font-size: 0.95rem;
+  color: var(--text);
+}
+
+.talent-branch-icon {
+  font-size: 1.2rem;
+}
+
+.type-vocal .talent-branch-icon { color: var(--vocal); }
+.type-dance .talent-branch-icon { color: var(--dance); }
+.type-visual .talent-branch-icon { color: var(--visual); }
+
+.talent-branch-count {
+  margin-left: auto;
+  font-size: 0.78rem;
+  color: var(--text-dim);
+  font-variant-numeric: tabular-nums;
+}
+
+.talent-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 0.5rem;
+}
+
+.talent-node {
+  padding: 0.6rem 0.7rem;
+  border-radius: 10px;
+  border: 1px solid var(--panel-edge);
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.talent-node.tier-keystone {
+  border-color: rgba(255, 213, 79, 0.45);
+  background: rgba(255, 213, 79, 0.07);
+}
+
+.talent-node.is-taken {
+  border-color: rgba(126, 226, 168, 0.5);
+  background: rgba(126, 226, 168, 0.08);
+}
+
+/* 前提が未取得のノードは薄く。ただし何が待っているかは読めるようにする */
+.talent-node.is-locked,
+.talent-node.is-excluded {
+  opacity: 0.5;
+}
+
+.talent-node-head {
+  display: flex;
+  align-items: baseline;
+  gap: 0.5rem;
+  margin-bottom: 0.25rem;
+}
+
+.talent-node-head strong {
+  font-size: 0.88rem;
+}
+
+.talent-tier {
+  font-size: 0.66rem;
+  color: var(--text-dim);
+}
+
+.talent-cost {
+  margin-left: auto;
+  font-size: 0.75rem;
+  color: var(--visual);
+  font-variant-numeric: tabular-nums;
+}
+
+.talent-desc {
+  margin: 0 0 0.5rem;
+  font-size: 0.74rem;
+  color: var(--text-dim);
+  line-height: 1.5;
+}
+
+.talent-respec {
+  margin-top: 1.5rem;
+  max-width: 24rem;
+}
+
+.talent-screen .home-head .ghost {
+  padding: 0.5rem 1rem;
+  border-radius: 8px;
+  border: 1px solid var(--panel-edge);
+  background: transparent;
+  color: var(--text);
+  font: inherit;
+  cursor: pointer;
+}
+
+@media (max-width: 640px) {
+  /* 取得カードとフォーメーションは下段 HUD と重なるので、盤面の上端へ寄せる */
+  .formations {
+    left: 0.75rem;
+    right: 0.75rem;
+    bottom: auto;
+    top: 4rem;
+    max-width: none;
+  }
+
+  .taken-cards {
+    right: 0.75rem;
+    bottom: auto;
+    top: 6.2rem;
+    max-width: 45vw;
+    align-items: flex-end;
+    text-align: right;
+  }
+
+  .talent-branches {
+    grid-template-columns: 1fr;
+  }
+}
+
+.unit-level-max {
+  color: var(--text-dim);
+  font-size: 0.75em;
+}
+
+.upgrade-note {
+  display: block;
+  margin-top: 0.15rem;
+  font-style: normal;
+  font-size: 0.7rem;
+  color: var(--visual);
 }

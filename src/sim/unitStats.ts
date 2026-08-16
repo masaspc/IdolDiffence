@@ -7,20 +7,43 @@
  * （docs/design/05-architecture.md 5.3）。
  */
 import { getIdol } from '../data';
-import type { AwakeningKey, CenterPassive } from '../data/schema/idol';
+import type {
+  AwakeningBranch,
+  AwakeningKey,
+  CenterPassive,
+  Knockback,
+  OnHit,
+} from '../data/schema/idol';
 import { addPct, emptyPool, mulPct, resolveStat, type ModifierPool } from './modifiers';
 import type { ResolvedAttack, ResolvedAura, Unit } from './entities';
 import type { CellType, IdolType } from '../data/schema/common';
 
-/** ポジション強化の倍率（03-progression.md ①） */
+/**
+ * ポジション強化の倍率（03-progression.md ①）。
+ *
+ * Lv3 で打ち止めにしていたが、終盤は声援が数千単位で余っていた
+ * （実測でフル強化後に 2000〜6000）。使い道が無い資源は判断を消すだけなので、
+ * **6 段階**まで伸ばして受け皿にする。
+ * Lv4 以降はコストの伸びを大きくして、「1 人を極めるか、頭数を増やすか」を選ばせる。
+ */
 export const POSITION_LEVELS = [
   { atk: 1.0, range: 1.0, speed: 1.0 },
   { atk: 1.45, range: 1.1, speed: 1.05 },
   { atk: 2.1, range: 1.2, speed: 1.12 },
+  { atk: 2.85, range: 1.26, speed: 1.18 },
+  { atk: 3.7, range: 1.32, speed: 1.24 },
+  { atk: 4.7, range: 1.4, speed: 1.32 },
 ] as const;
 
-/** Lv+1 にかかる声援。配置コストに対する倍率 */
-export const UPGRADE_COST_RATIO = [0.8, 1.6] as const;
+export const MAX_POSITION_LEVEL = POSITION_LEVELS.length;
+/** 覚醒分岐を選ぶレベル */
+export const AWAKENING_LEVEL = 3;
+
+/**
+ * Lv+1 にかかる声援。配置コストに対する倍率。
+ * 累計は Lv6 で配置コストの 17 倍。かぐや（30）なら 510 声援かかる
+ */
+export const UPGRADE_COST_RATIO = [0.8, 1.6, 2.8, 4.4, 6.4] as const;
 
 /**
  * 配置マスの種別ボーナス（02-core-battle.md 2.1）。
@@ -91,7 +114,7 @@ export const SPECIAL_SPEED_MUL = 1.5;
 /** スペシャル中は敵も減速する */
 export const SPECIAL_ENEMY_SPEED_MUL = 0.7;
 
-export function upgradeCost(baseCost: number, currentLevel: 1 | 2 | 3): number | null {
+export function upgradeCost(baseCost: number, currentLevel: number): number | null {
   const ratio = UPGRADE_COST_RATIO[currentLevel - 1];
   return ratio === undefined ? null : Math.round(baseCost * ratio);
 }
@@ -99,12 +122,18 @@ export function upgradeCost(baseCost: number, currentLevel: 1 | 2 | 3): number |
 export interface ResolveOptions {
   /** ラン内カードなど、全ユニット共通の強化 */
   runPool: ModifierPool;
+  /** 才能ボード（恒久）。加算プールとして runPool と同列に合流させる */
+  talentPool?: ModifierPool;
   /** センター（編成で 1 人）と配置マスの種別 */
   center?: CenterPassive | undefined;
   cellType?: CellType | undefined;
   specialActive: boolean;
   /** 味方オーラ（V2「かさね」など）による ATK 加算の合計 */
   allyAtkPct?: number;
+  /** フォーメーションの倍率（乗算） */
+  formation?: { atkMul: number; attackSpeedMul: number; rangeMul: number };
+  /** 撃破の積み重ねによる攻撃速度（才能「ステップアップ」） */
+  killSpeedBonus?: number;
 }
 
 /**
@@ -113,7 +142,7 @@ export interface ResolveOptions {
 export function resolveUnit(unit: Unit, options: ResolveOptions): void {
   const def = getIdol(unit.idolId);
   const position = POSITION_LEVELS[unit.level - 1] ?? POSITION_LEVELS[0];
-  const branch = unit.awakening ? def.awakening?.[unit.awakening] : undefined;
+  const branches = activeBranches(unit);
 
   // ポジション強化・覚醒・スペシャル・マスの種別・センターは乗算プールへ
   // （枠が有限なので暴走しにくい）
@@ -123,76 +152,173 @@ export function resolveUnit(unit: Unit, options: ResolveOptions): void {
   mulPct(local, 'atk', position.atk);
   mulPct(local, 'range', position.range);
   mulPct(local, 'attackSpeed', position.speed);
+  // 進化（Ray）はポジション強化と同じ乗算枠。加算側へ入れると
+  // カードや才能と混ざって、進化で得た伸びが見えなくなる
+  const evolution = unit.evolved ? def.evolution : undefined;
+  if (evolution) {
+    mulPct(local, 'atk', evolution.atkMul);
+    mulPct(local, 'range', evolution.rangeMul);
+  }
   if (options.specialActive) {
     mulPct(local, 'atk', SPECIAL_ATK_MUL);
     mulPct(local, 'attackSpeed', SPECIAL_SPEED_MUL);
   }
+  if (options.formation) {
+    mulPct(local, 'atk', options.formation.atkMul);
+    mulPct(local, 'attackSpeed', options.formation.attackSpeedMul);
+    mulPct(local, 'range', options.formation.rangeMul);
+  }
+  if (options.killSpeedBonus) mulPct(local, 'attackSpeed', 1 + options.killSpeedBonus);
 
   // 味方オーラは「同じ器に足し込む」加算側。近くに何人いても線形に伸びる
   const allyAtk = options.allyAtkPct ?? 0;
-  const selfAtk = branch?.mods.auraToSelfAtk ?? 0;
+  const selfAtk = sumMod(branches, 'auraToSelfAtk');
   if (allyAtk + selfAtk !== 0) addPct(local, 'atk', allyAtk + selfAtk);
 
-  const pools = [options.runPool, local];
+  const talentPool = options.talentPool ?? emptyPool();
+  const pools = [options.runPool, talentPool, local];
 
   unit.atk = resolveStat(unit.baseAtk, 'atk', pools, unit.type);
   unit.range = resolveStat(def.base.range, 'range', pools);
   unit.critRate = Math.min(
     1,
-    resolveStat(def.base.critRate, 'critRate', pools) + (branch?.mods.critRateAdd ?? 0),
+    resolveStat(def.base.critRate, 'critRate', pools) + sumMod(branches, 'critRateAdd'),
   );
   unit.critDmg = resolveStat(def.base.critDmg, 'critDmg', pools);
 
   // 攻撃速度は「間隔」の逆数として効かせる
   const speed = resolveStat(1, 'attackSpeed', pools);
-  const intervalMul = branch?.mods.attackIntervalMul ?? 1;
+  const intervalMul = mulMod(branches, 'attackIntervalMul');
   unit.attackIntervalMs = (def.base.attackIntervalMs * intervalMul) / speed;
 
-  unit.attack = resolveAttack(unit, branch ? unit.awakening : null, options.runPool, local);
+  unit.attack = resolveAttack(unit, branches, pools);
   unit.aura = resolveUnitAura(unit);
+}
+
+/**
+ * このユニットに乗っている「枝」。
+ *
+ * Lv3 で選んだ覚醒 1 つと、Lv6 で自動的に付く**もう一方**（03-progression.md ②）、
+ * それに進化（⑨）を加えたもの。Lv3 の選択は「どちらを先に手に入れるか」の
+ * 判断になり、6 まで伸ばせた 1 人だけが両方を得る。
+ *
+ * 進化を**覚醒と同じ形で**混ぜているのは、攻撃解決に分岐を足さないため。
+ * `radiusMul` や `multiTarget` のような既存の指定をそのまま書けるので、
+ * 進化のためだけの配線が `resolveAttack` に増えない。
+ * ただし `onHit` は持たせない（持たせると基本の命中時効果を**置き換えて**しまい、
+ * 進化しただけで減速やスタンが消えることになる）。
+ */
+function activeBranches(unit: Unit): AwakeningBranch[] {
+  const def = getIdol(unit.idolId);
+  const keys: AwakeningKey[] = [];
+  if (unit.awakening) keys.push(unit.awakening);
+  if (unit.awakeningSecond) keys.push(unit.awakeningSecond);
+  const branches = keys
+    .map((key) => def.awakening?.[key])
+    .filter((b): b is AwakeningBranch => !!b);
+
+  const evolution = unit.evolved ? def.evolution : undefined;
+  if (evolution) {
+    branches.push({ name: evolution.name, desc: evolution.desc, mods: evolution.mods });
+  }
+  return branches;
+}
+
+type NumericMod = 'critRateAdd' | 'defIgnoreAdd' | 'auraToSelfAtk';
+type MulMod = 'attackIntervalMul' | 'radiusMul' | 'auraRadiusMul' | 'auraPowerMul';
+
+function sumMod(branches: readonly AwakeningBranch[], key: NumericMod): number {
+  return branches.reduce((sum, b) => sum + (b.mods[key] ?? 0), 0);
+}
+
+function mulMod(branches: readonly AwakeningBranch[], key: MulMod): number {
+  return branches.reduce((product, b) => product * (b.mods[key] ?? 1), 1);
 }
 
 function resolveAttack(
   unit: Unit,
-  awakening: AwakeningKey | null,
-  runPool: ModifierPool,
-  local: ModifierPool,
+  branches: readonly AwakeningBranch[],
+  pools: readonly ModifierPool[],
 ): ResolvedAttack {
   const def = getIdol(unit.idolId);
-  const branch = awakening ? def.awakening?.[awakening] : undefined;
-  const mods = branch?.mods;
 
   let kind = def.attack.kind;
   let radius = def.attack.radius;
-  if (mods?.toAoe) {
+  // 両方が範囲化を持つことは無いが、片方でも持っていれば範囲になる
+  const toAoe = branches.map((b) => b.mods.toAoe).filter((v): v is number => v !== undefined);
+  if (toAoe.length > 0) {
     kind = 'aoe_ring';
-    radius = mods.toAoe;
+    radius = Math.max(...toAoe);
   }
-  if (mods?.radiusMul) radius *= mods.radiusMul;
+  radius *= mulMod(branches, 'radiusMul');
+  // 才能「大合唱」などで範囲そのものが伸びる。線の太さ（貫通）にも同じく効かせる
+  radius *= resolveStat(1, 'aoeRadius', pools);
 
   // 減速の効果量はカードでも伸びる。継続時間はモニター前のマスで伸びる
-  const slowPower = resolveStat(1, 'slowPower', [runPool, local]);
-  const durationMul = resolveStat(1, 'statusDuration', [runPool, local]);
-  const baseOnHit = branch?.onHit ?? def.attack.onHit;
-  const onHit = baseOnHit.map((entry) => ({
+  const slowPower = resolveStat(1, 'slowPower', pools);
+  const durationMul = resolveStat(1, 'statusDuration', pools);
+  const slowValue = branches
+    .map((b) => b.mods.slowValue)
+    .filter((v): v is number => v !== undefined)
+    .reduce<number | undefined>((best, v) => (best === undefined ? v : Math.max(best, v)), undefined);
+
+  const onHit = mergeOnHit(def.attack.onHit, branches).map((entry) => ({
     ...entry,
-    value: entry.status === 'slow' ? (mods?.slowValue ?? entry.value) * slowPower : entry.value,
+    value: entry.status === 'slow' ? (slowValue ?? entry.value) * slowPower : entry.value,
     durationMs: entry.durationMs * durationMul,
   }));
-
-  const knockback = branch?.knockback ?? def.attack.knockback;
 
   return {
     kind,
     radius,
-    canHitFlying: def.attack.canHitFlying || (mods?.grantFlying ?? false),
+    canHitFlying: def.attack.canHitFlying || branches.some((b) => b.mods.grantFlying === true),
     skillMul: def.attack.skillMul,
-    multiTarget: mods?.multiTarget ?? 1,
-    defIgnore: Math.min(1, def.attack.defIgnore + (mods?.defIgnoreAdd ?? 0)),
+    multiTarget: Math.max(1, ...branches.map((b) => b.mods.multiTarget ?? 1)),
+    defIgnore: Math.min(1, def.attack.defIgnore + sumMod(branches, 'defIgnoreAdd')),
     execute: def.attack.execute,
-    knockback,
-    resetCooldownOnKill: mods?.resetCooldownOnKill ?? false,
+    knockback: bestKnockback(def.attack.knockback, branches),
+    resetCooldownOnKill: branches.some((b) => b.mods.resetCooldownOnKill === true),
     onHit,
+  };
+}
+
+/**
+ * 命中時効果をまとめる。
+ *
+ * 覚醒が `onHit` を持っていればそれが基本を**置き換える**（従来どおり）。
+ * Lv6 で 2 つ乗ったときは両方を合わせ、同じ種別は強い方・長い方を残す。
+ */
+function mergeOnHit(base: readonly OnHit[], branches: readonly AwakeningBranch[]): OnHit[] {
+  const overrides = branches.filter((b) => b.onHit !== undefined);
+  const sources = overrides.length > 0 ? overrides.map((b) => b.onHit ?? []) : [base];
+
+  const byStatus = new Map<OnHit['status'], OnHit>();
+  for (const list of sources) {
+    for (const entry of list) {
+      const existing = byStatus.get(entry.status);
+      if (!existing) {
+        byStatus.set(entry.status, { ...entry });
+        continue;
+      }
+      existing.value = Math.max(existing.value, entry.value);
+      existing.durationMs = Math.max(existing.durationMs, entry.durationMs);
+    }
+  }
+  return [...byStatus.values()];
+}
+
+/** 発動が速い方を優先し、距離は長い方を採る */
+function bestKnockback(
+  base: Knockback | undefined,
+  branches: readonly AwakeningBranch[],
+): Knockback | undefined {
+  const all = [base, ...branches.map((b) => b.knockback)].filter(
+    (k): k is Knockback => k !== undefined,
+  );
+  if (all.length === 0) return undefined;
+  return {
+    everyHits: Math.min(...all.map((k) => k.everyHits)),
+    distance: Math.max(...all.map((k) => k.distance)),
   };
 }
 
@@ -207,13 +333,13 @@ export function resolveUnitAura(unit: Unit): ResolvedAura | null {
   const def = getIdol(unit.idolId);
   if (!def.aura) return null;
 
-  const awakening: AwakeningKey | null = unit.awakening;
-  const mods = awakening ? def.awakening?.[awakening]?.mods : undefined;
-  // 「独唱」はオーラを捨てて自身の ATK に変える。捨てた側が残っていると二度取りになる
-  if (mods?.auraToSelfAtk !== undefined) return null;
+  const branches = activeBranches(unit);
+  // 「独占スクープ」はオーラを捨てて自身の ATK に変える。
+  // Lv6 で範囲拡大と同時に持っても、捨てた側が優先される（二度取りにしない）
+  if (branches.some((b) => b.mods.auraToSelfAtk !== undefined)) return null;
 
-  const radiusMul = mods?.auraRadiusMul ?? 1;
-  const powerMul = mods?.auraPowerMul ?? 1;
+  const radiusMul = mulMod(branches, 'auraRadiusMul');
+  const powerMul = mulMod(branches, 'auraPowerMul');
   return {
     radius: def.aura.radius * radiusMul,
     allyAtkPct: def.aura.allyAtkPct * powerMul,

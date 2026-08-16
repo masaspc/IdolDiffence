@@ -17,6 +17,8 @@ export interface CombatContext {
   applyDamage: (enemy: Enemy, result: DamageResult) => void;
   /** Echo 1 スタックあたりの毎秒ダメージ */
   echoDps: number;
+  /** Echo の最大スタック。才能「無限旋律」で伸びる */
+  echoMaxStacks?: number;
   /**
    * 味方オーラによる DEF 低下（0.35 = -35%）。
    * Vi3「たまのえだ」は位置依存なので、world 側で解決してもらう
@@ -87,12 +89,16 @@ export function updateUnit(unit: Unit, ctx: CombatContext, dtMs: number): void {
         if (onHit.status === 'vulnerable' && unit.attack.onHit.some((o) => o.status === 'charm')) {
           if (!isCharmed(victim.statuses)) continue;
         }
-        applyStatus(victim, {
-          kind: onHit.status,
-          value: onHit.value,
-          remainingMs: onHit.durationMs,
-          ...(onHit.status === 'echo' ? { stacks: onHit.value, dps: ctx.echoDps } : {}),
-        });
+        applyStatus(
+          victim,
+          {
+            kind: onHit.status,
+            value: onHit.value,
+            remainingMs: onHit.durationMs,
+            ...(onHit.status === 'echo' ? { stacks: onHit.value, dps: ctx.echoDps } : {}),
+          },
+          ctx.echoMaxStacks,
+        );
       }
       if (knockbackNow && unit.attack.knockback) {
         ctx.knockback?.(victim, unit.attack.knockback.distance);

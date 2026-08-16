@@ -23,11 +23,42 @@
     "art": {
       "hairStyle": "long",
       "hair": "#f4e6b0",
+      "hairInner": "#ff8ec4",
       "outfit": "#2b2748",
+      "outfit2": "#4a3f7a",
       "accent": "#ff6ba8",
       "eye": "#7a5bd0",
       "body": "skirt",
-      "ahoge": true
+      "accessory": "rabbit",
+      "crescent": true
+    },
+    "evolution": {
+      "name": "かぐや（Ray）",
+      "shortName": "かぐやRay",
+      "desc": "劇中歌「ray」を歌い切った姿。声の届く輪そのものが大きくなる",
+      "requires": {
+        "stage": "S5",
+        "level": 15
+      },
+      "cost": 3000,
+      "atkMul": 1.9,
+      "rangeMul": 1.15,
+      "mods": {
+        "radiusMul": 1.35,
+        "critRateAdd": 0.08
+      },
+      "art": {
+        "hairStyle": "long",
+        "hair": "#fff4c9",
+        "hairInner": "#7ad6ff",
+        "outfit": "#f2eefb",
+        "outfit2": "#cfc4ff",
+        "accent": "#ffd45e",
+        "eye": "#8f6bff",
+        "body": "skirt",
+        "accessory": "rabbit",
+        "crescent": true
+      }
     },
     "centerPassive": {
       "name": "自由奔放",
@@ -88,10 +119,11 @@
       "hairStyle": "short",
       "hair": "#c79a6a",
       "outfit": "#4a3a2c",
+      "outfit2": "#6b5540",
       "accent": "#ff6ba8",
       "eye": "#5a3a20",
       "body": "pants",
-      "ears": true
+      "accessory": "dog"
     },
     "aura": {
       "name": "NEWS TSUKUYOMI!!",
@@ -150,6 +182,7 @@
       "hairStyle": "spiky",
       "hair": "#6e5b8a",
       "outfit": "#1f2340",
+      "outfit2": "#2e3358",
       "accent": "#ff6ba8",
       "eye": "#3b2a4d",
       "body": "pants"
@@ -218,9 +251,42 @@
       "hairStyle": "bob",
       "hair": "#4a3550",
       "outfit": "#3a4f7a",
+      "outfit2": "#26365c",
       "accent": "#4fc3f7",
       "eye": "#2f6f8f",
-      "body": "skirt"
+      "eyeShadow": "#d8465e",
+      "body": "skirt",
+      "accessory": "fox",
+      "foreheadMark": true
+    },
+    "evolution": {
+      "name": "酒寄 彩葉（Ray）",
+      "shortName": "彩葉Ray",
+      "desc": "「ray」を仕上げたプロデューサーが前へ出る。同時に 2 体まで捌く",
+      "requires": {
+        "stage": "S5",
+        "level": 15
+      },
+      "cost": 3000,
+      "atkMul": 1.9,
+      "rangeMul": 1.2,
+      "mods": {
+        "multiTarget": 2,
+        "critRateAdd": 0.08
+      },
+      "art": {
+        "hairStyle": "bob",
+        "hair": "#6b4a78",
+        "hairInner": "#ff9ec4",
+        "outfit": "#eef3ff",
+        "outfit2": "#9fc8ff",
+        "accent": "#66e0ff",
+        "eye": "#3f9fc4",
+        "eyeShadow": "#ff5c76",
+        "body": "skirt",
+        "accessory": "fox",
+        "foreheadMark": true
+      }
     },
     "centerPassive": {
       "name": "いろP",
@@ -276,6 +342,7 @@
       "hairStyle": "short",
       "hair": "#20222e",
       "outfit": "#141824",
+      "outfit2": "#232a3e",
       "accent": "#4fc3f7",
       "eye": "#2b3550",
       "body": "pants"
@@ -335,6 +402,7 @@
       "hairStyle": "spiky",
       "hair": "#2f3550",
       "outfit": "#1a1e2e",
+      "outfit2": "#262c44",
       "accent": "#4fc3f7",
       "eye": "#3050a0",
       "body": "pants"
@@ -400,12 +468,44 @@
       ]
     },
     "art": {
-      "hairStyle": "long",
+      "hairStyle": "updo",
       "hair": "#dfe6f5",
+      "hairInner": "#b7c6ee",
       "outfit": "#3b2f5e",
+      "outfit2": "#5a4790",
       "accent": "#ffd54f",
       "eye": "#8f7ad0",
-      "body": "skirt"
+      "body": "kimono",
+      "accessory": "umbrella",
+      "mascot": "#f2a6c8"
+    },
+    "evolution": {
+      "name": "月見 ヤチヨ（Ray）",
+      "shortName": "ヤチヨRay",
+      "desc": "「ray」をかぐやと二人で歌う。足止めがひときわ強くなる",
+      "requires": {
+        "stage": "S5",
+        "level": 15
+      },
+      "cost": 3000,
+      "atkMul": 2.2,
+      "rangeMul": 1.15,
+      "mods": {
+        "slowValue": 0.35,
+        "radiusMul": 1.2
+      },
+      "art": {
+        "hairStyle": "updo",
+        "hair": "#ffffff",
+        "hairInner": "#9fd8ff",
+        "outfit": "#f6f2ff",
+        "outfit2": "#b39ce8",
+        "accent": "#ffe9a3",
+        "eye": "#a58fff",
+        "body": "kimono",
+        "accessory": "umbrella",
+        "mascot": "#ff9ec9"
+      }
     },
     "centerPassive": {
       "name": "ツクヨミの創造主",
@@ -464,6 +564,7 @@
       "hairStyle": "twin",
       "hair": "#3a2f4a",
       "outfit": "#22263a",
+      "outfit2": "#333a55",
       "accent": "#ffd54f",
       "eye": "#c05aa0",
       "body": "skirt"
@@ -535,6 +636,7 @@
       "hairStyle": "ponytail",
       "hair": "#6a4a3a",
       "outfit": "#4a3a55",
+      "outfit2": "#5f4a6e",
       "accent": "#ffd54f",
       "eye": "#7a6a40",
       "body": "skirt"

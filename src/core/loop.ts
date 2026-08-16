@@ -14,8 +14,12 @@ const MAX_STEPS_PER_FRAME = 5;
 export interface LoopCallbacks {
   /** 固定ステップの更新。dtMs は常に FIXED_STEP_MS */
   update: (dtMs: number) => void;
-  /** 描画。alpha は次ステップまでの補間係数 0..1 */
-  render: (alpha: number) => void;
+  /**
+   * 描画。alpha は次ステップまでの補間係数 0..1。
+   * frameMs は**実時間**の経過。演出のように sim 時刻へ紐付けたくないものに使う
+   * （紐付けると一時停止で固まり、倍速で早送りされる）
+   */
+  render: (alpha: number, frameMs: number) => void;
 }
 
 export interface LoopStats {
@@ -85,7 +89,7 @@ export class GameLoop {
     }
 
     const alpha = this.accumulatorMs / FIXED_STEP_MS;
-    this.callbacks.render(alpha);
+    this.callbacks.render(alpha, frameMs);
 
     this.stats.steps = steps;
     this.stats.frames++;

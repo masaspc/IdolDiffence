@@ -70,37 +70,45 @@ export const auraSchema = z.object({
 });
 
 /**
+ * 攻撃の挙動を書き換える指定。覚醒分岐と進化で**同じ形**を使う。
+ *
+ * 形を揃えておくと、`resolveUnit` は「乗っている枝」を集めて畳むだけで済み、
+ * 進化のために攻撃解決へ分岐を足さずに済む（sim/unitStats.ts `activeBranches`）。
+ */
+export const branchModsSchema = z
+  .object({
+    attackIntervalMul: z.number().positive().optional(),
+    radiusMul: z.number().positive().optional(),
+    critRateAdd: z.number().optional(),
+    /** 単体攻撃を同時 N 体へ */
+    multiTarget: z.number().int().positive().optional(),
+    /** 単体攻撃を範囲化する。値は半径 */
+    toAoe: z.number().positive().optional(),
+    /** onHit の slow の効果量を上書きする */
+    slowValue: z.number().optional(),
+    /** 対空を獲得する。ダンスが対空を得る唯一の経路（04-content.md 対空のルール） */
+    grantFlying: z.boolean().optional(),
+    /** 防御無視を上乗せする */
+    defIgnoreAdd: z.number().optional(),
+    /** 撃破時に攻撃間隔を即座に空ける。D3 覚醒「追撃」 */
+    resetCooldownOnKill: z.boolean().optional(),
+    /** オーラの範囲倍率 */
+    auraRadiusMul: z.number().positive().optional(),
+    /** オーラの効果量倍率 */
+    auraPowerMul: z.number().positive().optional(),
+    /** オーラを捨てて自身の ATK に変換する。V2 覚醒「独唱」 */
+    auraToSelfAtk: z.number().optional(),
+  })
+  .default({});
+
+/**
  * 覚醒分岐（03-progression.md ②）。ポジション Lv3 到達時に A/B から 1 つを選ぶ。
  * 単なる数値上昇ではなく、攻撃の挙動そのものが変わるようにしている。
  */
 export const awakeningBranchSchema = z.object({
   name: z.string().min(1),
   desc: z.string().min(1),
-  mods: z
-    .object({
-      attackIntervalMul: z.number().positive().optional(),
-      radiusMul: z.number().positive().optional(),
-      critRateAdd: z.number().optional(),
-      /** 単体攻撃を同時 N 体へ */
-      multiTarget: z.number().int().positive().optional(),
-      /** 単体攻撃を範囲化する。値は半径 */
-      toAoe: z.number().positive().optional(),
-      /** onHit の slow の効果量を上書きする */
-      slowValue: z.number().optional(),
-      /** 対空を獲得する。ダンスが対空を得る唯一の経路（04-content.md 対空のルール） */
-      grantFlying: z.boolean().optional(),
-      /** 防御無視を上乗せする */
-      defIgnoreAdd: z.number().optional(),
-      /** 撃破時に攻撃間隔を即座に空ける。D3 覚醒「追撃」 */
-      resetCooldownOnKill: z.boolean().optional(),
-      /** オーラの範囲倍率 */
-      auraRadiusMul: z.number().positive().optional(),
-      /** オーラの効果量倍率 */
-      auraPowerMul: z.number().positive().optional(),
-      /** オーラを捨てて自身の ATK に変換する。V2 覚醒「独唱」 */
-      auraToSelfAtk: z.number().optional(),
-    })
-    .default({}),
+  mods: branchModsSchema,
   /** 指定した場合、基本攻撃の onHit を置き換える */
   onHit: z.array(onHitSchema).optional(),
   knockback: knockbackSchema.optional(),
@@ -153,19 +161,70 @@ export const unitTagSchema = z.enum([
  * **盤面で誰がどこにいるかを見分けるための記号**でしかない。
  * 公式のビジュアルが確認できたら、手描きのスプライトへ差し替える。
  */
+const hexColor = z.string().regex(/^#[0-9a-f]{6}$/i);
+
 export const spriteArtSchema = z.object({
-  hairStyle: z.enum(['long', 'bob', 'short', 'twin', 'ponytail', 'spiky']),
+  hairStyle: z.enum(['long', 'bob', 'short', 'twin', 'ponytail', 'spiky', 'updo']),
   /** 髪の色 */
-  hair: z.string().regex(/^#[0-9a-f]{6}$/i),
+  hair: hexColor,
+  /** インナーカラー。かぐやの特徴として記事で確認できたもの */
+  hairInner: hexColor.optional(),
   /** 服の主色 */
-  outfit: z.string().regex(/^#[0-9a-f]{6}$/i),
+  outfit: hexColor,
+  /** スカート・袴などの副色 */
+  outfit2: hexColor.optional(),
   /** 差し色。省略すると系統色を使う */
-  accent: z.string().regex(/^#[0-9a-f]{6}$/i).optional(),
-  eye: z.string().regex(/^#[0-9a-f]{6}$/i).optional(),
-  body: z.enum(['skirt', 'pants']).default('skirt'),
-  /** けもの耳。忠犬オタ公のような姿を見分けるため */
-  ears: z.boolean().default(false),
-  ahoge: z.boolean().default(false),
+  accent: hexColor.optional(),
+  eye: hexColor.optional(),
+  /** アイシャドー。彩葉の「赤いアイシャドー」 */
+  eyeShadow: hexColor.optional(),
+  body: z.enum(['skirt', 'pants', 'kimono']).default('skirt'),
+  /**
+   * 頭のモチーフ。**原作で確認できた形だけ**を入れる
+   * （かぐや=兎 / 彩葉=狐 / オタ公=犬 / ヤチヨ=和傘）
+   */
+  accessory: z.enum(['none', 'rabbit', 'fox', 'dog', 'umbrella']).default('none'),
+  /** 三日月の髪飾り（かぐや） */
+  crescent: z.boolean().default(false),
+  /** 額の装飾（彩葉） */
+  foreheadMark: z.boolean().default(false),
+  /** 腹部のマスコットの色（ヤチヨのメンダコ） */
+  mascot: hexColor.optional(),
+});
+
+/**
+ * 進化（03-progression.md ⑦-2）。
+ *
+ * 初期メンバーの 3 人は配置コストが軽いぶん素の火力が低く、終盤は編成から
+ * 落ちてしまう。**恒久の解放**をひとつ挟んで、同じキャラを終盤まで使える形にする。
+ *
+ * レベル上げ（`levelUp`）との違いは、
+ * - 一度きりで、資金だけでなく**到達したステージとレベル**を要求する
+ * - 数値だけでなく攻撃の挙動と見た目が変わる
+ * ので、「育て続ければいつか強い」ではなく「ここで一段変わる」になること。
+ *
+ * 名前は劇中歌に由来する（04-content.md 4.1 の出典表）。
+ */
+export const evolutionSchema = z.object({
+  name: z.string().min(1),
+  shortName: z.string().min(1),
+  desc: z.string().min(1),
+  /** 解放条件。両方を満たして初めて資金を払える */
+  requires: z.object({
+    /** クリア済みでなければならないステージ */
+    stage: z.string().min(1),
+    /** 必要なアイドルレベル */
+    level: z.number().int().positive(),
+  }),
+  /** 解放にかかる資金 */
+  cost: z.number().nonnegative(),
+  /** 基礎攻撃力の倍率。ポジション強化と同じ乗算プールへ入る */
+  atkMul: z.number().positive().default(1),
+  rangeMul: z.number().positive().default(1),
+  /** 覚醒分岐と同じ形。常時乗る 1 枝として解決される */
+  mods: branchModsSchema,
+  /** 進化後の見た目。省略すると元の `art` を使う */
+  art: spriteArtSchema.optional(),
 });
 
 export const idolSchema = z.object({
@@ -188,6 +247,7 @@ export const idolSchema = z.object({
   aura: auraSchema.optional(),
   centerPassive: centerPassiveSchema.optional(),
   awakening: z.object({ A: awakeningBranchSchema, B: awakeningBranchSchema }).optional(),
+  evolution: evolutionSchema.optional(),
 });
 
 export const idolsSchema = z.record(z.string(), idolSchema);
@@ -198,7 +258,9 @@ export type Execute = z.infer<typeof executeSchema>;
 export type AttackDef = z.infer<typeof attackSchema>;
 export type AuraDef = z.infer<typeof auraSchema>;
 export type SpriteArt = z.infer<typeof spriteArtSchema>;
+export type BranchMods = z.infer<typeof branchModsSchema>;
 export type AwakeningBranch = z.infer<typeof awakeningBranchSchema>;
+export type EvolutionDef = z.infer<typeof evolutionSchema>;
 export type CenterPassive = z.infer<typeof centerPassiveSchema>;
 export type UnitTag = z.infer<typeof unitTagSchema>;
 export type IdolDef = z.infer<typeof idolSchema>;

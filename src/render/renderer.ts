@@ -10,7 +10,7 @@
  */
 import type { BattleWorld, EnemyView, UnitView, WorldSnapshot } from '../sim/world';
 import { attrColor, cellStyle, palette, typeColor } from './palette';
-import { GeneratedSprites, SPRITE_SIZE, type SpriteProvider } from './sprites';
+import { GeneratedSprites, SPRITE_DRAW_SIZE, type SpriteProvider } from './sprites';
 
 /** 論理解像度。1 マス = 64px、16×9 マスで 1024×576 */
 export const CELL_SIZE = 64;
@@ -22,6 +22,13 @@ export const CELL_SIZE = 64;
  * 端末を少し傾けただけで向きが行き来するので、わずかに手前で止める。
  */
 const ROTATE_GAIN = 1.02;
+
+/** スペシャルライブの演出の長さ。バフの 8 秒より短くして、盤面をすぐ返す */
+const SPECIAL_EFFECT_MS = 1400;
+
+const clamp01 = (v: number): number => (v < 0 ? 0 : v > 1 ? 1 : v);
+/** 入りは速く、終わりはゆっくり */
+const ease = (t: number): number => 1 - (1 - t) * (1 - t);
 
 export interface HoverState {
   cell: { x: number; y: number } | null;
@@ -43,6 +50,9 @@ export class Renderer {
   /** HUD が覆っている上下の帯。背景は全面に描くが、盤面はこの内側へ収める */
   private insetTop = 0;
   private insetBottom = 0;
+  /** スペシャルライブの演出。発動から数えた経過時間（ms）。null なら演出中でない */
+  private specialAgeMs: number | null = null;
+  private specialCenterName = '';
 
   constructor(
     private readonly canvas: HTMLCanvasElement,
@@ -116,6 +126,17 @@ export class Renderer {
    * @param alpha 固定ステップ間の補間係数。敵の位置をこれで補間するので、
    *              フレームレートが揺れても動きが滑らかに見える
    */
+  /**
+   * スペシャルライブの演出を始める（03-progression.md / 07 M3-2）。
+   *
+   * 演出の時間は **sim ではなく描画側**で数える。sim 時刻に紐付けると、
+   * 一時停止やカード選択で演出が固まり、倍速では早送りされてしまう。
+   */
+  startSpecialEffect(centerName: string | null): void {
+    this.specialAgeMs = 0;
+    this.specialCenterName = centerName ?? '';
+  }
+
   draw(snapshot: WorldSnapshot, hover: HoverState, alpha: number): void {
     const { ctx } = this;
     const view = this.view();
@@ -143,6 +164,91 @@ export class Renderer {
     this.drawEnemies(ctx, snapshot.enemies, alpha);
     this.drawUnits(ctx, snapshot.units, hover.selectedUnitId);
     this.drawFloatingTexts(ctx, snapshot);
+
+    ctx.restore();
+
+    // 演出は盤面の変換の外。画面いっぱいに出したいので、倒しても正立させる
+    this.drawSpecialEffect(ctx, snapshot);
+  }
+
+  /** 実時間の経過を演出へ流し込む。呼び出しは描画ループから */
+  advanceEffects(deltaMs: number): void {
+    if (this.specialAgeMs !== null) {
+      this.specialAgeMs += deltaMs;
+      if (this.specialAgeMs > SPECIAL_EFFECT_MS) this.specialAgeMs = null;
+    }
+  }
+
+  /**
+   * 発動の瞬間だけ強く、あとは尾を引かせる。
+   * 8 秒のバフ全体を派手にすると、肝心の盤面が見えなくなる
+   */
+  private drawSpecialEffect(ctx: CanvasRenderingContext2D, snapshot: WorldSnapshot): void {
+    // バフ中はうっすら色を乗せて、効果が続いていることを示す
+    if (snapshot.specialRemainingMs > 0) {
+      ctx.save();
+      ctx.fillStyle = 'rgba(255, 213, 79, 0.07)';
+      ctx.fillRect(0, 0, this.widthCss, this.heightCss);
+      ctx.restore();
+    }
+
+    const age = this.specialAgeMs;
+    if (age === null) return;
+    const t = age / SPECIAL_EFFECT_MS;
+    const cx = this.widthCss / 2;
+    const cy = this.heightCss / 2;
+
+    ctx.save();
+
+    // 閃光
+    if (t < 0.22) {
+      ctx.fillStyle = `rgba(255, 255, 255, ${(1 - t / 0.22) * 0.75})`;
+      ctx.fillRect(0, 0, this.widthCss, this.heightCss);
+    }
+
+    // 広がる輪。3 本ずらして重ねると、1 本より速く見える
+    const maxR = Math.hypot(this.widthCss, this.heightCss) / 2;
+    for (let i = 0; i < 3; i++) {
+      const rt = t * 1.5 - i * 0.12;
+      if (rt <= 0 || rt >= 1) continue;
+      ctx.strokeStyle = `rgba(255, 213, 79, ${(1 - rt) * 0.7})`;
+      ctx.lineWidth = 6 * (1 - rt) + 1;
+      ctx.beginPath();
+      ctx.arc(cx, cy, maxR * rt, 0, Math.PI * 2);
+      ctx.stroke();
+    }
+
+    // カットインの帯。左から入って右へ抜ける
+    const bandT = clamp01((t - 0.05) / 0.55);
+    if (bandT > 0 && bandT < 1) {
+      const height = this.heightCss * 0.18;
+      const slide = ease(bandT);
+      const alpha = bandT < 0.75 ? 1 : 1 - (bandT - 0.75) / 0.25;
+      ctx.globalAlpha = alpha;
+      ctx.translate(0, cy - height / 2);
+
+      const gradient = ctx.createLinearGradient(0, 0, this.widthCss, 0);
+      gradient.addColorStop(0, 'rgba(255, 107, 168, 0.0)');
+      gradient.addColorStop(0.25, 'rgba(255, 107, 168, 0.85)');
+      gradient.addColorStop(0.75, 'rgba(255, 213, 79, 0.85)');
+      gradient.addColorStop(1, 'rgba(255, 213, 79, 0.0)');
+      ctx.fillStyle = gradient;
+      ctx.fillRect((slide - 1) * this.widthCss * 0.4, 0, this.widthCss * 1.4, height);
+
+      ctx.fillStyle = '#1a1430';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      // 帯の高さだけで字を決めると、縦持ちでは画面外へはみ出す。
+      // 幅からも上限を掛けて、必ず収まるようにする
+      const title = Math.round(Math.min(height * 0.42, this.widthCss * 0.095));
+      ctx.font = `bold ${title}px system-ui, sans-serif`;
+      ctx.fillText('スペシャルライブ！', cx, height * 0.38);
+      if (this.specialCenterName) {
+        ctx.font = `${Math.round(title * 0.58)}px system-ui, sans-serif`;
+        ctx.fillText(`センター ${this.specialCenterName}`, cx, height * 0.72);
+      }
+      ctx.globalAlpha = 1;
+    }
 
     ctx.restore();
   }
@@ -524,7 +630,7 @@ export class Renderer {
       ctx.ellipse(x, y + r * 0.7, r * 1.6, r * 0.7, 0, 0, Math.PI * 2);
       ctx.fill();
 
-      const sprite = this.sprites.get(unit.idolId);
+      const sprite = this.sprites.get(unit.spriteId);
       if (sprite) {
         this.drawSprite(ctx, sprite, x, y, color, selectedId === unit.id);
       } else {
@@ -550,8 +656,9 @@ export class Renderer {
     color: string,
     selected: boolean,
   ): void {
-    // 1 ドット = 2 論理 px の整数倍で貼る。半端な倍率だとドットの太さが揃わない
-    const size = SPRITE_SIZE * 2;
+    // 48 ドットを 72 論理 px（= セル 64px より少し大きい）へ。
+    // 1.5 倍なので 2 ドットが 3px に揃い、太さのばらつきは出ない
+    const size = SPRITE_DRAW_SIZE;
     this.upright(ctx, x, y, () => {
       if (selected) {
         ctx.strokeStyle = color;

@@ -1,0 +1,471 @@
+{
+  "vo_s1": {
+    "branch": "vocal",
+    "tier": "small",
+    "name": "発声の基礎",
+    "desc": "歌の攻撃力 +5%",
+    "cost": 1,
+    "requires": [],
+    "mods": {
+      "typeAtkPct": 0.05
+    }
+  },
+  "vo_s2": {
+    "branch": "vocal",
+    "tier": "small",
+    "name": "息づかい",
+    "desc": "全員の攻撃力 +3%",
+    "cost": 1,
+    "requires": [
+      "vo_s1"
+    ],
+    "mods": {
+      "atkPct": 0.03
+    }
+  },
+  "vo_s3": {
+    "branch": "vocal",
+    "tier": "small",
+    "name": "響き",
+    "desc": "範囲攻撃の半径 +6%",
+    "cost": 1,
+    "requires": [
+      "vo_s2"
+    ],
+    "mods": {
+      "aoeRadiusPct": 0.06
+    }
+  },
+  "vo_m1": {
+    "branch": "vocal",
+    "tier": "mid",
+    "name": "ロングトーン",
+    "desc": "範囲攻撃の半径 +14%",
+    "cost": 2,
+    "requires": [
+      "vo_s3"
+    ],
+    "mods": {
+      "aoeRadiusPct": 0.14
+    }
+  },
+  "vo_m2": {
+    "branch": "vocal",
+    "tier": "mid",
+    "name": "重ねる声",
+    "desc": "歌の攻撃力 +12%、全員の射程 +5%",
+    "cost": 2,
+    "requires": [
+      "vo_m1"
+    ],
+    "mods": {
+      "typeAtkPct": 0.12,
+      "rangePct": 0.05
+    }
+  },
+  "vo_k1": {
+    "branch": "vocal",
+    "tier": "keystone",
+    "name": "大合唱",
+    "desc": "範囲攻撃の半径 +25%。面で押し切る",
+    "cost": 3,
+    "requires": [
+      "vo_m2"
+    ],
+    "mods": {
+      "aoeRadiusPct": 0.25
+    }
+  },
+  "vo_s4": {
+    "branch": "vocal",
+    "tier": "small",
+    "name": "音域",
+    "desc": "全員の射程 +4%",
+    "cost": 1,
+    "requires": [
+      "vo_s2"
+    ],
+    "mods": {
+      "rangePct": 0.04
+    }
+  },
+  "vo_s5": {
+    "branch": "vocal",
+    "tier": "small",
+    "name": "裏声",
+    "desc": "歌の攻撃力 +5%",
+    "cost": 1,
+    "requires": [
+      "vo_s4"
+    ],
+    "mods": {
+      "typeAtkPct": 0.05
+    }
+  },
+  "vo_s6": {
+    "branch": "vocal",
+    "tier": "small",
+    "name": "倍音",
+    "desc": "Echo のダメージ +12%",
+    "cost": 1,
+    "requires": [
+      "vo_s5"
+    ],
+    "mods": {
+      "echoPowerPct": 0.12
+    }
+  },
+  "vo_m3": {
+    "branch": "vocal",
+    "tier": "mid",
+    "name": "追い込み",
+    "desc": "Echo のダメージ +25%",
+    "cost": 2,
+    "requires": [
+      "vo_s6"
+    ],
+    "mods": {
+      "echoPowerPct": 0.25
+    }
+  },
+  "vo_m4": {
+    "branch": "vocal",
+    "tier": "mid",
+    "name": "熱気",
+    "desc": "月華の蓄積 +12%",
+    "cost": 2,
+    "requires": [
+      "vo_m3"
+    ],
+    "mods": {
+      "voltageGainPct": 0.12
+    }
+  },
+  "vo_k2": {
+    "branch": "vocal",
+    "tier": "keystone",
+    "name": "無限旋律",
+    "desc": "Echo の最大スタックが 5 → 8 になる",
+    "cost": 3,
+    "requires": [
+      "vo_m4"
+    ],
+    "mods": {
+      "echoMaxStacksAdd": 3
+    }
+  },
+  "da_s1": {
+    "branch": "dance",
+    "tier": "small",
+    "name": "基礎体力",
+    "desc": "ダンスの攻撃力 +5%",
+    "cost": 1,
+    "requires": [],
+    "mods": {
+      "typeAtkPct": 0.05
+    }
+  },
+  "da_s2": {
+    "branch": "dance",
+    "tier": "small",
+    "name": "キレ",
+    "desc": "全員の攻撃速度 +3%",
+    "cost": 1,
+    "requires": [
+      "da_s1"
+    ],
+    "mods": {
+      "attackSpeedPct": 0.03
+    }
+  },
+  "da_s3": {
+    "branch": "dance",
+    "tier": "small",
+    "name": "踏み込み",
+    "desc": "クリティカル率 +3%",
+    "cost": 1,
+    "requires": [
+      "da_s2"
+    ],
+    "mods": {
+      "critRateAdd": 0.03
+    }
+  },
+  "da_m1": {
+    "branch": "dance",
+    "tier": "mid",
+    "name": "加速",
+    "desc": "全員の攻撃速度 +10%",
+    "cost": 2,
+    "requires": [
+      "da_s3"
+    ],
+    "mods": {
+      "attackSpeedPct": 0.1
+    }
+  },
+  "da_m2": {
+    "branch": "dance",
+    "tier": "mid",
+    "name": "追い足",
+    "desc": "ダンスの攻撃力 +12%、攻撃速度 +4%",
+    "cost": 2,
+    "requires": [
+      "da_m1"
+    ],
+    "mods": {
+      "typeAtkPct": 0.12,
+      "attackSpeedPct": 0.04
+    }
+  },
+  "da_k1": {
+    "branch": "dance",
+    "tier": "keystone",
+    "name": "ステップアップ",
+    "desc": "撃破するたび攻撃速度 +2%（ウェーブ内で累積、上限 +40%）",
+    "cost": 3,
+    "requires": [
+      "da_m2"
+    ],
+    "mods": {
+      "killSpeedStack": {
+        "perKill": 0.02,
+        "max": 0.4
+      }
+    }
+  },
+  "da_s4": {
+    "branch": "dance",
+    "tier": "small",
+    "name": "重心",
+    "desc": "全員の攻撃力 +3%",
+    "cost": 1,
+    "requires": [
+      "da_s2"
+    ],
+    "mods": {
+      "atkPct": 0.03
+    }
+  },
+  "da_s5": {
+    "branch": "dance",
+    "tier": "small",
+    "name": "反復",
+    "desc": "ダンスの攻撃力 +5%",
+    "cost": 1,
+    "requires": [
+      "da_s4"
+    ],
+    "mods": {
+      "typeAtkPct": 0.05
+    }
+  },
+  "da_s6": {
+    "branch": "dance",
+    "tier": "small",
+    "name": "見切り",
+    "desc": "クリティカルダメージ +15%",
+    "cost": 1,
+    "requires": [
+      "da_s5"
+    ],
+    "mods": {
+      "critDmgAdd": 0.15
+    }
+  },
+  "da_m3": {
+    "branch": "dance",
+    "tier": "mid",
+    "name": "急所狙い",
+    "desc": "クリティカル率 +8%",
+    "cost": 2,
+    "requires": [
+      "da_s6"
+    ],
+    "mods": {
+      "critRateAdd": 0.08
+    }
+  },
+  "da_m4": {
+    "branch": "dance",
+    "tier": "mid",
+    "name": "渾身",
+    "desc": "クリティカルダメージ +35%",
+    "cost": 2,
+    "requires": [
+      "da_m3"
+    ],
+    "mods": {
+      "critDmgAdd": 0.35
+    }
+  },
+  "da_k2": {
+    "branch": "dance",
+    "tier": "keystone",
+    "name": "一撃必殺",
+    "desc": "クリティカルダメージ +80%",
+    "cost": 3,
+    "requires": [
+      "da_m4"
+    ],
+    "mods": {
+      "critDmgAdd": 0.8
+    }
+  },
+  "vi_s1": {
+    "branch": "visual",
+    "tier": "small",
+    "name": "立ち姿",
+    "desc": "ヴィジュアルの攻撃力 +5%",
+    "cost": 1,
+    "requires": [],
+    "mods": {
+      "typeAtkPct": 0.05
+    }
+  },
+  "vi_s2": {
+    "branch": "visual",
+    "tier": "small",
+    "name": "目線",
+    "desc": "状態異常の効果量 +6%",
+    "cost": 1,
+    "requires": [
+      "vi_s1"
+    ],
+    "mods": {
+      "statusPowerPct": 0.06
+    }
+  },
+  "vi_s3": {
+    "branch": "visual",
+    "tier": "small",
+    "name": "間の取り方",
+    "desc": "状態異常の継続時間 +8%",
+    "cost": 1,
+    "requires": [
+      "vi_s2"
+    ],
+    "mods": {
+      "statusDurationPct": 0.08
+    }
+  },
+  "vi_m1": {
+    "branch": "visual",
+    "tier": "mid",
+    "name": "釘付け",
+    "desc": "状態異常の継続時間 +20%",
+    "cost": 2,
+    "requires": [
+      "vi_s3"
+    ],
+    "mods": {
+      "statusDurationPct": 0.2
+    }
+  },
+  "vi_m2": {
+    "branch": "visual",
+    "tier": "mid",
+    "name": "圧",
+    "desc": "状態異常の効果量 +18%",
+    "cost": 2,
+    "requires": [
+      "vi_m1"
+    ],
+    "mods": {
+      "statusPowerPct": 0.18
+    }
+  },
+  "vi_k1": {
+    "branch": "visual",
+    "tier": "keystone",
+    "name": "絶対領域",
+    "desc": "状態異常の効果量 +40%。ただしヴィジュアルの攻撃力 -25%",
+    "cost": 3,
+    "requires": [
+      "vi_m2"
+    ],
+    "mods": {
+      "statusPowerPct": 0.4,
+      "typeAtkPct": -0.25
+    }
+  },
+  "vi_s4": {
+    "branch": "visual",
+    "tier": "small",
+    "name": "華",
+    "desc": "声援の獲得 +5%",
+    "cost": 1,
+    "requires": [
+      "vi_s2"
+    ],
+    "mods": {
+      "cheerGainPct": 0.05
+    }
+  },
+  "vi_s5": {
+    "branch": "visual",
+    "tier": "small",
+    "name": "所作",
+    "desc": "ヴィジュアルの攻撃力 +5%",
+    "cost": 1,
+    "requires": [
+      "vi_s4"
+    ],
+    "mods": {
+      "typeAtkPct": 0.05
+    }
+  },
+  "vi_s6": {
+    "branch": "visual",
+    "tier": "small",
+    "name": "視線誘導",
+    "desc": "全員の射程 +4%",
+    "cost": 1,
+    "requires": [
+      "vi_s5"
+    ],
+    "mods": {
+      "rangePct": 0.04
+    }
+  },
+  "vi_m3": {
+    "branch": "visual",
+    "tier": "mid",
+    "name": "集客",
+    "desc": "声援の獲得 +15%",
+    "cost": 2,
+    "requires": [
+      "vi_s6"
+    ],
+    "mods": {
+      "cheerGainPct": 0.15
+    }
+  },
+  "vi_m4": {
+    "branch": "visual",
+    "tier": "mid",
+    "name": "演出",
+    "desc": "ヴィジュアルの攻撃力 +12%、月華の蓄積 +8%",
+    "cost": 2,
+    "requires": [
+      "vi_m3"
+    ],
+    "mods": {
+      "typeAtkPct": 0.12,
+      "voltageGainPct": 0.08
+    }
+  },
+  "vi_k2": {
+    "branch": "visual",
+    "tier": "keystone",
+    "name": "長期戦",
+    "desc": "状態異常の継続時間 +50%",
+    "cost": 3,
+    "requires": [
+      "vi_m4"
+    ],
+    "mods": {
+      "statusDurationPct": 0.5
+    }
+  }
+}

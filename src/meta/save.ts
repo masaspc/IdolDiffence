@@ -10,7 +10,7 @@
 import { z } from 'zod';
 
 export const SAVE_KEY = 'idoldiffence.save';
-export const CURRENT_VERSION = 2;
+export const CURRENT_VERSION = 4;
 
 export const saveSchema = z.object({
   version: z.number().int().positive(),
@@ -30,6 +30,10 @@ export const saveSchema = z.object({
   party: z.array(z.string()),
   /** センター。party に含まれない ID は無視される */
   center: z.string().nullable(),
+  /** 取得済みの才能ノード ID。ポイント数は実績から導けるので持たない */
+  talents: z.array(z.string()),
+  /** 進化を解放済みのアイドル ID（03-progression.md ⑦-2） */
+  evolved: z.array(z.string()),
 });
 
 export type SaveData = z.infer<typeof saveSchema>;
@@ -45,6 +49,8 @@ export function createNewSave(): SaveData {
     stageProgress: {},
     party: [...STARTER_IDS],
     center: 'V1',
+    talents: [],
+    evolved: [],
   };
 }
 
@@ -58,6 +64,12 @@ const migrations: Record<number, Migration> = {
   // v1 -> v2: 編成（出撃 5 人 + センター）を追加した（M3）。
   // 既存プレイヤーは初期 3 人で遊んでいたので、それをそのまま編成として引き継ぐ
   1: (old) => ({ ...old, version: 2, party: [...STARTER_IDS], center: 'V1' }),
+  // v2 -> v3: 才能ボードを追加した（M3-2）。既存プレイヤーは未取得から始める。
+  // ポイントは実績（クリア済みステージ）から導くので、遡って配られる
+  2: (old) => ({ ...old, version: 3, talents: [] }),
+  // v3 -> v4: 初期メンバーの進化を追加した（M3-2）。
+  // 解放は資金を払う操作なので、遡って配ることはしない
+  3: (old) => ({ ...old, version: 4, evolved: [] }),
 };
 
 export function migrate(raw: Record<string, unknown>): Record<string, unknown> {

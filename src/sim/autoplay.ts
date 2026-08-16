@@ -12,7 +12,7 @@ export interface Placement {
   x: number;
   y: number;
   /** 配置後に上げるポジションレベル（省略時は 1 のまま） */
-  upgradeTo?: 2 | 3;
+  upgradeTo?: number;
   /** Lv3 に到達したときの覚醒分岐 */
   awakening?: 'A' | 'B';
 }

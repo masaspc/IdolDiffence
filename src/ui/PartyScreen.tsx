@@ -7,6 +7,7 @@
  */
 import { getIdol, getStage, idolUnlockStage, PARTY_SIZE, rosterIds } from '../data';
 import { isUnlocked, normalizeParty } from '../meta/progression';
+import { displayName, evolutionOf, isEvolved } from '../meta/evolution';
 import type { SaveData } from '../meta/save';
 
 const TYPE_ICON: Record<string, string> = { vocal: '♪', dance: '★', visual: '♥' };
@@ -17,6 +18,12 @@ const TAG_LABEL: Record<string, string> = {
   tsukuyomi_liver: 'ツクヨミのライバー',
   ayaha_friend: '彩葉の友人',
 };
+
+/** 進化を解放しているぶんの倍率。未解放なら 1 */
+function evolvedMul(save: SaveData, idolId: string): { atk: number; range: number } {
+  const evolution = isEvolved(save, idolId) ? evolutionOf(idolId) : null;
+  return { atk: evolution?.atkMul ?? 1, range: evolution?.rangeMul ?? 1 };
+}
 
 interface PartyScreenProps {
   save: SaveData;
@@ -52,7 +59,7 @@ export function PartyScreen({
         {centerDef ? (
           <>
             <span className="center-badge">センター</span>
-            <strong>{center ? getIdol(center).name : ''}</strong>
+            <strong>{center ? displayName(save, center) : ''}</strong>
             <span className="center-effect">
               {centerDef.name} —— {centerDef.desc}
             </span>
@@ -86,7 +93,7 @@ export function PartyScreen({
                 <div className="roster-head">
                   <span className="roster-icon">{TYPE_ICON[idol.type]}</span>
                   <div>
-                    <strong>{unlocked ? idol.name : '？？？'}</strong>
+                    <strong>{unlocked ? displayName(save, id) : '？？？'}</strong>
                     <span className="roster-type">
                       {TYPE_LABEL[idol.type]}
                       {idol.tags.map((tag) => ` ・ ${TAG_LABEL[tag] ?? tag}`).join('')}
@@ -97,14 +104,16 @@ export function PartyScreen({
 
                 {unlocked ? (
                   <>
+                    {/* レベルは掛けない（ここは見比べるための素の値）。
+                        ただし進化は名前ごと変わるので、素の値にも反映する */}
                     <dl className="roster-stats">
                       <div>
                         <dt>攻撃力</dt>
-                        <dd>{idol.base.atk}</dd>
+                        <dd>{Math.round(idol.base.atk * evolvedMul(save, id).atk)}</dd>
                       </div>
                       <div>
                         <dt>射程</dt>
-                        <dd>{idol.base.range.toFixed(1)}</dd>
+                        <dd>{(idol.base.range * evolvedMul(save, id).range).toFixed(1)}</dd>
                       </div>
                       <div>
                         <dt>コスト</dt>
