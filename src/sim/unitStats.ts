@@ -138,6 +138,8 @@ export interface ResolveOptions {
   costumePool?: ModifierPool;
   /** ★の追加ルール（系統ペナルティ）。同じく加算プール */
   starPool?: ModifierPool;
+  /** コール & レスポンスの Perfect バフ（3 秒）。同じく加算プール */
+  callPool?: ModifierPool;
   /** 衣装のうち、ステータスの器に載らないもの（03-progression.md ⑨） */
   costume?: CostumeCombatBonus | undefined;
   /** センター（編成で 1 人）と配置マスの種別 */
@@ -202,7 +204,8 @@ export function resolveUnit(unit: Unit, options: ResolveOptions): void {
   const talentPool = options.talentPool ?? emptyPool();
   const costumePool = options.costumePool ?? emptyPool();
   const starPool = options.starPool ?? emptyPool();
-  const pools = [options.runPool, talentPool, costumePool, starPool, local];
+  const callPool = options.callPool ?? emptyPool();
+  const pools = [options.runPool, talentPool, costumePool, starPool, callPool, local];
 
   unit.atk = resolveStat(unit.baseAtk, 'atk', pools, unit.type);
   unit.range = resolveStat(def.base.range, 'range', pools);

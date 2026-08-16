@@ -66,6 +66,11 @@ export interface BattleEvents {
   bossPhase: { id: number; attr: string };
   /** レーンのメンバーが沈黙した（強制ログアウト） */
   silenced: { lane: number; count: number };
+  /**
+   * コール & レスポンスの判定（02-core-battle.md 2.9）。
+   * `auto` はコールを切っている人へ自動で配ったぶん（06-ui-ux.md 6.7）
+   */
+  called: { judge: 'perfect' | 'good' | 'miss'; bar: number; auto: boolean };
   /** ソロパート（楽曲レベル）の発動と終了 */
   soloStarted: { id: number };
   soloEnded: Record<string, never>;

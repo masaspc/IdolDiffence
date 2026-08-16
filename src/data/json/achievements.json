@@ -1,0 +1,272 @@
+{
+  "first_live": {
+    "name": "はじめてのライブ",
+    "desc": "ステージを 1 つクリアする",
+    "title": "新人プロデューサー",
+    "stat": "clearedStages",
+    "goal": 1,
+    "points": 1,
+    "funds": 500
+  },
+  "five_stages": {
+    "name": "軌道に乗る",
+    "desc": "ステージを 5 つクリアする",
+    "title": "売り出し中",
+    "stat": "clearedStages",
+    "goal": 5,
+    "points": 1,
+    "funds": 2000
+  },
+  "all_main": {
+    "name": "本編制覇",
+    "desc": "本編ステージを 10 すべてクリアする",
+    "title": "ツクヨミの顔",
+    "stat": "clearedStages",
+    "goal": 10,
+    "points": 3,
+    "funds": 20000
+  },
+  "all_stages": {
+    "name": "全ステージ制覇",
+    "desc": "ボスを含む 12 ステージすべてをクリアする",
+    "title": "満月の演出家",
+    "stat": "clearedStages",
+    "goal": 12,
+    "points": 5,
+    "funds": 50000
+  },
+  "first_boss": {
+    "name": "ボス初撃破",
+    "desc": "ボスステージを 1 つクリアする",
+    "title": "なりすまし退治",
+    "stat": "bossStages",
+    "goal": 1,
+    "points": 2,
+    "funds": 5000
+  },
+  "all_boss": {
+    "name": "ボス完全制覇",
+    "desc": "ボスステージを 2 つともクリアする",
+    "title": "強制ログアウト耐性",
+    "stat": "bossStages",
+    "goal": 2,
+    "points": 3,
+    "funds": 20000
+  },
+  "first_perfect": {
+    "name": "満員御礼",
+    "desc": "観客 100 でライブを完走する",
+    "title": "満員御礼",
+    "stat": "perfectStages",
+    "goal": 1,
+    "points": 1,
+    "funds": 1000
+  },
+  "ten_perfect": {
+    "name": "全公演ソールドアウト",
+    "desc": "10 ステージで観客 100 を出す",
+    "title": "ソールドアウト",
+    "stat": "perfectStages",
+    "goal": 10,
+    "points": 4,
+    "funds": 30000
+  },
+  "star3": {
+    "name": "難度に挑む",
+    "desc": "どこかのステージで ★3 をクリアする",
+    "title": "挑戦者",
+    "stat": "maxStar",
+    "goal": 3,
+    "points": 1,
+    "funds": 2000
+  },
+  "star7": {
+    "name": "追加ルール突破",
+    "desc": "どこかのステージで ★7 をクリアする",
+    "title": "ルールブレイカー",
+    "stat": "maxStar",
+    "goal": 7,
+    "points": 3,
+    "funds": 15000
+  },
+  "star10": {
+    "name": "極限",
+    "desc": "どこかのステージで ★10 をクリアする",
+    "title": "極限のプロデューサー",
+    "stat": "maxStar",
+    "goal": 10,
+    "points": 6,
+    "funds": 80000
+  },
+  "star_grind": {
+    "name": "周回の果て",
+    "desc": "全ステージの★を合計 60 まで積む",
+    "title": "周回巧者",
+    "stat": "starTotal",
+    "goal": 60,
+    "points": 4,
+    "funds": 40000
+  },
+  "rank10": {
+    "name": "一人前",
+    "desc": "プロデューサーランク 10 に到達する",
+    "title": "一人前",
+    "stat": "rank",
+    "goal": 10,
+    "points": 1,
+    "funds": 3000
+  },
+  "rank30": {
+    "name": "ベテラン",
+    "desc": "プロデューサーランク 30 に到達する",
+    "title": "ベテラン",
+    "stat": "rank",
+    "goal": 30,
+    "points": 3,
+    "funds": 20000
+  },
+  "rank50": {
+    "name": "頂点",
+    "desc": "プロデューサーランク 50 に到達する",
+    "title": "殿堂入り",
+    "stat": "rank",
+    "goal": 50,
+    "points": 6,
+    "funds": 100000
+  },
+  "level30": {
+    "name": "限界まで",
+    "desc": "メンバーを 1 人 Lv30 まで育てる",
+    "title": "スパルタ",
+    "stat": "maxIdolLevel",
+    "goal": 30,
+    "points": 2,
+    "funds": 5000
+  },
+  "full_roster": {
+    "name": "全員集合",
+    "desc": "原作の 12 人すべてを仲間にする",
+    "title": "全員集合",
+    "stat": "roster",
+    "goal": 12,
+    "points": 3,
+    "funds": 15000
+  },
+  "all_evolved": {
+    "name": "ray を歌い切る",
+    "desc": "初期メンバー 3 人すべての進化を解放する",
+    "title": "ray",
+    "stat": "evolved",
+    "goal": 3,
+    "points": 3,
+    "funds": 20000
+  },
+  "song_max": {
+    "name": "弾き語り",
+    "desc": "楽曲レベルを 15 まで上げる",
+    "title": "専属アレンジャー",
+    "stat": "maxSongLevel",
+    "goal": 15,
+    "points": 3,
+    "funds": 20000
+  },
+  "talent10": {
+    "name": "才能の芽",
+    "desc": "才能ノードを 10 個取得する",
+    "title": "才能の芽",
+    "stat": "talents",
+    "goal": 10,
+    "points": 1,
+    "funds": 3000
+  },
+  "talent25": {
+    "name": "才能開花",
+    "desc": "才能ノードを 25 個取得する",
+    "title": "才能開花",
+    "stat": "talents",
+    "goal": 25,
+    "points": 2,
+    "funds": 15000
+  },
+  "costume50": {
+    "name": "衣装持ち",
+    "desc": "衣装を 50 着そろえる",
+    "title": "スタイリスト",
+    "stat": "costumes",
+    "goal": 50,
+    "points": 2,
+    "funds": 10000
+  },
+  "costume_plus15": {
+    "name": "打ち止め",
+    "desc": "衣装を +15 まで強化する",
+    "title": "仕立て屋",
+    "stat": "maxCostumeLevel",
+    "goal": 15,
+    "points": 2,
+    "funds": 10000
+  },
+  "ur5": {
+    "name": "UR コレクター",
+    "desc": "UR 衣装を 5 着そろえる",
+    "title": "UR コレクター",
+    "stat": "urCostumes",
+    "goal": 5,
+    "points": 2,
+    "funds": 15000
+  },
+  "kills1000": {
+    "name": "千切り",
+    "desc": "通算 1,000 体を撃破する",
+    "title": "千切り",
+    "stat": "kills",
+    "goal": 1000,
+    "points": 1,
+    "funds": 3000
+  },
+  "kills10000": {
+    "name": "万夫不当",
+    "desc": "通算 10,000 体を撃破する",
+    "title": "万夫不当",
+    "stat": "kills",
+    "goal": 10000,
+    "points": 3,
+    "funds": 25000
+  },
+  "best_kills500": {
+    "name": "大盤振る舞い",
+    "desc": "1 ライブで 500 体を撃破する",
+    "title": "大盤振る舞い",
+    "stat": "bestKills",
+    "goal": 500,
+    "points": 2,
+    "funds": 10000
+  },
+  "no_leak": {
+    "name": "完全防衛",
+    "desc": "1 体も漏らさずライブを完走する",
+    "title": "完全防衛",
+    "stat": "noLeakWins",
+    "goal": 1,
+    "points": 2,
+    "funds": 5000
+  },
+  "no_leak10": {
+    "name": "鉄壁",
+    "desc": "1 体も漏らさない完走を 10 回",
+    "title": "鉄壁",
+    "stat": "noLeakWins",
+    "goal": 10,
+    "points": 4,
+    "funds": 30000
+  },
+  "perfect_combo50": {
+    "name": "Perfect 50 連",
+    "desc": "コールを 50 回連続で Perfect にする",
+    "title": "コールマスター",
+    "stat": "bestCallCombo",
+    "goal": 50,
+    "points": 3,
+    "funds": 20000
+  }
+}

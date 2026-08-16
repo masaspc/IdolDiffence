@@ -12,6 +12,12 @@ import { MAX_SONG_LEVEL, rankOf, rankProgress, songLevelOf } from '../meta/rank'
 import { bestStarOf, isUnlocked, maxSelectableStar } from '../meta/progression';
 import { remainingTalentPoints } from '../meta/talents';
 import {
+  achievementIds,
+  achievementViews,
+  activeTitle,
+  pendingRewards,
+} from '../meta/achievements';
+import {
   canEvolve,
   evolutionOf,
   evolveBlocker,
@@ -58,6 +64,8 @@ interface HomeScreenProps {
   onOpenParty: () => void;
   onOpenTalents: () => void;
   onOpenCostumes: () => void;
+  onOpenSettings: () => void;
+  onOpenAchievements: () => void;
   onStart: (stageId: string, star: number) => void;
   /** 隠しキャラの合言葉が揃ったとき（`ui/useSecretCode.ts`） */
   onSecret: (idolId: string) => void;
@@ -76,6 +84,8 @@ export function HomeScreen({
   onOpenParty,
   onOpenTalents,
   onOpenCostumes,
+  onOpenSettings,
+  onOpenAchievements,
   onStart,
   onSecret,
   lastResult,
@@ -88,6 +98,10 @@ export function HomeScreen({
   const upgradable = roster.filter((id) => canLevelUp(save, id) || canEvolve(save, id)).length;
   const { party, center } = normalizeParty(save);
   const talentPoints = remainingTalentPoints(save);
+  const title = activeTitle(save);
+  const pending = pendingRewards(save);
+  const unlockedCount = achievementViews(save).filter((v) => v.unlocked).length;
+  const totalAchievements = achievementIds.length;
 
   return (
     <div className="home">
@@ -96,7 +110,10 @@ export function HomeScreen({
           {/* タイトルは隠しキャラの入口も兼ねる（`ui/useSecretCode.ts`）。
               見た目は変えない ―― 押せそうに見えたら隠れていない */}
           <h1 onClick={onTitleTap}>超かぐや姫！</h1>
-          <p className="home-sub">IDOL DIFFENCE — ホーム</p>
+          <p className="home-sub">
+            {title ? <span className="home-title-badge">{title}</span> : null}
+            IDOL DIFFENCE — ホーム
+          </p>
         </div>
         <div className="funds">
           <span className="funds-label">資金</span>
@@ -109,6 +126,9 @@ export function HomeScreen({
             <span style={{ width: `${rankProgress(save.totalExp).ratio * 100}%` }} />
           </span>
         </div>
+        <button type="button" className="settings-open" onClick={onOpenSettings} title="設定">
+          ⚙
+        </button>
       </header>
 
       {lastResult && (
@@ -165,6 +185,19 @@ export function HomeScreen({
             {save.costumes.length === 0
               ? 'ライブのリザルトで手に入ります（負けても 1 着）'
               : `${save.costumes.length} 着を所持・着せ替えと強化、錬成`}
+          </span>
+        </button>
+      </section>
+
+      <section className="party-summary">
+        <h2>
+          称号・実績
+          {pending.ids.length > 0 && <span className="badge">{pending.ids.length}</span>}
+        </h2>
+        <button type="button" className="party-open" onClick={onOpenAchievements}>
+          <span className="party-hint">
+            {unlockedCount} / {totalAchievements} 達成
+            {pending.funds > 0 ? ` ・ ¥${pending.funds.toLocaleString()} を受け取れます` : ''}
           </span>
         </button>
       </section>

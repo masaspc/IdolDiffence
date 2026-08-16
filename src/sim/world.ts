@@ -34,6 +34,15 @@ import {
 import { buildSpawnSchedule, waveHpMultiplier, type ScheduledSpawn } from './systems/spawn';
 import { phaseAttribute } from './systems/boss';
 import {
+  callVoltage,
+  isCallSection,
+  judgeCall,
+  GOOD_MS,
+  PERFECT_ATK_PCT,
+  PERFECT_BUFF_MS,
+  type CallJudge,
+} from './systems/call';
+import {
   evaluateFormations,
   formationModsFor,
   type FormationHit,
@@ -271,6 +280,26 @@ export interface WorldSnapshot {
   stageNote: string | null;
   /** ボスステージか */
   boss: boolean;
+  /**
+   * コール & レスポンス（02-core-battle.md 2.9）。切っているときは null。
+   *
+   * `toTargetMs` は次のコールまでの残り（負なら過ぎたぶん）。
+   * HUD はこれでマーカーを動かす —— 秒数ではなく**残り時間**を渡すのは、
+   * 倍速でも「あと何ミリ秒か」が判定と同じ物差しになるから
+   */
+  call: {
+    /** いま受け付けているか */
+    open: boolean;
+    toTargetMs: number;
+    /** 直近の判定と、その経過時間。表示を消すタイミングに使う */
+    lastJudge: CallJudge | null;
+    lastAgeMs: number;
+    combo: number;
+    bestCombo: number;
+    perfect: number;
+    good: number;
+    miss: number;
+  } | null;
   /** ソロパートが撃てるか。使えない編成では null */
   soloReady: boolean | null;
   soloUnitId: EntityId | null;
@@ -356,6 +385,14 @@ export interface BattleMeta {
   /** ★難度 1〜10（02-core-battle.md 2.10）。既定は 1 */
   star?: number;
   /**
+   * コール & レスポンス（02-core-battle.md 2.9）を受け付けるか。
+   *
+   * 切っているときは Good 相当を自動で配る（06-ui-ux.md 6.7）。
+   * リズム操作が苦手／できない人が、それだけの理由で不利にならないように。
+   * ヘッドレス計測の既定は `false`（誰も押さない盤面が基準）
+   */
+  call?: boolean;
+  /**
    * 楽曲レベルで解禁される「ソロパート」（03-progression.md ⑩）。
    * 省略すると使えない（ヘッドレス計測の既定）
    */
@@ -440,8 +477,21 @@ export class BattleWorld {
   private soloUnitId: EntityId | null = null;
   private soloRemainingMs = 0;
   private soloCooldownMs = 0;
+  /** ソロパートを使った回数。実績に渡す */
+  private soloUses = 0;
   /** アイドル ID -> 与えた累計ダメージ。リザルトの貢献度に使う */
   private readonly contribution = new Map<string, number>();
+  /** コールの受付。小節ごとに 1 回だけ判定する */
+  private callBar = -1;
+  private lastCallJudge: CallJudge | null = null;
+  private lastCallAgeMs = Number.POSITIVE_INFINITY;
+  /** Perfect の連続数と、そのラン中の最大 */
+  private callCombo = 0;
+  private callBestCombo = 0;
+  private callCounts = { perfect: 0, good: 0, miss: 0 };
+  /** Perfect の全体攻撃力バフの残り */
+  private callBuffMs = 0;
+  private readonly callPool: ModifierPool = emptyPool();
   /** 才能「ステップアップ」の累積。ウェーブが変わるとリセットする */
   private killSpeedBonus = 0;
   private killSpeedWave = -1;
@@ -575,12 +625,14 @@ export class BattleWorld {
         this.expireKillStack();
         this.events.emit('bar', { bar: info.bar });
         this.addVoltage(VOLTAGE_PER_BAR);
+        this.openCall(info.bar);
         this.checkCardPick(info.bar);
       }
     });
     if (advanced === 0) return;
 
     this.updateSpecial(advanced);
+    this.updateCall(advanced);
     this.updateSoloPart(advanced);
     this.updateEconomy(advanced);
     this.spawnDueEnemies();
@@ -603,6 +655,115 @@ export class BattleWorld {
       this.events.emit('specialEnded', {});
       this.record('specialEnded');
     }
+  }
+
+  // --- コール & レスポンス（02-core-battle.md 2.9） ---
+
+  /**
+   * 小節の頭でコールの受付を開く。
+   *
+   * 判定の基準は**その小節の頭の時刻**で、`clock.barToMs` から引く。
+   * 「開いた瞬間からの経過」で測ると、前の小節を押し逃したときに
+   * 窓が閉じないまま次が開いてしまう。
+   */
+  private openCall(bar: number): void {
+    if (!isCallSection(this.waveAt(bar)?.section)) return;
+    this.callBar = bar;
+  }
+
+  /**
+   * コールの窓を閉じる／自動 Good を配る／Perfect のバフを切る。
+   *
+   * **切っている人には Good 相当を自動で配る**（06-ui-ux.md 6.7）。
+   * リズム操作が苦手／できない人が、それだけの理由で不利にならないように。
+   */
+  private updateCall(dtMs: number): void {
+    this.lastCallAgeMs += dtMs;
+
+    if (this.callBuffMs > 0) {
+      this.callBuffMs -= dtMs;
+      if (this.callBuffMs <= 0) {
+        this.callBuffMs = 0;
+        this.callPool.addPct.atk = 0;
+        this.refreshUnitStats();
+      }
+    }
+
+    if (this.callBar < 0) return;
+    // 窓を過ぎたら閉じる。押されなかったぶんはここで確定する
+    if (this.clock.now - this.clock.barToMs(this.callBar) <= GOOD_MS) return;
+
+    const bar = this.callBar;
+    this.callBar = -1;
+    if (this.meta.call === true) {
+      // 自分で押す設定なのに押さなかった = 見送り。Miss として数えるが罰は無い
+      this.callCounts.miss++;
+      this.callCombo = 0;
+      return;
+    }
+    this.applyCall('good', bar, true);
+  }
+
+  /**
+   * いま押されたコールを判定する。
+   *
+   * @returns 判定。受付中でなければ null（連打しても Miss は増えない）
+   */
+  call(): CallJudge | null {
+    if (this.meta.call !== true || this.finished) return null;
+    if (this.callBar < 0) return null;
+    const offset = this.clock.now - this.clock.barToMs(this.callBar);
+    const judge = judgeCall(offset);
+    // 窓の中で押した以上、外しても「そのぶんは終わり」。連打で拾い直せない
+    const bar = this.callBar;
+    this.callBar = -1;
+    this.applyCall(judge, bar, false);
+    return judge;
+  }
+
+  private applyCall(judge: CallJudge, bar: number, auto: boolean): void {
+    this.callCounts[judge]++;
+    this.lastCallJudge = judge;
+    this.lastCallAgeMs = 0;
+
+    if (judge === 'perfect') {
+      this.callCombo++;
+      this.callBestCombo = Math.max(this.callBestCombo, this.callCombo);
+    } else {
+      this.callCombo = 0;
+    }
+
+    const voltage = callVoltage(judge);
+    if (voltage > 0) this.addVoltage(voltage);
+
+    if (judge === 'perfect') {
+      // 加算プールに**代入**する。連続 Perfect で足し込むと、
+      // 上手い人が 10〜15% 得をする設計を軽く突き抜ける
+      this.callPool.addPct.atk = PERFECT_ATK_PCT;
+      this.callBuffMs = PERFECT_BUFF_MS;
+      this.refreshUnitStats();
+    }
+
+    this.events.emit('called', { judge, bar, auto });
+    if (!auto) this.record('call', { judge, bar });
+  }
+
+  /** 指定した小節を含むウェーブ。`currentWave` は「いま」しか見られない */
+  private waveAt(bar: number): WaveInfo | null {
+    for (const wave of this.waves) {
+      if (bar < wave.startBar + wave.bars) return wave;
+    }
+    return null;
+  }
+
+  /** そのラン中のコールの成績。リザルトと実績に渡す */
+  get callStats(): { perfect: number; good: number; miss: number; bestCombo: number } {
+    return { ...this.callCounts, bestCombo: this.callBestCombo };
+  }
+
+  /** ソロパートを使った回数。実績に渡す */
+  get soloUseCount(): number {
+    return this.soloUses;
   }
 
   /**
@@ -641,6 +802,7 @@ export class BattleWorld {
     if (!this.units.some((u) => u.id === id)) return false;
 
     this.soloUnitId = id;
+    this.soloUses++;
     this.soloRemainingMs = solo.durationMs;
     this.soloCooldownMs = solo.cooldownMs + solo.durationMs;
     this.refreshUnitStats();
@@ -1264,6 +1426,7 @@ export class BattleWorld {
       runPool: this.runPool,
       talentPool: this.talentPool,
       starPool: this.starPool,
+      callPool: this.callPool,
       costumePool: this.costumePools.get(unit.idolId) ?? emptyPool(),
       costume: this.costumeBonuses.get(unit.idolId),
       center: this.center,
@@ -1409,6 +1572,21 @@ export class BattleWorld {
       starRule: starRuleText(this.star),
       stageNote: this.stage.modifiers.note ?? null,
       boss: this.stage.boss,
+      call:
+        this.meta.call === true
+          ? {
+              open: this.callBar >= 0,
+              toTargetMs:
+                this.callBar >= 0
+                  ? Math.round(this.clock.barToMs(this.callBar) - this.clock.now)
+                  : Math.round(this.clock.barToMs(this.clock.bar + 1) - this.clock.now),
+              lastJudge: this.lastCallJudge,
+              lastAgeMs: Math.round(Math.min(this.lastCallAgeMs, 99_999)),
+              combo: this.callCombo,
+              bestCombo: this.callBestCombo,
+              ...this.callCounts,
+            }
+          : null,
       soloReady: this.meta.soloPart ? this.soloReady : null,
       soloUnitId: this.soloUnitId,
       soloCooldownMs: Math.round(this.soloCooldownMs),

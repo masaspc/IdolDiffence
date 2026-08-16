@@ -13,16 +13,28 @@ import { randomSeed } from '../core/rng';
 import { getIdol } from '../data';
 import type { AwakeningKey } from '../data/schema/idol';
 import type { BattleOutcome } from '../meta/progression';
+import type { EffectLevel } from '../meta/settings';
 import { Hud } from './Hud';
 
 interface BattleScreenProps {
   stageId: string;
   meta: BattleMeta;
+  /** 演出の強さ（06-ui-ux.md 6.7） */
+  effects: EffectLevel;
+  /** 敵に属性の記号を重ねる（同 6.7 色覚） */
+  attributeGlyphs: boolean;
   onFinish: (outcome: BattleOutcome) => void;
   onExit: () => void;
 }
 
-export function BattleScreen({ stageId, meta, onFinish, onExit }: BattleScreenProps): React.JSX.Element {
+export function BattleScreen({
+  stageId,
+  meta,
+  effects,
+  attributeGlyphs,
+  onFinish,
+  onExit,
+}: BattleScreenProps): React.JSX.Element {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const rootRef = useRef<HTMLDivElement>(null);
@@ -37,6 +49,19 @@ export function BattleScreen({ stageId, meta, onFinish, onExit }: BattleScreenPr
   });
   const onFinishRef = useRef(onFinish);
   onFinishRef.current = onFinish;
+  // 演出強度は world を作る effect の依存に入れない。入れると設定を変えた瞬間に
+  // world ごと作り直され、進行中のライブが消える。
+  // 代わりに renderer へ後から流し込む
+  const effectsRef = useRef(effects);
+  effectsRef.current = effects;
+  const glyphsRef = useRef(attributeGlyphs);
+  glyphsRef.current = attributeGlyphs;
+  const rendererRef = useRef<Renderer | null>(null);
+
+  useEffect(() => {
+    rendererRef.current?.setEffects(effects);
+    rendererRef.current?.setAttributeGlyphs(attributeGlyphs);
+  }, [effects, attributeGlyphs]);
 
   const [snapshot, setSnapshot] = useState<WorldSnapshot | null>(null);
   const [fps, setFps] = useState(0);
@@ -50,8 +75,9 @@ export function BattleScreen({ stageId, meta, onFinish, onExit }: BattleScreenPr
 
     // seed はここで 1 回だけ引く。以降の乱数はすべて world.rng 経由
     const world = createWorld(stageId, randomSeed(), meta);
-    const renderer = new Renderer(canvas, world);
+    const renderer = new Renderer(canvas, world, undefined, effectsRef.current, glyphsRef.current);
     worldRef.current = world;
+    rendererRef.current = renderer;
 
     // 演出は sim ではなく描画側で数える。sim 時刻に紐付けると、
     // 一時停止で止まり、倍速で早送りされてしまう
@@ -117,6 +143,12 @@ export function BattleScreen({ stageId, meta, onFinish, onExit }: BattleScreenPr
               audience: latest.audience,
               killed: latest.killed,
               star: latest.star,
+              leaked: latest.leaked,
+              // 自動ぶん（コールを切っている人へ配る Good）は実績に数えない。
+              // 押していない人の「Perfect 50 連」が成立してしまう
+              perfectCalls: world.callStats.perfect,
+              bestCallCombo: world.callStats.bestCombo,
+              soloUses: world.soloUseCount,
             });
           }
           return;
@@ -268,6 +300,19 @@ export function BattleScreen({ stageId, meta, onFinish, onExit }: BattleScreenPr
     sync();
   }, [selectedUnitId, sync]);
 
+  /**
+   * コール（02-core-battle.md 2.9）。
+   *
+   * **判定は sim の時計で行う。** 押した瞬間の実時刻ではなく
+   * `world.call()` の中で `clock.now` と小節頭を突き合わせるので、
+   * 倍速でも一時停止を挟んでも判定の物差しが変わらない
+   */
+  const doCall = useCallback(() => {
+    const world = worldRef.current;
+    if (!world) return;
+    if (world.call() !== null) sync();
+  }, [sync]);
+
   const activateSpecial = useCallback(() => {
     const world = worldRef.current;
     if (!world) return;
@@ -305,10 +350,17 @@ export function BattleScreen({ stageId, meta, onFinish, onExit }: BattleScreenPr
   }, []);
 
   // キー割り当ての原則: 1 つのキーに文脈依存の複数機能を持たせない
-  // （docs/design/06-ui-ux.md 6.6）。Space はコール専用なのでここでは扱わない。
+  // （docs/design/06-ui-ux.md 6.6）。Space はコール専用。
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent): void => {
       if (event.repeat) return;
+      if (event.key === ' ') {
+        // ボタンにフォーカスがある状態の Space は「押す」なので、
+        // 画面がスクロールしないようにだけしてコールへは回さない
+        event.preventDefault();
+        doCall();
+        return;
+      }
       if (event.key === 'p' || event.key === 'P') togglePause();
       if (event.key === 'q' || event.key === 'Q') activateSpecial();
       if (event.key === 'Escape') {
@@ -328,7 +380,7 @@ export function BattleScreen({ stageId, meta, onFinish, onExit }: BattleScreenPr
     };
     window.addEventListener('keydown', onKeyDown);
     return () => window.removeEventListener('keydown', onKeyDown);
-  }, [togglePause, cycleSpeed, selectIdol, activateSpecial]);
+  }, [togglePause, cycleSpeed, selectIdol, activateSpecial, doCall]);
 
   return (
     <div className="battle" ref={rootRef}>
@@ -348,6 +400,7 @@ export function BattleScreen({ stageId, meta, onFinish, onExit }: BattleScreenPr
           onTogglePause={togglePause}
           onCycleSpeed={cycleSpeed}
           onSpecial={activateSpecial}
+          onCall={doCall}
           onSoloPart={activateSoloPart}
           onChooseCard={chooseCard}
           onRestart={onExit}

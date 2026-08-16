@@ -1220,7 +1220,7 @@
       "2,6": "audience"
     },
     "song": "hinezumi_overdrive",
-    "hpMul": 40,
+    "hpMul": 50,
     "waves": [
       {
         "section": "intro",
@@ -2096,7 +2096,7 @@
       "1,4": "audience"
     },
     "song": "gekko_silence",
-    "hpMul": 24,
+    "hpMul": 30,
     "waves": [
       {
         "section": "intro",
@@ -4562,7 +4562,7 @@
       "9,4": "monitor"
     },
     "song": "neon_horai",
-    "hpMul": 2.4,
+    "hpMul": 1.5,
     "boss": true,
     "waves": [
       {
@@ -4833,7 +4833,7 @@
       "2,6": "audience"
     },
     "song": "hinezumi_overdrive",
-    "hpMul": 1.9,
+    "hpMul": 2.85,
     "boss": true,
     "waves": [
       {

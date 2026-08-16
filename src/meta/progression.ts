@@ -118,6 +118,13 @@ export interface BattleOutcome {
   killed: number;
   /** 挑んだ★難度。省略時は 1 */
   star?: number;
+  /** 漏らした数。実績「完全防衛」に要る */
+  leaked?: number;
+  /** コールの成績（02-core-battle.md 2.9）。自動ぶんは含めない */
+  perfectCalls?: number;
+  bestCallCombo?: number;
+  /** ソロパートを使った回数 */
+  soloUses?: number;
 }
 
 export interface Reward {
@@ -189,6 +196,21 @@ export function applyReward(
     songExp: {
       ...save.songExp,
       [songId]: (save.songExp[songId] ?? 0) + songExp(outcome.won, star),
+    },
+    // ライブの記録（03-progression.md ⑬）。**進捗から導けないものだけ**を積む
+    stats: {
+      ...save.stats,
+      wins: save.stats.wins + (outcome.won ? 1 : 0),
+      kills: save.stats.kills + outcome.killed,
+      bestKills: Math.max(save.stats.bestKills, outcome.killed),
+      // 「1 体も漏らさず完走」。負けた回は数えない —— 攻め込まれる前に
+      // 終わっただけの試合が「完全防衛」になってしまう
+      noLeakWins:
+        save.stats.noLeakWins + (outcome.won && (outcome.leaked ?? 0) === 0 ? 1 : 0),
+      perfectCalls: save.stats.perfectCalls + (outcome.perfectCalls ?? 0),
+      bestCallCombo: Math.max(save.stats.bestCallCombo, outcome.bestCallCombo ?? 0),
+      soloUses: save.stats.soloUses + (outcome.soloUses ?? 0),
+      fundsEarned: save.stats.fundsEarned + reward.funds,
     },
   };
   // 衣装のドロップ（03-progression.md ⑨）。資金と同じく**負けても出る**

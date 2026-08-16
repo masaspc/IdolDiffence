@@ -10,9 +10,10 @@
 import { z } from 'zod';
 import { costumeRaritySchema, costumeSlotSchema, costumeStatSchema } from '../data/schema/costume';
 import { seedFromString } from '../core/rng';
+import { DEFAULT_SETTINGS, settingsSchema } from './settings';
 
 export const SAVE_KEY = 'idoldiffence.save';
-export const CURRENT_VERSION = 7;
+export const CURRENT_VERSION = 8;
 
 /**
  * 生成された衣装 1 着（03-progression.md ⑨）。
@@ -93,6 +94,34 @@ export const saveSchema = z.object({
    * 条件を変えたときに古いセーブだけ食い違う
    */
   secrets: z.array(z.string()),
+  /** 設定（06-ui-ux.md 6.7 アクセシビリティ） */
+  settings: settingsSchema,
+  /**
+   * ライブの記録（03-progression.md ⑬）。
+   *
+   * **進捗から導けないものだけ**を積む。「1 ライブで最多何体」のような値は
+   * その場で数えないと後から復元できない。導けるもの（クリア数・★・ランク）は
+   * 持たず、実績の判定時に毎回導く
+   */
+  stats: z.object({
+    wins: z.number().int().nonnegative(),
+    kills: z.number().int().nonnegative(),
+    bestKills: z.number().int().nonnegative(),
+    noLeakWins: z.number().int().nonnegative(),
+    perfectCalls: z.number().int().nonnegative(),
+    bestCallCombo: z.number().int().nonnegative(),
+    soloUses: z.number().int().nonnegative(),
+    fundsEarned: z.number().nonnegative(),
+  }),
+  /**
+   * 資金報酬を受け取り済みの実績。
+   *
+   * 才能ポイントは解除状態から毎回導けるが、資金は**残高が増減する**ので
+   * 「導いた総額 − 使った額」では復元できない。ここだけ受領済みを持つ
+   */
+  claimedAchievements: z.array(z.string()),
+  /** 表示している称号（実績 ID）。未設定なら null */
+  title: z.string().nullable(),
 });
 
 export type SaveData = z.infer<typeof saveSchema>;
@@ -127,6 +156,24 @@ export function createNewSave(rngState: number = DEFAULT_RNG_STATE): SaveData {
     totalExp: 0,
     songExp: {},
     secrets: [],
+    settings: { ...DEFAULT_SETTINGS },
+    stats: emptyStats(),
+    claimedAchievements: [],
+    title: null,
+  };
+}
+
+/** 記録の初期値。移行でも新規でも同じものを使う */
+export function emptyStats(): SaveData['stats'] {
+  return {
+    wins: 0,
+    kills: 0,
+    bestKills: 0,
+    noLeakWins: 0,
+    perfectCalls: 0,
+    bestCallCombo: 0,
+    soloUses: 0,
+    fundsEarned: 0,
   };
 }
 
@@ -176,6 +223,18 @@ const migrations: Record<number, Migration> = {
   // 3 人はステージ進捗から解放されるので遡って配られる。
   // 隠しキャラは合言葉が鍵なので、既存プレイヤーも改めて打つところから
   6: (old) => ({ ...old, version: 7, secrets: [] }),
+  // v7 -> v8: 設定（アクセシビリティ）と実績を追加した（M5-1）。
+  // 記録はゼロから始める。過去のプレイぶんを推定して配ると、
+  // 「1 ライブで 500 体」のような実績が根拠なく解除されてしまう。
+  // ステージ進捗から導ける実績（クリア数・★・ランク）は遡って解除される
+  7: (old) => ({
+    ...old,
+    version: 8,
+    settings: { ...DEFAULT_SETTINGS },
+    stats: emptyStats(),
+    claimedAchievements: [],
+    title: null,
+  }),
 };
 
 export function migrate(raw: Record<string, unknown>): Record<string, unknown> {

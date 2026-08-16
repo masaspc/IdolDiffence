@@ -20,6 +20,7 @@ import {
   type TalentEffects,
 } from './talents';
 import { getIdol, getTalent, stageOrder, talents } from '../data';
+import { achievementPoints } from './achievements';
 import { createWorld } from '../sim/world';
 import { runHeadless } from '../core/loop';
 
@@ -92,10 +93,21 @@ describe('ボードの形', () => {
 });
 
 describe('ポイント', () => {
-  it('初回クリアで +2、ランク S でさらに +1', () => {
+  it('初回クリアで +2、ランク S でさらに +1、実績ぶんも足される', () => {
+    // ポイントの出どころは 3 つ ―― ステージ進捗・プロデューサーランク・実績。
+    // どれもセーブの中身から毎回導くので、ここは合算を見る
     expect(totalTalentPoints(createNewSave())).toBe(0);
-    expect(totalTalentPoints(cleared(3))).toBe(6);
-    expect(totalTalentPoints(cleared(3, true))).toBe(9);
+    // 3 ステージ = 6 pt。実績「はじめてのライブ」(+1) が同時に立つ
+    expect(totalTalentPoints(cleared(3))).toBe(6 + achievementPoints(cleared(3)));
+    expect(totalTalentPoints(cleared(3, true))).toBe(9 + achievementPoints(cleared(3, true)));
+  });
+
+  it('実績を達成するとポイントが増える', () => {
+    const few = cleared(1);
+    const many = cleared(10);
+    expect(achievementPoints(many)).toBeGreaterThan(achievementPoints(few));
+    // 実績ぶんはステージ進捗ぶんとは別に足される
+    expect(totalTalentPoints(many)).toBe(20 + achievementPoints(many));
   });
 
   it('足りなければ取れない', () => {
@@ -110,9 +122,10 @@ describe('ポイント', () => {
   });
 
   it('取ると残りが減る', () => {
-    let save = cleared(2); // 4 pt
+    let save = cleared(2);
+    const before = remainingTalentPoints(save);
     save = takeTalent(save, 'vo_s1'); // 1 pt
-    expect(remainingTalentPoints(save)).toBe(3);
+    expect(remainingTalentPoints(save)).toBe(before - 1);
     expect(talentBlocker(save, 'vo_s1')).toBe('taken');
   });
 });
