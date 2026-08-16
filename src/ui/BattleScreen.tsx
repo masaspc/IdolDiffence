@@ -67,7 +67,11 @@ export function BattleScreen({ stageId, meta, onFinish, onExit }: BattleScreenPr
 
     const loop = new GameLoop({
       update: (dtMs) => {
-        world.update(dtMs);
+        // 倍速は「1 フレームに sim を何回回すか」で表現する。
+        // dt を倍にすると 1 ステップが 1/60 秒でなくなり、
+        // 攻撃回数や乱数の消費順が速度で変わってリプレイできなくなる
+        const steps = world.clock.playbackSpeed;
+        for (let i = 0; i < steps; i++) world.update(dtMs);
       },
       render: (alpha) => {
         const latest = world.snapshot();
@@ -201,7 +205,9 @@ export function BattleScreen({ stageId, meta, onFinish, onExit }: BattleScreenPr
   const cycleSpeed = useCallback(() => {
     const world = worldRef.current;
     if (!world) return;
-    world.clock.setSpeed(world.clock.playbackSpeed >= 3 ? 1 : world.clock.playbackSpeed + 1);
+    const next = world.clock.playbackSpeed >= 3 ? 1 : world.clock.playbackSpeed + 1;
+    world.clock.setSpeed(next);
+    world.recordSpeedChange(next);
     sync();
   }, [sync]);
 

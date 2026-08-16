@@ -9,7 +9,6 @@ import { GameClock } from '../core/clock';
 import { EventBus, type BattleEvents } from '../core/events';
 import { createRng, type Rng } from '../core/rng';
 import { cards, getEnemy, getIdol, getSong, getStage, type Song, type Stage } from '../data';
-import { tempoMul } from '../data/schema/song';
 import type { IdolType } from '../data/schema/common';
 import type { AwakeningKey } from '../data/schema/idol';
 import { clamp, vec } from '../core/vec';
@@ -54,6 +53,16 @@ const SPECIAL_DURATION_MS = 8000;
 
 /** 売却時の返却率。編成ミスのリカバリーを許す */
 const SELL_REFUND = 0.6;
+
+/**
+ * セクションごとの HP 補正（02-core-battle.md 2.4）。
+ * サビと大サビは「圧の高い区間」として、数だけでなく硬さでも山を作る。
+ */
+function sectionHpMultiplier(section: string | undefined): number {
+  if (section === 'chorus') return 1.15;
+  if (section === 'finale') return 1.25;
+  return 1;
+}
 
 /** 覚醒 B の Echo が与える毎秒ダメージ（1 スタックあたり） */
 const ECHO_DPS = 18;
@@ -270,7 +279,7 @@ export class BattleWorld {
   }
 
   private updateEconomy(dtMs: number): void {
-    const gain = resolveStat(1, 'cheerGain', [this.runPool]);
+    const gain = resolveStat(1, 'cheerGain', [this.runPool]) * this.cheerGainFromCells();
     const regen = (CHEER_REGEN_BASE + CHEER_REGEN_PER_AUDIENCE * this.audience) * gain;
     this.addCheer((regen * dtMs) / 1000);
   }
@@ -291,11 +300,15 @@ export class BattleWorld {
     if (!path) return;
 
     const start = path.segments[0]?.from ?? path.goal;
-    // HP にもテンポ正規化を掛ける。出現数だけを補正すると、
-    // 高 BPM の曲で「数は減ったが 1 体あたりは硬いまま」になり、
-    // 秒あたりの要求 DPS が曲ごとにずれる（02-core-battle.md 2.4）
+    // テンポ正規化は**出現数だけ**に掛ける（systems/spawn.ts）。
+    // 1 秒あたりの小節数が BPM に比例するので、出現数を 132/BPM 倍すれば
+    // 秒あたりの投入数が一定になり、秒基準のプレイヤー火力と釣り合う。
+    // HP にも掛けると 132²/BPM に比例してしまい、逆向きのズレが残る。
     const hp =
-      def.hp * tempoMul(this.song) * waveHpMultiplier(scheduled.waveIndex) * this.stage.hpMul;
+      def.hp *
+      waveHpMultiplier(scheduled.waveIndex) *
+      sectionHpMultiplier(this.stage.waves[scheduled.waveIndex]?.section) *
+      this.stage.hpMul;
 
     const enemy: Enemy = {
       id: this.nextEntityId++,
@@ -545,7 +558,7 @@ export class BattleWorld {
       lastTargetPos: null,
       lastAttackAgeMs: Number.POSITIVE_INFINITY,
     };
-    resolveUnit(unit, this.runPool, this.specialActive);
+    this.resolve(unit);
     this.units.push(unit);
     this.record('place', { idol: idolId, x, y });
     return unit;
@@ -571,7 +584,7 @@ export class BattleWorld {
     this.spendCheer(cost);
     unit.investedCost += cost;
     unit.level = (unit.level + 1) as 1 | 2 | 3;
-    resolveUnit(unit, this.runPool, this.specialActive);
+    this.resolve(unit);
     this.record('upgrade', { id, level: unit.level });
     return null;
   }
@@ -583,7 +596,7 @@ export class BattleWorld {
     if (!getIdol(unit.idolId).awakening) return false;
 
     unit.awakening = branch;
-    resolveUnit(unit, this.runPool, this.specialActive);
+    this.resolve(unit);
     this.record('awaken', { id, branch });
     return true;
   }
@@ -608,7 +621,29 @@ export class BattleWorld {
   }
 
   private refreshUnitStats(): void {
-    for (const unit of this.units) resolveUnit(unit, this.runPool, this.specialActive);
+    for (const unit of this.units) this.resolve(unit);
+  }
+
+  /** 配置マスの種別を添えてステータスを解決する */
+  private resolve(unit: Unit): void {
+    resolveUnit(
+      unit,
+      this.runPool,
+      this.specialActive,
+      this.stage.cellTypes[`${unit.cell.x},${unit.cell.y}`],
+    );
+  }
+
+  /**
+   * 客席サイドに置いたメンバーぶんの声援ボーナス。
+   * ユニット個別のステータスではなく経済に効くので、ここで集計する
+   */
+  private cheerGainFromCells(): number {
+    let mul = 1;
+    for (const unit of this.units) {
+      if (this.stage.cellTypes[`${unit.cell.x},${unit.cell.y}`] === 'audience') mul *= 1.2;
+    }
+    return mul;
   }
 
   // --- リソース ---
@@ -627,6 +662,10 @@ export class BattleWorld {
   }
 
   addVoltage(delta: number): void {
+    // スペシャル中は蓄積しない（02-core-battle.md 2.3）。
+    // 溜め続けると終了と同時に次が撃てて、実質「常時バフ」になる
+    if (delta > 0 && this.specialActive) return;
+
     let scaled = delta * resolveStat(1, 'voltageGain', [this.runPool]);
     if (delta > 0 && this.currentWave?.section === 'chorus') scaled *= VOLTAGE_CHORUS_MUL;
 
@@ -659,6 +698,11 @@ export class BattleWorld {
       kind,
       ...(detail ? { detail } : {}),
     });
+  }
+
+  /** 再生速度の変更を記録する。記録しないとリプレイが再現できない */
+  recordSpeedChange(speed: number): void {
+    this.record('speed', { speed });
   }
 
   /** 計測用の書き出し。リザルト画面から JSON で取り出す */

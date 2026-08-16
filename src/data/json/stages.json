@@ -417,7 +417,8 @@
             "intervalBars": 0.8,
             "lane": 0
           }
-        ]
+        ],
+        "cardPick": true
       },
       {
         "section": "finale",
@@ -734,7 +735,8 @@
             "intervalBars": 0.8,
             "lane": 1
           }
-        ]
+        ],
+        "cardPick": true
       },
       {
         "section": "finale",

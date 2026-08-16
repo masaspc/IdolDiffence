@@ -223,6 +223,19 @@ describe('スペシャルライブ', () => {
     world.addVoltage(1000);
     expect(world.specialReady).toBe(false);
   });
+
+  it('発動中は月華が溜まらない（終了と同時の連発を防ぐ）', () => {
+    const world = createWorld('S1', SEED);
+    world.addCheer(5000);
+    world.placeUnit('D1', 4, 6);
+    world.addVoltage(1000);
+    world.activateSpecial();
+
+    // 撃破も小節も進むが、蓄積は 0 のまま
+    runHeadless(6000, (dt) => world.update(dt));
+    expect(world.snapshot().specialRemainingMs).toBeGreaterThan(0);
+    expect(world.snapshot().voltage).toBe(0);
+  });
 });
 
 describe('育成の反映', () => {
@@ -230,8 +243,48 @@ describe('育成の反映', () => {
     const base = getIdol('D1').base.atk;
     const world = createWorld('S1', SEED, { atkByIdol: { D1: base * 2 } });
     world.addCheer(5000);
-    world.placeUnit('D1', 4, 6);
-    expect(world.snapshot().units[0]!.atk).toBeCloseTo(base * 2);
+    // (8,3) は種別なし = 本舞台。ATK +10%
+    world.placeUnit('D1', 8, 3);
+    expect(world.snapshot().units[0]!.atk).toBeCloseTo(base * 2 * 1.1);
+  });
+});
+
+describe('配置マスの種別', () => {
+  it('本舞台は攻撃力 +10%', () => {
+    const world = createWorld('S1', SEED);
+    world.addCheer(5000);
+    world.placeUnit('D1', 8, 3);
+    expect(world.snapshot().units[0]!.atk).toBeCloseTo(getIdol('D1').base.atk * 1.1);
+  });
+
+  it('客席サイドは攻撃力が下がる代わりに声援が増える', () => {
+    const stage = createWorld('S1', SEED);
+    stage.addCheer(5000);
+    stage.placeUnit('D1', 4, 6); // audience
+    expect(stage.snapshot().units[0]!.atk).toBeCloseTo(getIdol('D1').base.atk * 0.9);
+
+    const withAudience = createWorld('S1', SEED);
+    withAudience.addCheer(5000);
+    withAudience.placeUnit('D1', 4, 6);
+    const plain = createWorld('S1', SEED);
+    plain.addCheer(5000);
+    plain.placeUnit('D1', 8, 3);
+
+    const before = { a: withAudience.snapshot().cheer, p: plain.snapshot().cheer };
+    runHeadless(3000, (dt) => {
+      withAudience.update(dt);
+      plain.update(dt);
+    });
+    const gainedAudience = withAudience.snapshot().cheer - before.a;
+    const gainedPlain = plain.snapshot().cheer - before.p;
+    expect(gainedAudience).toBeGreaterThan(gainedPlain);
+  });
+
+  it('花道は射程が伸びる', () => {
+    const world = createWorld('S1', SEED);
+    world.addCheer(5000);
+    world.placeUnit('D1', 8, 5); // runway
+    expect(world.snapshot().units[0]!.range).toBeCloseTo(getIdol('D1').base.range * 1.15);
   });
 });
 

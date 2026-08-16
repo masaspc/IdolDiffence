@@ -41,7 +41,13 @@ const original = stages[stageId]!.hpMul;
 
 console.log(`${stageId} (現行 hpMul=${original})`);
 console.log('hpMul  Lv1   Lv5   Lv10  Lv15  Lv20  Lv30');
-for (const hpMul of [2, 4, 6, 8, 10, 13]) {
+// 現行値とその周辺を必ず含める。含めないと採用値の境界を検証できない
+const current = stages[stageId]!.hpMul;
+const candidates = [...new Set([
+  current * 0.5, current * 0.75, current, current * 1.25, current * 1.5, current * 2,
+].map((v) => Math.round(v * 100) / 100))].sort((a, b) => a - b);
+
+for (const hpMul of candidates) {
   stages[stageId]!.hpMul = hpMul;
   const cells = [1, 5, 10, 15, 20, 30].map((level) => {
     const world = createWorld(stageId, SEED, meta(level));

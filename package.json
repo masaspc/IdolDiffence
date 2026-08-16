@@ -3,7 +3,7 @@
   "private": true,
   "version": "0.0.0",
   "type": "module",
-  "description": "超・かぐや姫 — アニメ風アイドル・タワーディフェンス",
+  "description": "超かぐや姫！ — 非公式ファン制作のアイドル・タワーディフェンス",
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",
