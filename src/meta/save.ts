@@ -110,7 +110,11 @@ export function importSave(text: string): SaveData | null {
   try {
     const raw = JSON.parse(decodeURIComponent(atob(text))) as Record<string, unknown>;
     const parsed = saveSchema.safeParse(migrate(raw));
-    return parsed.success ? parsed.data : null;
+    if (!parsed.success) return null;
+    // 新しいビルドで書き出したデータを古いビルドへ取り込むと、
+    // 知らないフィールドを落として保存し直してしまう。loadSave と同じく拒否する
+    if (parsed.data.version > CURRENT_VERSION) return null;
+    return parsed.data;
   } catch {
     return null;
   }

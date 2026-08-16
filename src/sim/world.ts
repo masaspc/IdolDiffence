@@ -249,6 +249,10 @@ export class BattleWorld {
     this.updateEconomy(advanced);
     this.spawnDueEnemies();
     this.updateEnemies(advanced);
+    // 漏れで観客が尽きた場合はここで打ち切る。
+    // 続けて updateUnits を回すと決着後に撃破が増え、
+    // battleEnd のログと最終結果が食い違う
+    if (this.finished) return;
     this.updateUnits(advanced);
     this.updateFloatingTexts(advanced);
     this.checkCompletion();

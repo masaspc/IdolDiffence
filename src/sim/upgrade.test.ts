@@ -4,7 +4,8 @@
 import { describe, expect, it } from 'vitest';
 import { createWorld } from './world';
 import { runHeadless } from '../core/loop';
-import { getIdol } from '../data';
+import { cards, getIdol } from '../data';
+import { autoplay } from './autoplay';
 
 const SEED = 20260816;
 
@@ -231,6 +232,30 @@ describe('育成の反映', () => {
     world.addCheer(5000);
     world.placeUnit('D1', 4, 6);
     expect(world.snapshot().units[0]!.atk).toBeCloseTo(base * 2);
+  });
+});
+
+describe('データの既定値', () => {
+  it('省略された maxStacks が実体化されている', () => {
+    // 本番だけパースを飛ばしていた頃は undefined になり、
+    // スタック上限の判定 (taken >= maxStacks) が常に false になっていた
+    for (const [id, card] of Object.entries(cards)) {
+      expect(card.maxStacks, `${id} の maxStacks`).toBeTypeOf('number');
+      expect(card.maxStacks).toBeGreaterThan(0);
+    }
+    expect(cards['vocal_practice']?.maxStacks).toBe(3);
+  });
+});
+
+describe('決着の扱い', () => {
+  it('敗北した tick で撃破が増えない（ログと最終結果が一致する）', () => {
+    const world = createWorld('S1', SEED);
+    const { snapshot } = autoplay(world);
+    expect(snapshot.won).toBe(false);
+
+    const end = world.log.find((entry) => entry.kind === 'battleEnd');
+    expect(end?.detail?.killed).toBe(snapshot.killed);
+    expect(end?.detail?.audience).toBe(snapshot.audience);
   });
 });
 

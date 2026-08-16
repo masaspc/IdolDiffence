@@ -75,6 +75,13 @@ describe('セーブの読み書き', () => {
   it('壊れたインポート文字列は null', () => {
     expect(importSave('!!!not-base64!!!')).toBeNull();
   });
+
+  it('未来のバージョンのインポートは拒否する', () => {
+    // 新しいビルドのデータを古いビルドへ取り込むと、
+    // 知らないフィールドを落として保存し直してしまう
+    const future = { ...createNewSave(), version: CURRENT_VERSION + 1 };
+    expect(importSave(exportSave(future))).toBeNull();
+  });
 });
 
 describe('マイグレーション', () => {

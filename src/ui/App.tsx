@@ -9,6 +9,7 @@ import {
   type BattleOutcome,
 } from '../meta/progression';
 import { loadSave, saveSave, type SaveData } from '../meta/save';
+import type { BattleMeta } from '../sim/world';
 import { rosterIds } from '../data';
 
 type Screen = 'home' | 'battle';
@@ -23,6 +24,13 @@ export function App(): React.JSX.Element {
   });
   const [screen, setScreen] = useState<Screen>('home');
   const [stageId, setStageId] = useState('S1');
+  /**
+   * 育成状態はバトル開始時に一度だけ解決して固定する。
+   * 毎レンダーで作り直すと、リザルトで save が更新された瞬間に参照が変わり、
+   * BattleScreen の effect が張り直されて**決着したワールドが破棄される**
+   * （結果画面が消えて別のバトルが勝手に始まる）。
+   */
+  const [battleMeta, setBattleMeta] = useState<BattleMeta>({ atkByIdol: {} });
   const [lastResult, setLastResult] = useState<{
     won: boolean;
     audience: number;
@@ -44,12 +52,6 @@ export function App(): React.JSX.Element {
     setLastResult({ won: outcome.won, audience: outcome.audience, funds: reward.funds });
   }, []);
 
-  // 育成状態はバトル開始時に一度だけ解決して渡す。
-  // sim にメタ層を触らせないための境界
-  const battleMeta = {
-    atkByIdol: Object.fromEntries(rosterIds.map((id) => [id, resolvedAtk(save, id)])),
-  };
-
   if (screen === 'battle') {
     return (
       <BattleScreen
@@ -69,6 +71,10 @@ export function App(): React.JSX.Element {
       onStart={(id) => {
         setStageId(id);
         setLastResult(null);
+        // sim にメタ層を触らせないための境界。ここで解決して以後は固定
+        setBattleMeta({
+          atkByIdol: Object.fromEntries(rosterIds.map((rid) => [rid, resolvedAtk(save, rid)])),
+        });
         setScreen('battle');
       }}
     />

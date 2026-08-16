@@ -4,8 +4,12 @@
  * JSON は `import` でバンドルに含める。GitHub Pages はサブパス配信なので
  * `fetch('/data/...')` は 404 になる（docs/design/05-architecture.md 5.11）。
  *
- * 検証は **ビルド時** に `npm run validate:data` で行い、
- * 実行時は開発モードのみパースする。本番は素通しでゼロコスト。
+ * **本番でも必ずパースする。** 以前は開発時のみ検証していたが、
+ * Zod のパースは検証と同時に**既定値を実体化する**役割も持つ。
+ * 素通しにすると `maxStacks` や `tempoBase` のような省略されたフィールドが
+ * undefined のままになり、開発では正しく動くのに本番だけ壊れる
+ * （例: カードのスタック上限が効かなくなる）。
+ * データは数 KB で、起動時のパースは 1ms 程度。省く価値がない。
  */
 import stagesJson from './json/stages.json';
 import songsJson from './json/songs.json';
@@ -18,12 +22,8 @@ import { enemiesSchema, type EnemyDef, type Enemies } from './schema/enemy';
 import { idolsSchema, type IdolDef, type Idols } from './schema/idol';
 import { cardsSchema, type CardDef, type Cards } from './schema/card';
 
-// Vite 外（tsx でのスクリプト実行、ヘッドレスのシミュレータ）では
-// import.meta.env 自体が存在しない。その場合も検証する側に倒す。
-const shouldValidate: boolean = import.meta.env?.DEV ?? true;
-
 function load<T>(raw: unknown, parse: (raw: unknown) => T): T {
-  return shouldValidate ? parse(raw) : (raw as T);
+  return parse(raw);
 }
 
 export const stages: Stages = load(stagesJson, (raw) => stagesSchema.parse(raw));
