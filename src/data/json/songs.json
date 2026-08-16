@@ -4,5 +4,17 @@
     "bpm": 132,
     "beatsPerBar": 4,
     "tempoBase": 132
+  },
+  "neon_horai": {
+    "name": "ネオン蓬莱",
+    "bpm": 148,
+    "beatsPerBar": 4,
+    "tempoBase": 132
+  },
+  "gekko_silence": {
+    "name": "月光サイレンス",
+    "bpm": 118,
+    "beatsPerBar": 4,
+    "tempoBase": 132
   }
 }

@@ -80,13 +80,24 @@ export class GameClock {
     return this.state === 'running';
   }
 
-  /** 再生速度。1x / 2x / 3x。BGM の再生レートも同じ係数で変える */
+  /**
+   * 再生速度。1x / 2x / 3x。
+   *
+   * **この値は時計自身の進み方を変えない。** 呼び出し側が
+   * 「1 フレームに何回 sim を回すか」として使う（core/loop.ts の考え方と同じ）。
+   * 時計側で dt を倍にすると、1 ステップが 1/60 秒でなくなり、
+   * 攻撃回数や乱数の消費順が速度によって変わってしまう。
+   * BGM の再生レートには同じ係数を掛ける。
+   */
   get playbackSpeed(): number {
     return this.speed;
   }
 
+  /** 整数倍のみ。sim ステップの反復回数として使うため */
   setSpeed(speed: number): void {
-    if (speed <= 0) throw new Error(`speed must be positive: ${speed}`);
+    if (!Number.isInteger(speed) || speed <= 0) {
+      throw new Error(`speed must be a positive integer: ${speed}`);
+    }
     this.speed = speed;
   }
 
@@ -134,7 +145,9 @@ export class GameClock {
   advance(deltaMs: number, onBeat?: (info: BeatInfo) => void): number {
     if (this.state !== 'running') return 0;
 
-    const applied = deltaMs * this.speed;
+    // 速度倍率はここで掛けない。掛けると 1 ステップが 1/60 秒でなくなり、
+    // 倍速が「再生速度」ではなく「戦闘結果を変えるもの」になってしまう
+    const applied = deltaMs;
     this.timeMs += applied;
 
     if (onBeat) {

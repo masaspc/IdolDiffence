@@ -41,11 +41,37 @@ describe('GameClock', () => {
     expect(clock.now).toBe(500);
   });
 
-  it('速度倍率が時刻の進みに掛かる', () => {
+  it('速度倍率は時刻の進みを変えない（ステップ数で表現する）', () => {
+    // dt を倍にすると 1 ステップが 1/60 秒でなくなり、
+    // 攻撃回数や乱数の消費順が速度で変わってリプレイできなくなる。
+    // 倍速は呼び出し側が「1 フレームに何回 update するか」で表現する
     const clock = new GameClock(BPM);
     clock.setSpeed(3);
-    expect(clock.advance(100)).toBe(300);
+    expect(clock.advance(100)).toBe(100);
+    expect(clock.now).toBe(100);
+
+    // 3 回呼べば 3 倍進む
+    clock.advance(100);
+    clock.advance(100);
     expect(clock.now).toBe(300);
+  });
+
+  it('速度は正の整数のみ受け付ける', () => {
+    const clock = new GameClock(BPM);
+    expect(() => clock.setSpeed(1.5)).toThrow();
+    expect(() => clock.setSpeed(0)).toThrow();
+    expect(() => clock.setSpeed(-1)).toThrow();
+  });
+
+  it('倍速でも同じ回数だけ update すれば同じ時刻になる（決定性）', () => {
+    const slow = new GameClock(BPM);
+    const fast = new GameClock(BPM);
+    fast.setSpeed(3);
+    for (let i = 0; i < 30; i++) {
+      slow.advance(16.67);
+      fast.advance(16.67);
+    }
+    expect(fast.now).toBeCloseTo(slow.now);
   });
 
   it('跨いだ拍を 1 つずつ順番に通知する', () => {
@@ -98,9 +124,8 @@ describe('GameClock', () => {
     expect(clock.barProgress).toBeCloseTo(0.5);
   });
 
-  it('不正な BPM と速度を拒否する', () => {
+  it('不正な BPM を拒否する', () => {
     expect(() => new GameClock(0)).toThrow();
-    expect(() => new GameClock(120).setSpeed(0)).toThrow();
   });
 
   it('reset で初期状態に戻る', () => {

@@ -127,7 +127,13 @@ class GameClock {
 | 通常再生 | `GameClock` が固定タイムステップで進み、BGM をその時刻へ追従させる |
 | 一時停止 | `simTimeMs` を止め、BGM も停止（`AudioContext.suspend()`） |
 | カード選択（◆） | **楽曲を短いループ区間に入れて演奏を継続**し、`simTimeMs` は停止。 決定後、**次の小節境界から** sim を再開する |
-| 速度 2x / 3x | `simTimeMs` の進行倍率と BGM の再生レートを同じ係数で変える |
+| 速度 2x / 3x | **1 フレームに sim を N 回回す**（`simTimeMs` の刻みは 1/60 秒のまま）。BGM の再生レートには同じ係数を掛ける |
+
+> 倍速で `dt` を倍にしてはいけない。1 ステップが 1/60 秒でなくなると、
+> 攻撃回数の切り捨てや乱数の消費順が速度によって変わり、
+> **同じ seed でも 1x と 3x で結果が変わってリプレイできなくなる**。
+> 速度は「時計の進み方」ではなく「1 フレームあたりのステップ数」で表現する。
+> 速度変更自体もリプレイのためにログへ記録する。
 
 - カード選択で無音になるとライブ感が切れるため、単純な停止ではなくループ区間方式を採る。
 - 小節境界へスナップして再開することで、再開直後のスポーンがリズムから外れない。
@@ -162,15 +168,15 @@ function resolveStats(base: BaseStats, pools: ModifierPool[]): ResolvedStats {
 // data/json/idols.json
 {
   "V1": {
-    "name": "千歳 やちよ",
+    "name": "かぐや",
     "type": "vocal",
     "cost": 30,
     "base": { "atk": 90, "range": 3.0, "attackIntervalMs": 1600, "critRate": 0.05, "critDmg": 0.5 },
     "attack": { "kind": "aoe_ring", "skillMul": 0.9, "radius": 1.2, "pierce": true, "canHitFlying": true },
     "skill": { "id": "tooneri", "cooldownMs": 12000, "mul": 1.4, "target": "all_in_range" },
     "awakening": {
-      "A": { "name": "千代", "mods": { "attackIntervalMs": "*1.5", "radius": "*1.8" } },
-      "B": { "name": "早口", "mods": { "attackIntervalMs": "*0.6", "radius": "*0.7" },
+      "A": { "name": "フルコーラス", "mods": { "attackIntervalMs": "*1.5", "radius": "*1.8" } },
+      "B": { "name": "ラップコール", "mods": { "attackIntervalMs": "*0.6", "radius": "*0.7" },
              "onHit": { "status": "echo", "stacks": 1 } }
     },
     "units": ["kaguya_gumi"],
@@ -185,7 +191,7 @@ function resolveStats(base: BaseStats, pools: ModifierPool[]): ResolvedStats {
 // data/json/stages.json（抜粋）
 {
   "S3": {
-    "name": "ライブハウス「月光」",
+    "name": "ライブワールド「銀波ホール」",
     "grid": { "w": 16, "h": 9 },
     "lanes": [ { "waypoints": [[0,4],[5,4],[5,7],[12,7],[15,5]] }, { "waypoints": [[0,2],[8,2],[8,5],[15,5]] } ],
     "placeable": [[2,3],[3,3],[6,2],[6,5]],

@@ -26,7 +26,31 @@ export const palette = {
   goal: '#FFD54F',
   text: '#EAE6FF',
   textDim: 'rgba(234, 230, 255, 0.55)',
+  invalid: '#FF6B6B',
+  unitBody: '#141230',
 } as const;
+
+export function typeColor(type: string): string {
+  switch (type) {
+    case 'vocal':
+      return palette.vocal;
+    case 'dance':
+      return palette.dance;
+    default:
+      return palette.visual;
+  }
+}
+
+export function attrColor(attr: string): string {
+  switch (attr) {
+    case 'silence':
+      return palette.silence;
+    case 'noise':
+      return palette.noise;
+    default:
+      return palette.glare;
+  }
+}
 
 export type CellStyle = { fill: string; stroke: string };
 

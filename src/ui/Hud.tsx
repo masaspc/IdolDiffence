@@ -1,3 +1,5 @@
+import { getIdol, rosterIds } from '../data';
+import type { AwakeningKey } from '../data/schema/idol';
 import type { WorldSnapshot } from '../sim/world';
 
 const SECTION_LABEL: Record<string, string> = {
@@ -9,16 +11,43 @@ const SECTION_LABEL: Record<string, string> = {
   finale: '大サビ',
 };
 
+const TYPE_ICON: Record<string, string> = { vocal: '♪', dance: '★', visual: '♥' };
+const RARITY_LABEL: Record<string, string> = { common: 'コモン', rare: 'レア', epic: 'エピック' };
+
 interface HudProps {
   snapshot: WorldSnapshot;
   fps: number;
+  pendingIdolId: string | null;
+  selectedUnitId: number | null;
+  onSelectIdol: (idolId: string) => void;
+  onUpgradeSelected: () => void;
+  onAwaken: (branch: AwakeningKey) => void;
+  onSellSelected: () => void;
   onTogglePause: () => void;
   onCycleSpeed: () => void;
+  onSpecial: () => void;
+  onChooseCard: (cardId: string) => void;
+  onRestart: () => void;
+  onExportLog: () => void;
 }
 
-export function Hud({ snapshot, fps, onTogglePause, onCycleSpeed }: HudProps): React.JSX.Element {
+function rankOf(audience: number): string {
+  if (audience >= 100) return 'S';
+  if (audience >= 80) return 'A';
+  if (audience >= 50) return 'B';
+  return 'C';
+}
+
+export function Hud(props: HudProps): React.JSX.Element {
+  const { snapshot, fps, pendingIdolId, selectedUnitId } = props;
   const wave = snapshot.wave;
-  const sectionLabel = wave ? (SECTION_LABEL[wave.section] ?? wave.section) : '完走';
+  const sectionLabel = wave ? (SECTION_LABEL[wave.section] ?? wave.section) : '大詰め';
+  const selected = snapshot.units.find((u) => u.id === selectedUnitId) ?? null;
+  const selectedDef = selected ? getIdol(selected.idolId) : null;
+  const canUpgrade =
+    selected?.upgradeCost !== null &&
+    selected !== null &&
+    snapshot.cheer >= (selected.upgradeCost ?? Infinity);
 
   return (
     <>
@@ -34,7 +63,7 @@ export function Hud({ snapshot, fps, onTogglePause, onCycleSpeed }: HudProps): R
           <span className="song-title">♪ {snapshot.songName}</span>
           <span className="song-section">
             {sectionLabel}
-            {wave ? ` ${wave.index + 1}/${snapshot.waveCount}` : ''}
+            {wave ? ` ${wave.index + 1}/${snapshot.waveCount}` : ''} ／ 残り {snapshot.remainingSpawns} 体
           </span>
         </div>
       </div>
@@ -46,38 +75,197 @@ export function Hud({ snapshot, fps, onTogglePause, onCycleSpeed }: HudProps): R
           </span>
           <div className="gauge gauge-voltage">
             <span className="gauge-label">月華</span>
-            <div className="bar bar-voltage">
+            <div className={`bar bar-voltage${snapshot.specialReady ? ' is-ready' : ''}`}>
               <div className="bar-fill" style={{ width: `${snapshot.voltage}%` }} />
             </div>
-            <span className="gauge-value">{Math.floor(snapshot.voltage)}%</span>
+            <button
+              type="button"
+              className={`special${snapshot.specialReady ? ' is-ready' : ''}`}
+              onClick={props.onSpecial}
+              disabled={!snapshot.specialReady}
+            >
+              {snapshot.specialRemainingMs > 0
+                ? `解放中 ${(snapshot.specialRemainingMs / 1000).toFixed(1)}s`
+                : `解放 ${Math.floor(snapshot.voltage)}%`}
+              <kbd>Q</kbd>
+            </button>
           </div>
         </div>
+
+        <div className="palette">
+          {rosterIds.map((id, index) => {
+            const idol = getIdol(id);
+            const affordable = snapshot.cheer >= idol.cost;
+            return (
+              <button
+                key={id}
+                type="button"
+                className={[
+                  'palette-item',
+                  `type-${idol.type}`,
+                  pendingIdolId === id ? 'is-selected' : '',
+                ].join(' ')}
+                onClick={() => props.onSelectIdol(id)}
+                disabled={!affordable && pendingIdolId !== id}
+              >
+                <span className="palette-icon">{TYPE_ICON[idol.type]}</span>
+                <span className="palette-name">{idol.shortName}</span>
+                <span className="palette-cost">♥{idol.cost}</span>
+                <kbd>{index + 1}</kbd>
+              </button>
+            );
+          })}
+        </div>
+
         <div className="controls">
-          <button type="button" onClick={onTogglePause}>
-            {snapshot.clockState === 'running' ? '⏸ 一時停止' : '▶ 再開'} <kbd>P</kbd>
+          <button
+            type="button"
+            onClick={props.onTogglePause}
+            disabled={snapshot.clockState === 'choosing'}
+            title={snapshot.clockState === 'choosing' ? 'セットリスト選択中' : '一時停止'}
+          >
+            {snapshot.clockState === 'paused' ? '▶' : '⏸'} <kbd>P</kbd>
           </button>
-          <button type="button" onClick={onCycleSpeed}>
+          <button type="button" onClick={props.onCycleSpeed}>
             ⏩ {snapshot.speed}x <kbd>Tab</kbd>
           </button>
         </div>
       </div>
+
+      {pendingIdolId && (
+        <div className="hint">
+          {getIdol(pendingIdolId).name} を配置するマスをクリック（<kbd>Esc</kbd> で取消）
+        </div>
+      )}
+
+      {selected && selectedDef && (
+        <div className="unit-panel">
+          <div className="unit-panel-head">
+            <span className={`unit-panel-icon type-${selected.type}`}>
+              {TYPE_ICON[selected.type]}
+            </span>
+            <span>{selected.shortName}</span>
+            <span className="unit-level">Lv{selected.level}</span>
+          </div>
+
+          <dl>
+            <div>
+              <dt>攻撃力</dt>
+              <dd>{selected.atk}</dd>
+            </div>
+            <div>
+              <dt>射程</dt>
+              <dd>{selected.range.toFixed(1)} マス</dd>
+            </div>
+            {selected.awakeningName && (
+              <div>
+                <dt>覚醒</dt>
+                <dd>{selected.awakeningName}</dd>
+              </div>
+            )}
+          </dl>
+
+          {selected.awaitingAwakening ? (
+            <div className="awakening">
+              <p className="awakening-title">覚醒分岐を選ぶ（変更不可）</p>
+              {(['A', 'B'] as AwakeningKey[]).map((key) => {
+                const branch = selectedDef.awakening?.[key];
+                if (!branch) return null;
+                return (
+                  <button
+                    key={key}
+                    type="button"
+                    className="awakening-option"
+                    onClick={() => props.onAwaken(key)}
+                  >
+                    <strong>{branch.name}</strong>
+                    <span>{branch.desc}</span>
+                  </button>
+                );
+              })}
+            </div>
+          ) : selected.upgradeCost !== null ? (
+            <button
+              type="button"
+              className="upgrade"
+              onClick={props.onUpgradeSelected}
+              disabled={!canUpgrade}
+            >
+              Lv{selected.level + 1} へ強化（♥{selected.upgradeCost}）
+            </button>
+          ) : null}
+
+          <button type="button" className="sell" onClick={props.onSellSelected}>
+            売却（♥{Math.floor(selected.investedCost * 0.6)} 返却）
+          </button>
+        </div>
+      )}
+
+      {snapshot.takenCards.length > 0 && (
+        <div className="taken-cards">
+          {snapshot.takenCards.map((card) => (
+            <span key={card.name}>
+              {card.name}
+              {card.count > 1 ? ` ×${card.count}` : ''}
+            </span>
+          ))}
+        </div>
+      )}
 
       <div className="debug">
         <span className={fps >= 55 ? 'ok' : 'warn'}>{fps} fps</span>
         <span>
           {snapshot.bpm} BPM / {snapshot.bar} 小節
         </span>
-        <span className="stage-name">{snapshot.stageName}</span>
+        <span>
+          撃破 {snapshot.killed} / 漏れ {snapshot.leaked}
+        </span>
       </div>
+
+      {snapshot.offers && (
+        <div className="overlay">
+          <div className="card-choice">
+            <h2>セットリストを組む</h2>
+            <p className="card-choice-note">1 枚選ぶとライブが再開します</p>
+            <div className="card-list">
+              {snapshot.offers.map((offer) => (
+                <button
+                  key={offer.id}
+                  type="button"
+                  className={`card card-${offer.rarity}`}
+                  onClick={() => props.onChooseCard(offer.id)}
+                >
+                  <span className="card-rarity">{RARITY_LABEL[offer.rarity] ?? offer.rarity}</span>
+                  <strong className="card-name">{offer.name}</strong>
+                  <span className="card-desc">{offer.desc}</span>
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
 
       {snapshot.finished && (
         <div className="overlay">
           <div className="overlay-card">
-            <h2>{snapshot.won ? 'ライブ完走' : 'ライブ中断'}</h2>
-            <p>観客 {snapshot.audience} / 100</p>
-            <p className="note">
-              M0 の空ステージです。敵とアイドルの配置は M1 で入ります。
+            <h2>{snapshot.won ? 'ライブ完走！' : 'ライブ中断…'}</h2>
+            {snapshot.won && <p className="rank">ランク {rankOf(snapshot.audience)}</p>}
+            <p>
+              観客 {snapshot.audience} / 100 ・ 撃破 {snapshot.killed} ・ 漏れ {snapshot.leaked}
             </p>
+            <p className="note">
+              {snapshot.won
+                ? 'リザルトの報酬でメンバーを育てて、より上の観客数を狙えます。'
+                : 'ノイズを通しすぎました。強化とセットリストで火力を伸ばしましょう。'}
+            </p>
+            <div className="overlay-actions">
+              <button type="button" className="restart" onClick={props.onRestart}>
+                ホームへ戻る
+              </button>
+              <button type="button" className="ghost" onClick={props.onExportLog}>
+                プレイログを保存
+              </button>
+            </div>
           </div>
         </div>
       )}

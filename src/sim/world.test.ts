@@ -1,13 +1,14 @@
 import { describe, expect, it } from 'vitest';
 import { createWorld } from './world';
 import { runHeadless, FIXED_STEP_MS } from '../core/loop';
+import { autoplay } from './autoplay';
 
 const SEED = 20260816;
 
 describe('BattleWorld', () => {
   it('ステージと楽曲を読み込める', () => {
     const world = createWorld('S1', SEED);
-    expect(world.stage.name).toBe('竹林の路上ライブ');
+    expect(world.stage.name).toBe('ツクヨミ辺境・路地裏ステージ');
     expect(world.song.bpm).toBe(132);
   });
 
@@ -83,13 +84,12 @@ describe('BattleWorld', () => {
     expect(world.currentWave?.section).toBe('verse');
   });
 
-  it('全ウェーブを終えると完走で終了する', () => {
+  it('迎撃しなければ観客が尽きて終了する', () => {
+    // 完走できるケースは battle.test.ts の「経路沿いに置けば完走できる」で見る
     const world = createWorld('S1', SEED);
-    const totalBars = world.stage.waves.reduce((sum, w) => sum + w.bars, 0);
-    runHeadless(world.clock.msPerBar * (totalBars + 1), (dt) => world.update(dt), () => world.snapshot().finished);
-    const snap = world.snapshot();
-    expect(snap.finished).toBe(true);
-    expect(snap.won).toBe(true);
+    const { snapshot } = autoplay(world);
+    expect(snapshot.finished).toBe(true);
+    expect(snapshot.won).toBe(false);
   });
 
   it('同じ seed なら同じ結果になる（決定性）', () => {

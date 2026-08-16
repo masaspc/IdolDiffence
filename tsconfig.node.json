@@ -1,7 +1,10 @@
 {
   "compilerOptions": {
     "target": "ES2022",
-    "lib": ["ES2023"],
+    // スクリプトから sim を駆動する（バランス計測・データ検証）。
+    // sim は core/loop.ts 経由で DOM の型に触れるので、
+    // ブラウザ用の型宣言もここで読み込んでおく
+    "lib": ["ES2023", "DOM"],
     "module": "ESNext",
     "moduleResolution": "bundler",
     "resolveJsonModule": true,
@@ -13,7 +16,7 @@
     "noUnusedLocals": true,
     "noUnusedParameters": true,
     "noUncheckedIndexedAccess": true,
-    "types": ["node"]
+    "types": ["node", "vite/client"]
   },
   "include": ["vite.config.ts", "vitest.config.ts", "scripts", "eslint.config.js"]
 }
