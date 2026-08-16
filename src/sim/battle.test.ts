@@ -4,10 +4,10 @@
 import { describe, expect, it } from 'vitest';
 import { createWorld } from './world';
 import { runHeadless } from '../core/loop';
+import { autoplay } from './autoplay';
 import { slowFactor, applyStatus, tickStatuses, type Enemy } from './entities';
 
 const SEED = 20260816;
-const untilFinished = (world: ReturnType<typeof createWorld>) => () => world.snapshot().finished;
 
 describe('配置', () => {
   it('配置マスに置けて、声援が減る', () => {
@@ -64,68 +64,52 @@ describe('戦闘', () => {
     world.placeUnit('D1', 4, 6);
     const cheerAfterPlace = world.snapshot().cheer;
 
-    runHeadless(40_000, (dt) => world.update(dt));
-    const snap = world.snapshot();
-    expect(snap.killed).toBeGreaterThan(0);
+    const { snapshot } = autoplay(world, { maxMs: 60_000 });
+    expect(snapshot.killed).toBeGreaterThan(0);
     // 自然回復ぶんを差し引いても、撃破報酬が入っている
-    expect(snap.cheer).toBeGreaterThan(cheerAfterPlace);
+    expect(snapshot.cheer).toBeGreaterThan(cheerAfterPlace);
   });
 
   it('配置しなければ 1 体も倒せない', () => {
     const world = createWorld('S1', SEED);
-    runHeadless(40_000, (dt) => world.update(dt));
-    expect(world.snapshot().killed).toBe(0);
-    expect(world.snapshot().leaked).toBeGreaterThan(0);
+    const { snapshot } = autoplay(world, { maxMs: 60_000 });
+    expect(snapshot.killed).toBe(0);
+    expect(snapshot.leaked).toBeGreaterThan(0);
   });
 
   it('敵が漏れると観客ゲージが減る', () => {
     const world = createWorld('S1', SEED);
-    runHeadless(60_000, (dt) => world.update(dt), () => world.snapshot().leaked > 0);
-    expect(world.snapshot().audience).toBeLessThan(100);
+    const { snapshot } = autoplay(world, { maxMs: 90_000 });
+    expect(snapshot.audience).toBeLessThan(100);
   });
 });
 
 describe('勝敗', () => {
   it('無配置なら観客が尽きて中断する', () => {
     const world = createWorld('S1', SEED);
-    runHeadless(6 * 60_000, (dt) => world.update(dt), untilFinished(world));
-    const snap = world.snapshot();
-    expect(snap.finished).toBe(true);
-    expect(snap.won).toBe(false);
-    expect(snap.audience).toBe(0);
+    const { snapshot } = autoplay(world);
+    expect(snapshot.finished).toBe(true);
+    expect(snapshot.won).toBe(false);
+    expect(snapshot.audience).toBe(0);
   });
 
   it('経路沿いに置けば完走できる', () => {
     const world = createWorld('S1', SEED);
-    const plan = [
-      { id: 'D1', x: 4, y: 6 },
-      { id: 'V1', x: 8, y: 5 },
-      { id: 'Vi1', x: 12, y: 5 },
-    ];
-    let cursor = 0;
-
-    runHeadless(
-      6 * 60_000,
-      (dt) => {
-        world.update(dt);
-        const next = plan[cursor];
-        if (next && world.canPlace(next.id, next.x, next.y) === null) {
-          world.placeUnit(next.id, next.x, next.y);
-          cursor++;
-        }
-      },
-      untilFinished(world),
-    );
-
-    const snap = world.snapshot();
-    expect(snap.finished).toBe(true);
-    expect(snap.won).toBe(true);
-    expect(snap.killed).toBeGreaterThan(100);
+    const { snapshot } = autoplay(world, {
+      plan: [
+        { idolId: 'D1', x: 4, y: 6 },
+        { idolId: 'V1', x: 8, y: 5 },
+        { idolId: 'Vi1', x: 12, y: 5 },
+      ],
+    });
+    expect(snapshot.finished).toBe(true);
+    expect(snapshot.won).toBe(true);
+    expect(snapshot.killed).toBeGreaterThan(100);
   });
 
   it('決着後は状態が動かない', () => {
     const world = createWorld('S1', SEED);
-    runHeadless(6 * 60_000, (dt) => world.update(dt), untilFinished(world));
+    autoplay(world);
     const before = JSON.stringify(world.snapshot());
     runHeadless(5_000, (dt) => world.update(dt));
     expect(JSON.stringify(world.snapshot())).toBe(before);
@@ -133,27 +117,15 @@ describe('勝敗', () => {
 
   it('決着後は配置できない', () => {
     const world = createWorld('S1', SEED);
-    runHeadless(6 * 60_000, (dt) => world.update(dt), untilFinished(world));
+    autoplay(world);
     expect(world.placeUnit('D1', 4, 6)).toBe('finished');
   });
 
   it('同じ seed と同じ操作なら同じ結果になる（決定性）', () => {
     const play = (): string => {
       const world = createWorld('S1', SEED);
-      let placed = false;
-      runHeadless(
-        6 * 60_000,
-        (dt) => {
-          world.update(dt);
-          if (!placed && world.canPlace('D1', 4, 6) === null) {
-            world.placeUnit('D1', 4, 6);
-            placed = true;
-          }
-        },
-        untilFinished(world),
-      );
-      const snap = world.snapshot();
-      return `${snap.won}/${snap.audience}/${snap.killed}/${snap.leaked}`;
+      const { snapshot } = autoplay(world, { plan: [{ idolId: 'D1', x: 4, y: 6 }] });
+      return `${snapshot.won}/${snapshot.audience}/${snapshot.killed}/${snapshot.leaked}`;
     };
     expect(play()).toBe(play());
   });

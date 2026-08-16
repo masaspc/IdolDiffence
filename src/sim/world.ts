@@ -8,11 +8,14 @@
 import { GameClock } from '../core/clock';
 import { EventBus, type BattleEvents } from '../core/events';
 import { createRng, type Rng } from '../core/rng';
-import { getEnemy, getIdol, getSong, getStage, type Song, type Stage } from '../data';
+import { cards, getEnemy, getIdol, getSong, getStage, type Song, type Stage } from '../data';
 import { tempoMul } from '../data/schema/song';
+import type { IdolType } from '../data/schema/common';
+import type { AwakeningKey } from '../data/schema/idol';
 import { clamp, vec } from '../core/vec';
 import { buildPaths, type Path } from './path';
 import {
+  echoStacks,
   tickStatuses,
   type Enemy,
   type EntityId,
@@ -22,7 +25,15 @@ import {
 import { buildSpawnSchedule, waveHpMultiplier, type ScheduledSpawn } from './systems/spawn';
 import { advanceEnemy } from './systems/movement';
 import { updateUnit } from './systems/combat';
-import type { DamageResult } from './damage';
+import { applyCard, drawOffers, type CardOffer } from './systems/cards';
+import { emptyPool, resolveStat, type ModifierPool } from './modifiers';
+import {
+  resolveUnit,
+  upgradeCost,
+  SPECIAL_ENEMY_SPEED_MUL,
+  POSITION_LEVELS,
+} from './unitStats';
+import { defenseReduction, type DamageResult } from './damage';
 
 /** 声援の自然回復。観客ゲージへの依存は意図的に浅い（02-core-battle.md 2.3） */
 const CHEER_REGEN_BASE = 5.0;
@@ -33,12 +44,19 @@ const INITIAL_AUDIENCE = 100;
 /** 小節ごとの月華（ボルテージ）基礎蓄積。劣勢からの逆転経路を確保するため */
 const VOLTAGE_PER_BAR = 2.0;
 const VOLTAGE_MAX = 100;
-/** 与ダメージ 100 につき */
 const VOLTAGE_PER_100_DAMAGE = 0.4;
 const VOLTAGE_PER_KILL = 1.5;
+/** サビ中は蓄積 1.5 倍 */
+const VOLTAGE_CHORUS_MUL = 1.5;
+
+/** スペシャルライブの持続 */
+const SPECIAL_DURATION_MS = 8000;
 
 /** 売却時の返却率。編成ミスのリカバリーを許す */
 const SELL_REFUND = 0.6;
+
+/** 覚醒 B の Echo が与える毎秒ダメージ（1 スタックあたり） */
+const ECHO_DPS = 18;
 
 const FLOATING_TEXT_LIFE_MS = 700;
 
@@ -59,8 +77,14 @@ export interface UnitView {
   x: number;
   y: number;
   range: number;
-  cost: number;
-  /** 直近の攻撃からの経過。攻撃演出に使う */
+  atk: number;
+  level: 1 | 2 | 3;
+  awakening: AwakeningKey | null;
+  awakeningName: string | null;
+  investedCost: number;
+  upgradeCost: number | null;
+  /** Lv3 に到達して覚醒未選択なら true */
+  awaitingAwakening: boolean;
   lastAttackAgeMs: number;
   targetX: number | null;
   targetY: number | null;
@@ -79,6 +103,14 @@ export interface EnemyView {
   radius: number;
   hpRatio: number;
   slowed: boolean;
+  echo: number;
+}
+
+export interface CardOfferView {
+  id: string;
+  name: string;
+  rarity: string;
+  desc: string;
 }
 
 export interface WorldSnapshot {
@@ -93,6 +125,8 @@ export interface WorldSnapshot {
   cheer: number;
   audience: number;
   voltage: number;
+  specialReady: boolean;
+  specialRemainingMs: number;
   clockState: string;
   speed: number;
   finished: boolean;
@@ -100,13 +134,29 @@ export interface WorldSnapshot {
   units: UnitView[];
   enemies: EnemyView[];
   floatingTexts: readonly FloatingText[];
-  /** 残りスポーン数。「あと何体で終わりか」を HUD に出す */
   remainingSpawns: number;
   killed: number;
   leaked: number;
+  /** 提示中のセットリスト。null なら選択中でない */
+  offers: CardOfferView[] | null;
+  takenCards: { name: string; count: number }[];
 }
 
 export type PlacementError = 'not-placeable' | 'occupied' | 'insufficient-cheer' | 'finished';
+export type UpgradeError = 'not-found' | 'max-level' | 'insufficient-cheer' | 'finished';
+
+/** 計測用のイベントログ（07-roadmap.md M2 の計測） */
+export interface LogEntry {
+  atMs: number;
+  bar: number;
+  kind: string;
+  detail?: Record<string, string | number | boolean>;
+}
+
+export interface BattleMeta {
+  /** アイドル ID -> 育成後の基礎攻撃力 */
+  atkByIdol?: Record<string, number>;
+}
 
 export class BattleWorld {
   readonly stage: Stage;
@@ -121,6 +171,7 @@ export class BattleWorld {
   private readonly paths: Path[];
   private readonly schedule: ScheduledSpawn[];
   private readonly placeableKeys: Set<string>;
+  private readonly meta: BattleMeta;
 
   private scheduleCursor = 0;
   private nextEntityId = 1;
@@ -129,6 +180,14 @@ export class BattleWorld {
   private units: Unit[] = [];
   private floatingTexts: FloatingText[] = [];
 
+  /** ラン内カードの効果が溜まるプール */
+  private runPool: ModifierPool = emptyPool();
+  private takenCards = new Map<string, number>();
+  private offers: CardOffer[] | null = null;
+  /** カード選択済みのウェーブ。同じ ◆ で二度出さないため */
+  private resolvedPicks = new Set<number>();
+
+  private specialRemainingMs = 0;
   private cheer = INITIAL_CHEER;
   private audience = INITIAL_AUDIENCE;
   private voltage = 0;
@@ -137,15 +196,19 @@ export class BattleWorld {
   private killed = 0;
   private leaked = 0;
 
+  readonly log: LogEntry[] = [];
+
   constructor(
     readonly stageId: string,
     seed: number,
+    meta: BattleMeta = {},
   ) {
     this.stage = getStage(stageId);
     this.song = getSong(this.stage.song);
     this.clock = new GameClock(this.song.bpm, this.song.beatsPerBar);
     this.seed = seed;
     this.rng = createRng(seed);
+    this.meta = meta;
     this.paths = buildPaths(this.stage);
     this.schedule = buildSpawnSchedule(this.stage, this.song);
     this.placeableKeys = new Set(this.stage.placeable.map(([x, y]) => `${x},${y}`));
@@ -163,9 +226,12 @@ export class BattleWorld {
       return info;
     });
     this.totalBars = startBar;
+
+    this.record('battleStart', { seed, stage: stageId });
   }
 
-  /** 固定ステップの更新。呼び出し元は GameLoop か runHeadless のみ */
+  // --- ループ ---
+
   update(dtMs: number): void {
     if (this.finished) return;
 
@@ -174,10 +240,12 @@ export class BattleWorld {
       if (info.beat === 0) {
         this.events.emit('bar', { bar: info.bar });
         this.addVoltage(VOLTAGE_PER_BAR);
+        this.checkCardPick(info.bar);
       }
     });
     if (advanced === 0) return;
 
+    this.updateSpecial(advanced);
     this.updateEconomy(advanced);
     this.spawnDueEnemies();
     this.updateEnemies(advanced);
@@ -186,8 +254,20 @@ export class BattleWorld {
     this.checkCompletion();
   }
 
+  private updateSpecial(dtMs: number): void {
+    if (this.specialRemainingMs <= 0) return;
+    this.specialRemainingMs -= dtMs;
+    if (this.specialRemainingMs <= 0) {
+      this.specialRemainingMs = 0;
+      this.refreshUnitStats();
+      this.events.emit('specialEnded', {});
+      this.record('specialEnded');
+    }
+  }
+
   private updateEconomy(dtMs: number): void {
-    const regen = CHEER_REGEN_BASE + CHEER_REGEN_PER_AUDIENCE * this.audience;
+    const gain = resolveStat(1, 'cheerGain', [this.runPool]);
+    const regen = (CHEER_REGEN_BASE + CHEER_REGEN_PER_AUDIENCE * this.audience) * gain;
     this.addCheer((regen * dtMs) / 1000);
   }
 
@@ -240,6 +320,8 @@ export class BattleWorld {
   }
 
   private updateEnemies(dtMs: number): void {
+    const globalSpeedMul = this.specialActive ? SPECIAL_ENEMY_SPEED_MUL : 1;
+
     for (let i = this.enemies.length - 1; i >= 0; i--) {
       const enemy = this.enemies[i];
       if (!enemy) continue;
@@ -249,11 +331,23 @@ export class BattleWorld {
         continue;
       }
 
-      tickStatuses(enemy, dtMs);
+      const echoDamage = tickStatuses(enemy, dtMs);
+      if (echoDamage > 0) {
+        this.applyDamage(enemy, {
+          amount: echoDamage * defenseReduction(enemy.def),
+          crit: false,
+          effectiveness: 'neutral',
+        }, false);
+        if (!enemy.alive) {
+          this.enemies.splice(i, 1);
+          continue;
+        }
+      }
+
       const path = this.paths[enemy.lane] ?? this.paths[0];
       if (!path) continue;
 
-      if (advanceEnemy(enemy, path, dtMs)) {
+      if (advanceEnemy(enemy, path, dtMs * globalSpeedMul)) {
         enemy.alive = false;
         this.enemies.splice(i, 1);
         this.leaked++;
@@ -268,26 +362,29 @@ export class BattleWorld {
       rng: this.rng,
       enemies: this.enemies,
       applyDamage: (enemy: Enemy, result: DamageResult) => this.applyDamage(enemy, result),
+      echoDps: ECHO_DPS,
     };
     for (const unit of this.units) {
       updateUnit(unit, ctx, dtMs);
     }
   }
 
-  private applyDamage(enemy: Enemy, result: DamageResult): void {
+  private applyDamage(enemy: Enemy, result: DamageResult, showText = true): void {
     if (!enemy.alive) return;
     enemy.hp -= result.amount;
     this.addVoltage((result.amount / 100) * VOLTAGE_PER_100_DAMAGE);
 
-    this.floatingTexts.push({
-      x: enemy.pos.x,
-      y: enemy.pos.y,
-      amount: Math.round(result.amount),
-      crit: result.crit,
-      effectiveness: result.effectiveness,
-      ageMs: 0,
-      lifeMs: FLOATING_TEXT_LIFE_MS,
-    });
+    if (showText) {
+      this.floatingTexts.push({
+        x: enemy.pos.x,
+        y: enemy.pos.y,
+        amount: Math.round(result.amount),
+        crit: result.crit,
+        effectiveness: result.effectiveness,
+        ageMs: 0,
+        lifeMs: FLOATING_TEXT_LIFE_MS,
+      });
+    }
 
     if (enemy.hp <= 0) {
       enemy.alive = false;
@@ -307,14 +404,98 @@ export class BattleWorld {
     }
   }
 
-  /** 全ウェーブを流し切り、残った敵も片付いたら完走 */
   private checkCompletion(): void {
     const spawnsDone = this.scheduleCursor >= this.schedule.length;
     const barsDone = this.clock.bar >= this.totalBars;
     if (spawnsDone && barsDone && this.enemies.length === 0) this.finish(true);
   }
 
-  // --- 操作 ---
+  // --- セットリスト ---
+
+  /** ◆ を通過したら選択を開始する。sim は止まり、楽曲はループ区間で鳴り続ける */
+  private checkCardPick(bar: number): void {
+    if (this.offers) return;
+    for (const wave of this.waves) {
+      if (!wave.cardPick || this.resolvedPicks.has(wave.index)) continue;
+      if (bar < wave.startBar + wave.bars) continue;
+
+      const deployedTypes = new Set<IdolType>(this.units.map((u) => u.type));
+      const offers = drawOffers(this.rng, this.takenCards, deployedTypes);
+      if (offers.length === 0) {
+        this.resolvedPicks.add(wave.index);
+        continue;
+      }
+      this.offers = offers;
+      this.clock.beginChoice();
+      this.record('cardOffered', { wave: wave.index, offers: offers.map((o) => o.id).join(',') });
+      return;
+    }
+  }
+
+  /** @returns 選べたら true */
+  chooseCard(cardId: string): boolean {
+    if (!this.offers) return false;
+    const offer = this.offers.find((o) => o.id === cardId);
+    if (!offer) return false;
+
+    const instant = applyCard(this.runPool, offer.def);
+    this.takenCards.set(cardId, (this.takenCards.get(cardId) ?? 0) + 1);
+    if (instant.cheer) this.addCheer(instant.cheer);
+    if (instant.voltage) this.addVoltage(instant.voltage);
+
+    this.offers = null;
+    for (const wave of this.waves) {
+      if (wave.cardPick && !this.resolvedPicks.has(wave.index) && this.clock.bar >= wave.startBar) {
+        this.resolvedPicks.add(wave.index);
+        break;
+      }
+    }
+    this.refreshUnitStats();
+    this.clock.endChoice();
+    this.record('cardChosen', { card: cardId });
+    return true;
+  }
+
+  // --- スペシャルライブ ---
+
+  get specialActive(): boolean {
+    return this.specialRemainingMs > 0;
+  }
+
+  get specialReady(): boolean {
+    return this.voltage >= VOLTAGE_MAX && !this.specialActive && !this.finished;
+  }
+
+  /**
+   * 月華を解放する。全体バフ + 画面全体への初期ダメージ + 敵の減速。
+   * M2 は簡易版で、カットインなどの演出は M5。
+   */
+  activateSpecial(): boolean {
+    if (!this.specialReady) return false;
+
+    this.voltage = 0;
+    this.events.emit('voltageChanged', { value: 0 });
+    this.specialRemainingMs = SPECIAL_DURATION_MS;
+    this.refreshUnitStats();
+    this.events.emit('specialStarted', {});
+    this.record('specialStarted', { units: this.units.length });
+
+    const burst = 100 + 60 * this.units.length;
+    for (const enemy of [...this.enemies]) {
+      this.applyDamage(enemy, {
+        amount: burst * defenseReduction(enemy.def),
+        crit: false,
+        effectiveness: 'neutral',
+      });
+    }
+    return true;
+  }
+
+  // --- 配置と強化 ---
+
+  private baseAtkOf(idolId: string): number {
+    return this.meta.atkByIdol?.[idolId] ?? getIdol(idolId).base.atk;
+  }
 
   canPlace(idolId: string, x: number, y: number): PlacementError | null {
     if (this.finished) return 'finished';
@@ -339,29 +520,78 @@ export class BattleWorld {
       type: def.type,
       cell: { x, y },
       pos: vec(x + 0.5, y + 0.5),
-      cost: def.cost,
-      atk: def.base.atk,
-      range: def.base.range,
-      attackIntervalMs: def.base.attackIntervalMs,
-      critRate: def.base.critRate,
-      critDmg: def.base.critDmg,
-      attack: def.attack,
+      investedCost: def.cost,
+      level: 1,
+      awakening: null,
+      baseAtk: this.baseAtkOf(idolId),
+      atk: 0,
+      range: 0,
+      attackIntervalMs: 0,
+      critRate: 0,
+      critDmg: 0,
+      attack: {
+        kind: def.attack.kind,
+        radius: def.attack.radius,
+        canHitFlying: def.attack.canHitFlying,
+        skillMul: def.attack.skillMul,
+        multiTarget: 1,
+        onHit: def.attack.onHit,
+      },
       cooldownMs: 0,
       lastTargetPos: null,
       lastAttackAgeMs: Number.POSITIVE_INFINITY,
     };
+    resolveUnit(unit, this.runPool, this.specialActive);
     this.units.push(unit);
+    this.record('place', { idol: idolId, x, y });
     return unit;
   }
 
-  /** 投入コストの 60% を返却する */
+  upgradeCostFor(id: EntityId): number | null {
+    const unit = this.units.find((u) => u.id === id);
+    if (!unit) return null;
+    return upgradeCost(getIdol(unit.idolId).cost, unit.level);
+  }
+
+  /** ポジション強化。Lv3 に上がると覚醒分岐の選択待ちになる */
+  upgradeUnit(id: EntityId): UpgradeError | null {
+    if (this.finished) return 'finished';
+    const unit = this.units.find((u) => u.id === id);
+    if (!unit) return 'not-found';
+    if (unit.level >= POSITION_LEVELS.length) return 'max-level';
+
+    const cost = upgradeCost(getIdol(unit.idolId).cost, unit.level);
+    if (cost === null) return 'max-level';
+    if (this.cheer < cost) return 'insufficient-cheer';
+
+    this.spendCheer(cost);
+    unit.investedCost += cost;
+    unit.level = (unit.level + 1) as 1 | 2 | 3;
+    resolveUnit(unit, this.runPool, this.specialActive);
+    this.record('upgrade', { id, level: unit.level });
+    return null;
+  }
+
+  /** 覚醒分岐の選択。ラン中の変更は不可 */
+  chooseAwakening(id: EntityId, branch: AwakeningKey): boolean {
+    const unit = this.units.find((u) => u.id === id);
+    if (!unit || unit.level < 3 || unit.awakening) return false;
+    if (!getIdol(unit.idolId).awakening) return false;
+
+    unit.awakening = branch;
+    resolveUnit(unit, this.runPool, this.specialActive);
+    this.record('awaken', { id, branch });
+    return true;
+  }
+
   sellUnit(id: EntityId): boolean {
     const index = this.units.findIndex((u) => u.id === id);
     if (index < 0) return false;
     const unit = this.units[index];
     if (!unit) return false;
     this.units.splice(index, 1);
-    this.addCheer(Math.floor(unit.cost * SELL_REFUND));
+    this.addCheer(Math.floor(unit.investedCost * SELL_REFUND));
+    this.record('sell', { id });
     return true;
   }
 
@@ -371,6 +601,10 @@ export class BattleWorld {
 
   isPlaceable(x: number, y: number): boolean {
     return this.placeableKeys.has(`${x},${y}`);
+  }
+
+  private refreshUnitStats(): void {
+    for (const unit of this.units) resolveUnit(unit, this.runPool, this.specialActive);
   }
 
   // --- リソース ---
@@ -389,7 +623,10 @@ export class BattleWorld {
   }
 
   addVoltage(delta: number): void {
-    const next = clamp(this.voltage + delta, 0, VOLTAGE_MAX);
+    let scaled = delta * resolveStat(1, 'voltageGain', [this.runPool]);
+    if (delta > 0 && this.currentWave?.section === 'chorus') scaled *= VOLTAGE_CHORUS_MUL;
+
+    const next = clamp(this.voltage + scaled, 0, VOLTAGE_MAX);
     if (next === this.voltage) return;
     this.voltage = next;
     this.events.emit('voltageChanged', { value: this.voltage });
@@ -405,8 +642,35 @@ export class BattleWorld {
     if (this.finished) return;
     this.finished = true;
     this.won = won;
+    this.offers = null;
     this.clock.pause();
     this.events.emit('battleEnded', { won, audienceLeft: this.audience });
+    this.record('battleEnd', { won, audience: this.audience, killed: this.killed, leaked: this.leaked });
+  }
+
+  private record(kind: string, detail?: Record<string, string | number | boolean>): void {
+    this.log.push({
+      atMs: Math.round(this.clock.now),
+      bar: this.clock.bar,
+      kind,
+      ...(detail ? { detail } : {}),
+    });
+  }
+
+  /** 計測用の書き出し。リザルト画面から JSON で取り出す */
+  exportLog(): string {
+    return JSON.stringify(
+      {
+        seed: this.seed,
+        stage: this.stageId,
+        song: this.stage.song,
+        result: { won: this.won, audience: this.audience, killed: this.killed, leaked: this.leaked },
+        cards: [...this.takenCards.entries()].map(([id, count]) => ({ id, count })),
+        log: this.log,
+      },
+      null,
+      2,
+    );
   }
 
   get currentWave(): WaveInfo | null {
@@ -434,6 +698,8 @@ export class BattleWorld {
       cheer: Math.floor(this.cheer),
       audience: this.audience,
       voltage: this.voltage,
+      specialReady: this.specialReady,
+      specialRemainingMs: this.specialRemainingMs,
       clockState: this.clock.currentState,
       speed: this.clock.playbackSpeed,
       finished: this.finished,
@@ -450,7 +716,15 @@ export class BattleWorld {
         x: u.pos.x,
         y: u.pos.y,
         range: u.range,
-        cost: u.cost,
+        atk: Math.round(u.atk),
+        level: u.level,
+        awakening: u.awakening,
+        awakeningName: u.awakening
+          ? (getIdol(u.idolId).awakening?.[u.awakening]?.name ?? null)
+          : null,
+        investedCost: u.investedCost,
+        upgradeCost: upgradeCost(getIdol(u.idolId).cost, u.level),
+        awaitingAwakening: u.level >= 3 && !u.awakening && !!getIdol(u.idolId).awakening,
         lastAttackAgeMs: u.lastAttackAgeMs,
         targetX: u.lastTargetPos?.x ?? null,
         targetY: u.lastTargetPos?.y ?? null,
@@ -468,12 +742,25 @@ export class BattleWorld {
         radius: e.radius,
         hpRatio: Math.max(0, e.hp / e.maxHp),
         slowed: e.statuses.some((s) => s.kind === 'slow'),
+        echo: echoStacks(e.statuses),
       })),
       floatingTexts: this.floatingTexts,
+      offers: this.offers
+        ? this.offers.map((o) => ({
+            id: o.id,
+            name: o.def.name,
+            rarity: o.def.rarity,
+            desc: o.def.desc,
+          }))
+        : null,
+      takenCards: [...this.takenCards.entries()].map(([id, count]) => ({
+        name: cards[id]?.name ?? id,
+        count,
+      })),
     };
   }
 }
 
-export function createWorld(stageId: string, seed: number): BattleWorld {
-  return new BattleWorld(stageId, seed);
+export function createWorld(stageId: string, seed: number, meta: BattleMeta = {}): BattleWorld {
+  return new BattleWorld(stageId, seed, meta);
 }

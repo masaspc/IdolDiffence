@@ -1,6 +1,6 @@
 import type { Vec2 } from '../core/vec';
 import type { Attribute, IdolType } from '../data/schema/common';
-import type { AttackDef } from '../data/schema/idol';
+import type { AttackDef, AwakeningKey, OnHit } from '../data/schema/idol';
 import type { Effectiveness } from './damage';
 
 export type EntityId = number;
@@ -55,6 +55,17 @@ export interface Enemy {
   alive: boolean;
 }
 
+/** 攻撃の実効パラメータ。覚醒とカードを反映した後の姿 */
+export interface ResolvedAttack {
+  kind: AttackDef['kind'];
+  radius: number;
+  canHitFlying: boolean;
+  skillMul: number;
+  /** 単体攻撃が同時に狙える数。覚醒 A「乱舞」で増える */
+  multiTarget: number;
+  onHit: OnHit | undefined;
+}
+
 export interface Unit {
   id: EntityId;
   idolId: string;
@@ -64,13 +75,24 @@ export interface Unit {
   cell: { x: number; y: number };
   /** セル中心のワールド座標 */
   pos: Vec2;
-  cost: number;
+  /** 累計投入コスト。売却額の算出に使う */
+  investedCost: number;
+  /** ポジション強化のレベル 1〜3 */
+  level: 1 | 2 | 3;
+  /** Lv3 で選んだ覚醒分岐。未選択なら null */
+  awakening: AwakeningKey | null;
+
+  /** 育成（メタ）を反映した基礎攻撃力。ラン中は変わらない */
+  baseAtk: number;
+
+  // --- 解決後のステータス。強化・カードの変化時のみ再計算する ---
   atk: number;
   range: number;
   attackIntervalMs: number;
   critRate: number;
   critDmg: number;
-  attack: AttackDef;
+  attack: ResolvedAttack;
+
   cooldownMs: number;
   /** 直近の攻撃対象。描画のためだけに保持する */
   lastTargetPos: Vec2 | null;
@@ -101,20 +123,49 @@ export function slowFactor(statuses: readonly StatusEffect[]): number {
 export function applyStatus(enemy: Enemy, incoming: StatusEffect): void {
   const existing = enemy.statuses.find((s) => s.kind === incoming.kind);
   if (!existing) {
-    enemy.statuses.push({ ...incoming });
+    enemy.statuses.push({ ...incoming, accumulator: 0 });
     return;
   }
-  // 強い方を採用し、時間は長い方に更新する
+
+  if (incoming.kind === 'echo') {
+    // Echo はスタックする。上限までは重ねられ、時間は最新で更新
+    existing.stacks = Math.min(
+      ECHO_MAX_STACKS,
+      (existing.stacks ?? 1) + (incoming.stacks ?? 1),
+    );
+    existing.dps = Math.max(existing.dps ?? 0, incoming.dps ?? 0);
+    existing.remainingMs = Math.max(existing.remainingMs, incoming.remainingMs);
+    return;
+  }
+
+  // 減速は強い方を採用し、時間は長い方に更新する
   if (incoming.value > existing.value) existing.value = incoming.value;
   if (incoming.remainingMs > existing.remainingMs) existing.remainingMs = incoming.remainingMs;
 }
 
-export function tickStatuses(enemy: Enemy, dtMs: number): void {
-  if (enemy.statuses.length === 0) return;
+/**
+ * 状態異常の時間経過。
+ * @returns Echo による今フレームの累計ダメージ
+ */
+export function tickStatuses(enemy: Enemy, dtMs: number): number {
+  if (enemy.statuses.length === 0) return 0;
+
+  let echoDamage = 0;
   for (let i = enemy.statuses.length - 1; i >= 0; i--) {
     const status = enemy.statuses[i];
     if (!status) continue;
+
+    if (status.kind === 'echo') {
+      const perMs = ((status.dps ?? 0) * (status.stacks ?? 1)) / 1000;
+      echoDamage += perMs * Math.min(dtMs, Math.max(0, status.remainingMs));
+    }
+
     status.remainingMs -= dtMs;
     if (status.remainingMs <= 0) enemy.statuses.splice(i, 1);
   }
+  return echoDamage;
+}
+
+export function echoStacks(statuses: readonly StatusEffect[]): number {
+  return statuses.find((s) => s.kind === 'echo')?.stacks ?? 0;
 }

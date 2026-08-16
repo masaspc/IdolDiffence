@@ -8,18 +8,24 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { GameLoop } from '../core/loop';
 import { Renderer, type HoverState } from '../render/renderer';
-import { createWorld, type BattleWorld, type WorldSnapshot } from '../sim/world';
+import { createWorld, type BattleMeta, type BattleWorld, type WorldSnapshot } from '../sim/world';
 import { randomSeed } from '../core/rng';
 import { getIdol, rosterIds } from '../data';
+import type { AwakeningKey } from '../data/schema/idol';
+import type { BattleOutcome } from '../meta/progression';
 import { Hud } from './Hud';
 
-const STAGE_ID = 'S1';
+interface BattleScreenProps {
+  stageId: string;
+  meta: BattleMeta;
+  onFinish: (outcome: BattleOutcome) => void;
+  onExit: () => void;
+}
 
-export function BattleScreen(): React.JSX.Element {
+export function BattleScreen({ stageId, meta, onFinish, onExit }: BattleScreenProps): React.JSX.Element {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const worldRef = useRef<BattleWorld | null>(null);
-  const loopRef = useRef<GameLoop | null>(null);
   /** 描画のたびに読むので ref。setState だと 60Hz の再レンダリングになる */
   const hoverRef = useRef<HoverState>({
     cell: null,
@@ -28,12 +34,13 @@ export function BattleScreen(): React.JSX.Element {
     pendingValid: false,
     selectedUnitId: null,
   });
+  const onFinishRef = useRef(onFinish);
+  onFinishRef.current = onFinish;
 
   const [snapshot, setSnapshot] = useState<WorldSnapshot | null>(null);
   const [fps, setFps] = useState(0);
   const [pendingIdolId, setPendingIdolId] = useState<string | null>(null);
   const [selectedUnitId, setSelectedUnitId] = useState<number | null>(null);
-  const [runId, setRunId] = useState(0);
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -41,7 +48,7 @@ export function BattleScreen(): React.JSX.Element {
     if (!canvas || !container) return;
 
     // seed はここで 1 回だけ引く。以降の乱数はすべて world.rng 経由
-    const world = createWorld(STAGE_ID, randomSeed());
+    const world = createWorld(stageId, randomSeed(), meta);
     const renderer = new Renderer(canvas, world);
     worldRef.current = world;
 
@@ -56,6 +63,8 @@ export function BattleScreen(): React.JSX.Element {
 
     let sinceUiUpdate = 0;
     let publishedFinish = false;
+    let wasChoosing = false;
+
     const loop = new GameLoop({
       update: (dtMs) => {
         world.update(dtMs);
@@ -73,7 +82,21 @@ export function BattleScreen(): React.JSX.Element {
             setSnapshot(latest);
             setFps(loop.getStats().fps);
             loop.stop();
+            onFinishRef.current({
+              stageId: latest.stageId,
+              won: latest.won,
+              audience: latest.audience,
+              killed: latest.killed,
+            });
           }
+          return;
+        }
+
+        // カード選択に入った瞬間は即座に反映する（10Hz 待ちだと反応が鈍く見える）
+        const choosing = latest.offers !== null;
+        if (choosing !== wasChoosing) {
+          wasChoosing = choosing;
+          setSnapshot(latest);
           return;
         }
 
@@ -87,14 +110,8 @@ export function BattleScreen(): React.JSX.Element {
         }
       },
     });
-    loopRef.current = loop;
     loop.start();
     setSnapshot(world.snapshot());
-
-    const updateHoverFromPointer = (event: PointerEvent | MouseEvent): void => {
-      hoverRef.current.cell = renderer.cellFromClient(event.clientX, event.clientY);
-      refreshPendingValidity();
-    };
 
     const refreshPendingValidity = (): void => {
       const hover = hoverRef.current;
@@ -105,11 +122,13 @@ export function BattleScreen(): React.JSX.Element {
         world.canPlace(hover.pendingIdolId, cell.x, cell.y) === null;
     };
 
-    canvas.addEventListener('pointermove', updateHoverFromPointer);
+    const updateHoverFromPointer = (event: PointerEvent): void => {
+      hoverRef.current.cell = renderer.cellFromClient(event.clientX, event.clientY);
+      refreshPendingValidity();
+    };
     const clearHover = (): void => {
       hoverRef.current.cell = null;
     };
-    canvas.addEventListener('pointerleave', clearHover);
 
     const onClick = (event: MouseEvent): void => {
       const cell = renderer.cellFromClient(event.clientX, event.clientY);
@@ -135,6 +154,9 @@ export function BattleScreen(): React.JSX.Element {
       }
       setSelectedUnitId(null);
     };
+
+    canvas.addEventListener('pointermove', updateHoverFromPointer);
+    canvas.addEventListener('pointerleave', clearHover);
     canvas.addEventListener('click', onClick);
 
     return () => {
@@ -144,9 +166,8 @@ export function BattleScreen(): React.JSX.Element {
       canvas.removeEventListener('pointerleave', clearHover);
       canvas.removeEventListener('click', onClick);
       worldRef.current = null;
-      loopRef.current = null;
     };
-  }, [runId]);
+  }, [stageId, meta]);
 
   // 選択状態は React が持ち、描画用に ref へ流し込む
   useEffect(() => {
@@ -164,39 +185,83 @@ export function BattleScreen(): React.JSX.Element {
     hoverRef.current.selectedUnitId = selectedUnitId;
   }, [selectedUnitId]);
 
+  const sync = useCallback(() => {
+    const world = worldRef.current;
+    if (world) setSnapshot(world.snapshot());
+  }, []);
+
   const togglePause = useCallback(() => {
     const world = worldRef.current;
     if (!world) return;
     if (world.clock.isRunning) world.clock.pause();
     else world.clock.resume();
-    setSnapshot(world.snapshot());
-  }, []);
+    sync();
+  }, [sync]);
 
   const cycleSpeed = useCallback(() => {
     const world = worldRef.current;
     if (!world) return;
-    const next = world.clock.playbackSpeed >= 3 ? 1 : world.clock.playbackSpeed + 1;
-    world.clock.setSpeed(next);
-    setSnapshot(world.snapshot());
-  }, []);
+    world.clock.setSpeed(world.clock.playbackSpeed >= 3 ? 1 : world.clock.playbackSpeed + 1);
+    sync();
+  }, [sync]);
 
   const selectIdol = useCallback((idolId: string) => {
     setSelectedUnitId(null);
     setPendingIdolId((current) => (current === idolId ? null : idolId));
   }, []);
 
+  const upgradeSelected = useCallback(() => {
+    const world = worldRef.current;
+    if (!world || selectedUnitId === null) return;
+    world.upgradeUnit(selectedUnitId);
+    sync();
+  }, [selectedUnitId, sync]);
+
+  const awaken = useCallback(
+    (branch: AwakeningKey) => {
+      const world = worldRef.current;
+      if (!world || selectedUnitId === null) return;
+      world.chooseAwakening(selectedUnitId, branch);
+      sync();
+    },
+    [selectedUnitId, sync],
+  );
+
   const sellSelected = useCallback(() => {
     const world = worldRef.current;
     if (!world || selectedUnitId === null) return;
     world.sellUnit(selectedUnitId);
     setSelectedUnitId(null);
-    setSnapshot(world.snapshot());
-  }, [selectedUnitId]);
+    sync();
+  }, [selectedUnitId, sync]);
 
-  const restart = useCallback(() => {
-    setPendingIdolId(null);
-    setSelectedUnitId(null);
-    setRunId((n) => n + 1);
+  const activateSpecial = useCallback(() => {
+    const world = worldRef.current;
+    if (!world) return;
+    if (world.activateSpecial()) sync();
+  }, [sync]);
+
+  const chooseCard = useCallback(
+    (cardId: string) => {
+      const world = worldRef.current;
+      if (!world) return;
+      world.chooseCard(cardId);
+      sync();
+    },
+    [sync],
+  );
+
+  /** 計測用。リザルトからプレイログを JSON で取り出す（07-roadmap.md M2） */
+  const exportLog = useCallback(() => {
+    const world = worldRef.current;
+    if (!world) return;
+    const blob = new Blob([world.exportLog()], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const anchor = document.createElement('a');
+    anchor.href = url;
+    anchor.download = `idoldiffence-${world.stageId}-${world.seed}.json`;
+    anchor.click();
+    URL.revokeObjectURL(url);
   }, []);
 
   // キー割り当ての原則: 1 つのキーに文脈依存の複数機能を持たせない
@@ -205,6 +270,7 @@ export function BattleScreen(): React.JSX.Element {
     const onKeyDown = (event: KeyboardEvent): void => {
       if (event.repeat) return;
       if (event.key === 'p' || event.key === 'P') togglePause();
+      if (event.key === 'q' || event.key === 'Q') activateSpecial();
       if (event.key === 'Escape') {
         setPendingIdolId(null);
         setSelectedUnitId(null);
@@ -221,7 +287,7 @@ export function BattleScreen(): React.JSX.Element {
     };
     window.addEventListener('keydown', onKeyDown);
     return () => window.removeEventListener('keydown', onKeyDown);
-  }, [togglePause, cycleSpeed, selectIdol]);
+  }, [togglePause, cycleSpeed, selectIdol, activateSpecial]);
 
   return (
     <div className="battle">
@@ -235,10 +301,15 @@ export function BattleScreen(): React.JSX.Element {
           pendingIdolId={pendingIdolId}
           selectedUnitId={selectedUnitId}
           onSelectIdol={selectIdol}
+          onUpgradeSelected={upgradeSelected}
+          onAwaken={awaken}
           onSellSelected={sellSelected}
           onTogglePause={togglePause}
           onCycleSpeed={cycleSpeed}
-          onRestart={restart}
+          onSpecial={activateSpecial}
+          onChooseCard={chooseCard}
+          onRestart={onExit}
+          onExportLog={exportLog}
         />
       )}
     </div>

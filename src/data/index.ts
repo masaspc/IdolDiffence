@@ -11,10 +11,12 @@ import stagesJson from './json/stages.json';
 import songsJson from './json/songs.json';
 import enemiesJson from './json/enemies.json';
 import idolsJson from './json/idols.json';
+import cardsJson from './json/cards.json';
 import { stagesSchema, type Stage, type Stages } from './schema/stage';
 import { songsSchema, type Song, type Songs } from './schema/song';
 import { enemiesSchema, type EnemyDef, type Enemies } from './schema/enemy';
 import { idolsSchema, type IdolDef, type Idols } from './schema/idol';
+import { cardsSchema, type CardDef, type Cards } from './schema/card';
 
 // Vite 外（tsx でのスクリプト実行、ヘッドレスのシミュレータ）では
 // import.meta.env 自体が存在しない。その場合も検証する側に倒す。
@@ -28,6 +30,7 @@ export const stages: Stages = load(stagesJson, (raw) => stagesSchema.parse(raw))
 export const songs: Songs = load(songsJson, (raw) => songsSchema.parse(raw));
 export const enemies: Enemies = load(enemiesJson, (raw) => enemiesSchema.parse(raw));
 export const idols: Idols = load(idolsJson, (raw) => idolsSchema.parse(raw));
+export const cards: Cards = load(cardsJson, (raw) => cardsSchema.parse(raw));
 
 export function getStage(id: string): Stage {
   const stage = stages[id];
@@ -53,7 +56,18 @@ export function getIdol(id: string): IdolDef {
   return idol;
 }
 
-/** 出撃可能なアイドル。M1 はメイン 3 人のみ */
+/** 出撃可能なアイドル。M2 はメイン 3 人のみ */
 export const rosterIds = ['V1', 'D1', 'Vi1'] as const;
 
-export type { Stage, Song, EnemyDef, IdolDef };
+/**
+ * ステージの並びと解放条件。
+ * 前のステージをクリアすると次が開く（06-ui-ux.md 6.5 の段階解放）。
+ */
+export const stageOrder = ['S1', 'S2', 'S3'] as const;
+
+export function requiredStage(stageId: string): string | null {
+  const index = stageOrder.indexOf(stageId as (typeof stageOrder)[number]);
+  return index > 0 ? (stageOrder[index - 1] ?? null) : null;
+}
+
+export type { Stage, Song, EnemyDef, IdolDef, CardDef };

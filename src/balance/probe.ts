@@ -1,114 +1,126 @@
 /**
  * ヘッドレスのバランス検証（簡易版）。
  *
- * M2 の判断ポイントで「なぜ勝てたのか / 負けたのか」を切り分けられるよう、
- * 本格的な CI 検証より先に最小限のランナーを用意しておく
+ * M2 は「負ける → 育てる → 勝つ」が成立するかの判断ポイント。
+ * 感想ではなく数字で見るために、育成段階 × 強化の使い方を総当たりする
  * （docs/design/07-roadmap.md M2 の計測）。
  *
  *   npx tsx src/balance/probe.ts
  */
 import { createWorld } from '../sim/world';
-import { runHeadless } from '../core/loop';
-import { rosterIds } from '../data';
+import { autoplay, type Placement } from '../sim/autoplay';
+import { getIdol, rosterIds } from '../data';
+import { levelAtkMultiplier } from '../meta/progression';
 
-interface Placement {
-  idolId: string;
-  x: number;
-  y: number;
+const SEED = 20260816;
+
+/** 育成段階を再現する。レベルだけを変えて他は同条件にする */
+function metaAtLevel(level: number): { atkByIdol: Record<string, number> } {
+  return {
+    atkByIdol: Object.fromEntries(
+      rosterIds.map((id) => [id, getIdol(id).base.atk * levelAtkMultiplier(level)]),
+    ),
+  };
 }
 
-interface RunResult {
+/** ステージごとの「経路沿いに置く」プラン。人間の最適解ではなく下限の目安 */
+const PLANS: Record<string, Placement[]> = {
+  S1: [
+    { idolId: 'D1', x: 4, y: 6, upgradeTo: 3, awakening: 'A' },
+    { idolId: 'V1', x: 8, y: 5, upgradeTo: 3, awakening: 'A' },
+    { idolId: 'Vi1', x: 12, y: 5, upgradeTo: 2 },
+    { idolId: 'D1', x: 11, y: 4, upgradeTo: 2 },
+    { idolId: 'V1', x: 3, y: 3, upgradeTo: 2 },
+  ],
+  S2: [
+    { idolId: 'D1', x: 3, y: 5, upgradeTo: 3, awakening: 'A' },
+    { idolId: 'V1', x: 7, y: 4, upgradeTo: 3, awakening: 'A' },
+    { idolId: 'Vi1', x: 12, y: 5, upgradeTo: 2 },
+    { idolId: 'D1', x: 6, y: 3, upgradeTo: 2 },
+    { idolId: 'V1', x: 14, y: 5, upgradeTo: 2 },
+    { idolId: 'D1', x: 1, y: 4 },
+  ],
+  S3: [
+    { idolId: 'V1', x: 5, y: 3, upgradeTo: 3, awakening: 'A' },
+    { idolId: 'V1', x: 9, y: 2, upgradeTo: 3, awakening: 'A' },
+    { idolId: 'D1', x: 9, y: 6, upgradeTo: 3, awakening: 'A' },
+    { idolId: 'Vi1', x: 11, y: 2, upgradeTo: 2 },
+    { idolId: 'Vi1', x: 11, y: 6, upgradeTo: 2 },
+    { idolId: 'D1', x: 2, y: 3, upgradeTo: 2 },
+    { idolId: 'D1', x: 2, y: 5, upgradeTo: 2 },
+    { idolId: 'V1', x: 13, y: 2 },
+  ],
+};
+
+/** 最初の 3 枚だけを置く「最低限」プラン */
+const minimalPlan = (stageId: string): Placement[] =>
+  (PLANS[stageId] ?? []).slice(0, 3).map(({ idolId, x, y }) => ({ idolId, x, y }));
+
+interface Row {
   label: string;
   won: boolean;
   audience: number;
   killed: number;
   leaked: number;
   cheerLeft: number;
-  placed: number;
-  elapsedSec: number;
+  cards: number;
+  specials: number;
 }
 
-/**
- * 配置は「声援が貯まり次第、リストの順に置いていく」という
- * 素朴な AI で行う。人間の最適配置ではないが、下限の目安になる。
- */
-function run(label: string, plan: Placement[], seed = 20260816): RunResult {
-  const world = createWorld('S1', seed);
-  let cursor = 0;
-  let elapsedMs = 0;
-
-  runHeadless(
-    10 * 60 * 1000,
-    (dt) => {
-      world.update(dt);
-      elapsedMs += dt;
-      const next = plan[cursor];
-      if (next && world.canPlace(next.idolId, next.x, next.y) === null) {
-        world.placeUnit(next.idolId, next.x, next.y);
-        cursor++;
-      }
-    },
-    () => world.snapshot().finished,
-  );
-
-  const snap = world.snapshot();
+function run(
+  label: string,
+  stageId: string,
+  level: number,
+  plan: readonly Placement[],
+  options: { useSpecial?: boolean; worstCard?: boolean } = {},
+): Row {
+  const world = createWorld(stageId, SEED, metaAtLevel(level));
+  const result = autoplay(world, {
+    plan,
+    ...(options.useSpecial === undefined ? {} : { useSpecial: options.useSpecial }),
+    // カード選択が結果に効くかを見るため、別の取り方も走らせる
+    ...(options.worstCard ? { pickCard: (offers) => offers[offers.length - 1]?.id ?? null } : {}),
+  });
+  const s = result.snapshot;
   return {
     label,
-    won: snap.won,
-    audience: snap.audience,
-    killed: snap.killed,
-    leaked: snap.leaked,
-    cheerLeft: snap.cheer,
-    placed: cursor,
-    elapsedSec: Math.round(elapsedMs / 1000),
+    won: s.won,
+    audience: s.audience,
+    killed: s.killed,
+    leaked: s.leaked,
+    cheerLeft: s.cheer,
+    cards: result.cardsPicked,
+    specials: result.specialsUsed,
   };
 }
 
-// S1 の配置マス: (2,2)(3,3)(4,6)(5,2)(8,3)(8,5)(9,2)(11,4)(12,5)(13,2)
-// 経路は (0,4)→(6,4)→(6,7)→(11,7)→(15,5)
-const NEAR_PATH: Placement[] = [
-  { idolId: 'D1', x: 4, y: 6 }, // 序盤の縦区間をカバー
-  { idolId: 'V1', x: 8, y: 5 }, // 花道。下段の横区間に届く
-  { idolId: 'Vi1', x: 12, y: 5 }, // 終盤の減速役
-  { idolId: 'D1', x: 11, y: 4 },
-  { idolId: 'V1', x: 3, y: 3 },
-  { idolId: 'D1', x: 8, y: 3 },
-  { idolId: 'V1', x: 2, y: 2 },
-  { idolId: 'Vi1', x: 5, y: 2 },
-];
-
-const FAR: Placement[] = [
-  { idolId: 'V1', x: 2, y: 2 },
-  { idolId: 'V1', x: 5, y: 2 },
-  { idolId: 'V1', x: 9, y: 2 },
-  { idolId: 'V1', x: 13, y: 2 },
-];
-
-const results: RunResult[] = [
-  run('無配置', []),
-  run('射程外に固める（悪手）', FAR),
-  run('ダンス 1 枚だけ', [{ idolId: 'D1', x: 4, y: 6 }]),
-  run('経路沿いに 3 枚', NEAR_PATH.slice(0, 3)),
-  run('経路沿いにフル', NEAR_PATH),
-];
-
-for (const id of rosterIds) {
-  results.push(run(`${id} だけで固める`, NEAR_PATH.map((p) => ({ ...p, idolId: id }))));
+const rows: Row[] = [];
+for (const stageId of ['S1', 'S2', 'S3']) {
+  const full = PLANS[stageId] ?? [];
+  rows.push(run(`${stageId} 無配置`, stageId, 1, []));
+  rows.push(run(`${stageId} Lv1・3枚のみ`, stageId, 1, minimalPlan(stageId)));
+  rows.push(run(`${stageId} Lv1・フル強化`, stageId, 1, full, { useSpecial: true }));
+  rows.push(run(`${stageId} Lv10・フル強化`, stageId, 10, full, { useSpecial: true }));
+  rows.push(run(`${stageId} Lv20・フル強化`, stageId, 20, full, { useSpecial: true }));
+  rows.push(
+    run(`${stageId} Lv10・別のカード選択`, stageId, 10, full, { useSpecial: true, worstCard: true }),
+  );
 }
 
-const pad = (text: string, width: number): string =>
-  text + ' '.repeat(Math.max(0, width - [...text].reduce((n, c) => n + (c.charCodeAt(0) > 0xff ? 2 : 1), 0)));
+const width = (text: string): number =>
+  [...text].reduce((n, c) => n + (c.charCodeAt(0) > 0xff ? 2 : 1), 0);
+const pad = (text: string, w: number): string => text + ' '.repeat(Math.max(0, w - width(text)));
 
-console.log(pad('編成', 26), '結果   観客  撃破 漏れ 残声援 配置 経過');
-for (const r of results) {
+console.log(pad('条件', 28), '結果   観客  撃破 漏れ 残声援 カード 必殺');
+for (const row of rows) {
   console.log(
-    pad(r.label, 26),
-    r.won ? '完走  ' : '中断  ',
-    String(r.audience).padStart(4),
-    String(r.killed).padStart(5),
-    String(r.leaked).padStart(4),
-    String(r.cheerLeft).padStart(6),
-    String(r.placed).padStart(4),
-    `${r.elapsedSec}s`,
+    pad(row.label, 28),
+    row.won ? '完走  ' : '中断  ',
+    String(row.audience).padStart(4),
+    String(row.killed).padStart(5),
+    String(row.leaked).padStart(4),
+    String(row.cheerLeft).padStart(6),
+    String(row.cards).padStart(6),
+    String(row.specials).padStart(4),
   );
 }

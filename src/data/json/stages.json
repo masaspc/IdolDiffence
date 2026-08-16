@@ -201,5 +201,561 @@
         ]
       }
     ]
+  },
+  "S2": {
+    "name": "学園祭ステージ",
+    "grid": {
+      "w": 16,
+      "h": 9
+    },
+    "lanes": [
+      {
+        "waypoints": [
+          [
+            0,
+            2
+          ],
+          [
+            4,
+            2
+          ],
+          [
+            4,
+            6
+          ],
+          [
+            9,
+            6
+          ],
+          [
+            9,
+            3
+          ],
+          [
+            15,
+            3
+          ]
+        ]
+      }
+    ],
+    "placeable": [
+      [
+        1,
+        4
+      ],
+      [
+        2,
+        4
+      ],
+      [
+        3,
+        5
+      ],
+      [
+        6,
+        3
+      ],
+      [
+        7,
+        4
+      ],
+      [
+        6,
+        8
+      ],
+      [
+        11,
+        1
+      ],
+      [
+        12,
+        5
+      ],
+      [
+        13,
+        1
+      ],
+      [
+        14,
+        5
+      ]
+    ],
+    "cellTypes": {
+      "7,4": "runway",
+      "12,5": "audience"
+    },
+    "song": "neon_horai",
+    "hpMul": 4,
+    "waves": [
+      {
+        "section": "intro",
+        "bars": 8,
+        "spawns": [],
+        "cardPick": true
+      },
+      {
+        "section": "verse",
+        "bars": 16,
+        "spawns": [
+          {
+            "bar": 1,
+            "enemy": "e_walker",
+            "count": 12,
+            "intervalBars": 1.0,
+            "lane": 0
+          }
+        ]
+      },
+      {
+        "section": "bridge",
+        "bars": 8,
+        "spawns": [
+          {
+            "bar": 0.5,
+            "enemy": "e_runner",
+            "count": 10,
+            "intervalBars": 0.7,
+            "lane": 0
+          }
+        ]
+      },
+      {
+        "section": "chorus",
+        "bars": 16,
+        "spawns": [
+          {
+            "bar": 0.5,
+            "enemy": "e_walker",
+            "count": 18,
+            "intervalBars": 0.8,
+            "lane": 0
+          },
+          {
+            "bar": 1,
+            "enemy": "e_runner",
+            "count": 10,
+            "intervalBars": 1.4,
+            "lane": 0
+          }
+        ],
+        "cardPick": true
+      },
+      {
+        "section": "verse",
+        "bars": 16,
+        "spawns": [
+          {
+            "bar": 0.5,
+            "enemy": "e_walker",
+            "count": 18,
+            "intervalBars": 0.8,
+            "lane": 0
+          },
+          {
+            "bar": 1,
+            "enemy": "e_runner",
+            "count": 12,
+            "intervalBars": 1.2,
+            "lane": 0
+          }
+        ]
+      },
+      {
+        "section": "bridge",
+        "bars": 8,
+        "spawns": [
+          {
+            "bar": 0.5,
+            "enemy": "e_runner",
+            "count": 14,
+            "intervalBars": 0.5,
+            "lane": 0
+          }
+        ]
+      },
+      {
+        "section": "chorus",
+        "bars": 16,
+        "spawns": [
+          {
+            "bar": 0.5,
+            "enemy": "e_walker",
+            "count": 22,
+            "intervalBars": 0.65,
+            "lane": 0
+          },
+          {
+            "bar": 0.5,
+            "enemy": "e_runner",
+            "count": 16,
+            "intervalBars": 0.9,
+            "lane": 0
+          }
+        ]
+      },
+      {
+        "section": "interlude",
+        "bars": 8,
+        "spawns": [],
+        "cardPick": true
+      },
+      {
+        "section": "chorus",
+        "bars": 16,
+        "spawns": [
+          {
+            "bar": 0.5,
+            "enemy": "e_walker",
+            "count": 24,
+            "intervalBars": 0.6,
+            "lane": 0
+          },
+          {
+            "bar": 0.5,
+            "enemy": "e_runner",
+            "count": 18,
+            "intervalBars": 0.8,
+            "lane": 0
+          }
+        ]
+      },
+      {
+        "section": "finale",
+        "bars": 16,
+        "spawns": [
+          {
+            "bar": 0.5,
+            "enemy": "e_walker",
+            "count": 26,
+            "intervalBars": 0.55,
+            "lane": 0
+          },
+          {
+            "bar": 0.5,
+            "enemy": "e_runner",
+            "count": 20,
+            "intervalBars": 0.72,
+            "lane": 0
+          }
+        ]
+      }
+    ]
+  },
+  "S3": {
+    "name": "ライブハウス「月光」",
+    "grid": {
+      "w": 16,
+      "h": 9
+    },
+    "lanes": [
+      {
+        "waypoints": [
+          [
+            0,
+            1
+          ],
+          [
+            7,
+            1
+          ],
+          [
+            7,
+            4
+          ],
+          [
+            15,
+            4
+          ]
+        ]
+      },
+      {
+        "waypoints": [
+          [
+            0,
+            7
+          ],
+          [
+            7,
+            7
+          ],
+          [
+            7,
+            4
+          ],
+          [
+            15,
+            4
+          ]
+        ]
+      }
+    ],
+    "placeable": [
+      [
+        2,
+        3
+      ],
+      [
+        3,
+        3
+      ],
+      [
+        5,
+        3
+      ],
+      [
+        2,
+        5
+      ],
+      [
+        4,
+        5
+      ],
+      [
+        9,
+        2
+      ],
+      [
+        11,
+        2
+      ],
+      [
+        13,
+        2
+      ],
+      [
+        9,
+        6
+      ],
+      [
+        11,
+        6
+      ],
+      [
+        13,
+        6
+      ]
+    ],
+    "cellTypes": {
+      "9,2": "runway",
+      "9,6": "runway",
+      "4,5": "audience"
+    },
+    "song": "gekko_silence",
+    "hpMul": 26,
+    "waves": [
+      {
+        "section": "intro",
+        "bars": 8,
+        "spawns": [],
+        "cardPick": true
+      },
+      {
+        "section": "verse",
+        "bars": 16,
+        "spawns": [
+          {
+            "bar": 1,
+            "enemy": "e_walker",
+            "count": 10,
+            "intervalBars": 1.2,
+            "lane": 0
+          },
+          {
+            "bar": 1,
+            "enemy": "e_walker",
+            "count": 10,
+            "intervalBars": 1.2,
+            "lane": 1
+          }
+        ]
+      },
+      {
+        "section": "verse",
+        "bars": 16,
+        "spawns": [
+          {
+            "bar": 0.5,
+            "enemy": "e_walker",
+            "count": 12,
+            "intervalBars": 1.0,
+            "lane": 0
+          },
+          {
+            "bar": 0.5,
+            "enemy": "e_runner",
+            "count": 8,
+            "intervalBars": 1.5,
+            "lane": 1
+          }
+        ]
+      },
+      {
+        "section": "bridge",
+        "bars": 8,
+        "spawns": [
+          {
+            "bar": 0.5,
+            "enemy": "e_runner",
+            "count": 10,
+            "intervalBars": 0.7,
+            "lane": 0
+          },
+          {
+            "bar": 0.5,
+            "enemy": "e_runner",
+            "count": 10,
+            "intervalBars": 0.7,
+            "lane": 1
+          }
+        ]
+      },
+      {
+        "section": "chorus",
+        "bars": 16,
+        "spawns": [
+          {
+            "bar": 0.5,
+            "enemy": "e_walker",
+            "count": 16,
+            "intervalBars": 0.85,
+            "lane": 0
+          },
+          {
+            "bar": 0.5,
+            "enemy": "e_walker",
+            "count": 16,
+            "intervalBars": 0.85,
+            "lane": 1
+          }
+        ],
+        "cardPick": true
+      },
+      {
+        "section": "verse",
+        "bars": 16,
+        "spawns": [
+          {
+            "bar": 0.5,
+            "enemy": "e_walker",
+            "count": 14,
+            "intervalBars": 0.95,
+            "lane": 0
+          },
+          {
+            "bar": 0.5,
+            "enemy": "e_runner",
+            "count": 14,
+            "intervalBars": 0.95,
+            "lane": 1
+          }
+        ]
+      },
+      {
+        "section": "bridge",
+        "bars": 8,
+        "spawns": [
+          {
+            "bar": 0.5,
+            "enemy": "e_runner",
+            "count": 12,
+            "intervalBars": 0.6,
+            "lane": 0
+          },
+          {
+            "bar": 0.5,
+            "enemy": "e_runner",
+            "count": 12,
+            "intervalBars": 0.6,
+            "lane": 1
+          }
+        ]
+      },
+      {
+        "section": "chorus",
+        "bars": 16,
+        "spawns": [
+          {
+            "bar": 0.5,
+            "enemy": "e_walker",
+            "count": 18,
+            "intervalBars": 0.8,
+            "lane": 0
+          },
+          {
+            "bar": 0.5,
+            "enemy": "e_runner",
+            "count": 16,
+            "intervalBars": 0.9,
+            "lane": 1
+          }
+        ]
+      },
+      {
+        "section": "interlude",
+        "bars": 8,
+        "spawns": [],
+        "cardPick": true
+      },
+      {
+        "section": "chorus",
+        "bars": 16,
+        "spawns": [
+          {
+            "bar": 0.5,
+            "enemy": "e_walker",
+            "count": 20,
+            "intervalBars": 0.7,
+            "lane": 0
+          },
+          {
+            "bar": 0.5,
+            "enemy": "e_walker",
+            "count": 20,
+            "intervalBars": 0.7,
+            "lane": 1
+          }
+        ]
+      },
+      {
+        "section": "verse",
+        "bars": 16,
+        "spawns": [
+          {
+            "bar": 0.5,
+            "enemy": "e_runner",
+            "count": 18,
+            "intervalBars": 0.8,
+            "lane": 0
+          },
+          {
+            "bar": 0.5,
+            "enemy": "e_runner",
+            "count": 18,
+            "intervalBars": 0.8,
+            "lane": 1
+          }
+        ]
+      },
+      {
+        "section": "finale",
+        "bars": 16,
+        "spawns": [
+          {
+            "bar": 0.5,
+            "enemy": "e_walker",
+            "count": 22,
+            "intervalBars": 0.65,
+            "lane": 0
+          },
+          {
+            "bar": 0.5,
+            "enemy": "e_runner",
+            "count": 22,
+            "intervalBars": 0.65,
+            "lane": 1
+          }
+        ]
+      }
+    ]
   }
 }
