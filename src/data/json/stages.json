@@ -4833,7 +4833,7 @@
       "2,6": "audience"
     },
     "song": "hinezumi_overdrive",
-    "hpMul": 3.0,
+    "hpMul": 1.9,
     "boss": true,
     "waves": [
       {

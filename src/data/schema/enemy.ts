@@ -66,6 +66,21 @@ export const enemyTraitsSchema = z.object({
       durationMs: z.number().positive(),
     })
     .optional(),
+  /**
+   * 状態異常の耐性（02-core-battle.md 2.8）。効果時間に `1 - resist` を掛ける。
+   * `1` は完全無効。
+   *
+   * **ボスには必ず要る。** 乃依（Vi2）は 1.5 秒間隔で 2 秒の魅了を撒くので、
+   * 耐性が無いとボスは永久に足を止められ、フェーズ変化も沈黙も出番が無くなる。
+   * 「HP の大きい置物」になってしまい、ボスを置いた意味が消える
+   */
+  resist: z
+    .object({
+      stun: z.number().min(0).max(1).default(0),
+      charm: z.number().min(0).max(1).default(0),
+      slow: z.number().min(0).max(1).default(0),
+    })
+    .optional(),
   /** ボスとして扱う。HP バーの出し方と撃破演出が変わる */
   boss: z.boolean().default(false),
 });

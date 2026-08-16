@@ -12,6 +12,9 @@ import { bossStageIds, getEnemy, getIdol, getStage, rosterIds } from '../data';
 import { levelAtkMultiplier } from '../meta/progression';
 import { STAGE_PLANS } from '../balance/plans';
 import { phaseAttribute } from './systems/boss';
+import { buildPaths, nearestLane } from './path';
+import { applyStatus, isImmobilized, type Enemy } from './entities';
+import { vec } from '../core/vec';
 
 /** 参照盤面で 1 ライブ通しで回す。ボスが湧くところまで持たせるために要る */
 function worldWithPlan(stageId: string, subscribe: (world: BattleWorld) => void): BattleWorld {
@@ -87,7 +90,97 @@ describe('偽アカウント（フェーズ変化）', () => {
   });
 });
 
+describe('状態異常の耐性（02-core-battle.md 2.8）', () => {
+  function makeBoss(defId: string): Enemy {
+    const def = getEnemy(defId);
+    return {
+      id: 1,
+      defId,
+      name: def.name,
+      attr: def.attr,
+      hp: def.hp,
+      maxHp: def.hp,
+      def: def.def,
+      baseSpeed: def.speed,
+      flying: def.flying,
+      radius: def.radius,
+      leak: def.leak,
+      bounty: def.bounty,
+      traits: def.traits,
+      lane: 0,
+      pathIndex: 0,
+      pathT: 0,
+      progress: 0,
+      pos: vec(0, 0),
+      prevPos: vec(0, 0),
+      statuses: [],
+      alive: true,
+    };
+  }
+
+  it('ボスは 2 種とも耐性を持つ', () => {
+    for (const id of ['e_boss_utsushi', 'e_boss_hagoromo']) {
+      expect(getEnemy(id).traits.resist, id).toEqual({ stun: 0.7, charm: 1, slow: 0.3 });
+    }
+  });
+
+  it('魅了が通らない（永久に足を止められない）', () => {
+    // 乃依（Vi2）は 1.5 秒間隔で 2 秒の魅了を撒く。耐性が無いとボスは
+    // 出た瞬間から永久に止まり、フェーズ変化も沈黙も一度も出番が無くなる
+    expect(getIdol('Vi2').attack.onHit?.[0]?.status).toBe('charm');
+    expect(getIdol('Vi2').base.attackIntervalMs).toBeLessThan(2000);
+
+    const boss = makeBoss('e_boss_hagoromo');
+    applyStatus(boss, { kind: 'charm', value: 1, remainingMs: 2000 });
+    expect(boss.statuses).toHaveLength(0);
+    expect(isImmobilized(boss.statuses)).toBe(false);
+  });
+
+  it('スタンと減速は短くなるだけで通る（無効ではない）', () => {
+    const boss = makeBoss('e_boss_utsushi');
+    applyStatus(boss, { kind: 'stun', value: 1, remainingMs: 1000 });
+    applyStatus(boss, { kind: 'slow', value: 0.25, remainingMs: 3000 });
+    expect(boss.statuses.find((s) => s.kind === 'stun')?.remainingMs).toBeCloseTo(300, 5);
+    expect(boss.statuses.find((s) => s.kind === 'slow')?.remainingMs).toBeCloseTo(2100, 5);
+  });
+
+  it('耐性の無い雑魚はそのまま', () => {
+    const walker = makeBoss('e_walker');
+    applyStatus(walker, { kind: 'charm', value: 1, remainingMs: 2000 });
+    expect(walker.statuses.find((s) => s.kind === 'charm')?.remainingMs).toBe(2000);
+  });
+});
+
 describe('強制ログアウト（沈黙）', () => {
+  it('沈黙はどのレーンにも届く', () => {
+    // 区間の**始点だけ**で距離を測ると、B2 の中央レーンは区間が 1 本しかなく
+    // 始点が盤面の左端にあるため、どの配置マスからも「最も遠い」ことになる。
+    // すると中央に湧いたボスは的が 0 体で、看板の沈黙を一度も撃たない
+    const stage = getStage('B2');
+    const paths = buildPaths(stage);
+    const covered = new Set(
+      stage.placeable.map(([x, y]) => nearestLane(paths, x + 0.5, y + 0.5)),
+    );
+    expect([...covered].sort()).toEqual([0, 1, 2]);
+  });
+
+  it('直線レーンの真横に立つメンバーは、そのレーン扱いになる', () => {
+    // (5,3) は中央レーン (0,4)-(15,4) から 0.5 マス。折れ線の角 (7,4) は 1.58 マス先
+    const paths = buildPaths(getStage('B2'));
+    expect(nearestLane(paths, 5.5, 3.5)).toBe(1);
+    expect(nearestLane(paths, 5.5, 5.5)).toBe(1);
+  });
+
+  it('中央レーンにもボスが湧く（届かないと看板の能力が死ぬ）', () => {
+    const lanes = new Set(
+      getStage('B2').waves.flatMap((wave) =>
+        wave.spawns.filter((s) => getEnemy(s.enemy).traits.silence).map((s) => s.lane),
+      ),
+    );
+    expect(lanes.has(1)).toBe(true);
+  });
+
+
   it('レーンのメンバーが止まる', () => {
     let silenced = 0;
     worldWithPlan('B2', (w) => w.events.on('silenced', (e) => (silenced += e.count)));

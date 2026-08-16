@@ -130,6 +130,11 @@
     "radius": 0.62,
     "traits": {
       "boss": true,
+      "resist": {
+        "stun": 0.7,
+        "charm": 1,
+        "slow": 0.3
+      },
       "phases": [
         {
           "at": 0.66,
@@ -153,6 +158,11 @@
     "radius": 0.7,
     "traits": {
       "boss": true,
+      "resist": {
+        "stun": 0.7,
+        "charm": 1,
+        "slow": 0.3
+      },
       "silence": {
         "everyMs": 9000,
         "durationMs": 4000

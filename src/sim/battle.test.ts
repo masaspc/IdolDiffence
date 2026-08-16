@@ -132,8 +132,8 @@ describe('勝敗', () => {
 });
 
 describe('状態異常', () => {
-  const makeEnemy = (): Enemy =>
-    ({ statuses: [] }) as unknown as Enemy;
+  // `traits` は耐性の判定で読むので、空でも持たせる
+  const makeEnemy = (): Enemy => ({ statuses: [], traits: { boss: false } }) as unknown as Enemy;
 
   it('減速は最大値のみ適用される', () => {
     expect(slowFactor([{ kind: 'slow', value: 0.25, remainingMs: 100 }])).toBeCloseTo(0.75);

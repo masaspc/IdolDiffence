@@ -21,7 +21,7 @@ import {
 import type { IdolType } from '../data/schema/common';
 import type { AwakeningKey, CenterPassive } from '../data/schema/idol';
 import { clamp, vec, withinRange } from '../core/vec';
-import { buildPaths, type Path } from './path';
+import { buildPaths, nearestLane, type Path } from './path';
 import {
   echoStacks,
   isImmobilized,
@@ -744,13 +744,18 @@ export class BattleWorld {
       }
 
       this.updatePhase(enemy);
+      // 最後の 1 tick で効果が切れると `tickStatuses` が消してしまうので、先に控えておく
+      const echoSource =
+        enemy.statuses.length > 0
+          ? enemy.statuses.find((s) => s.kind === 'echo')?.sourceId
+          : undefined;
       const echoDamage = tickStatuses(enemy, dtMs);
       if (echoDamage > 0) {
         this.applyDamage(enemy, {
           amount: echoDamage * defenseReduction(enemy.def),
           crit: false,
           effectiveness: 'neutral',
-        }, false);
+        }, false, echoSource);
         if (!enemy.alive) {
           this.enemies.splice(i, 1);
           continue;
@@ -809,31 +814,12 @@ export class BattleWorld {
       }
       this.silenceTimers.set(enemy.id, elapsed - silence.everyMs);
 
-      const targets = this.units.filter((unit) => this.nearestLane(unit) === enemy.lane);
+      const targets = this.units.filter((unit) => nearestLane(this.paths, unit.pos.x, unit.pos.y) === enemy.lane);
       if (targets.length === 0) continue;
       for (const unit of targets) unit.silencedMs = silence.durationMs;
       this.events.emit('silenced', { lane: enemy.lane, count: targets.length });
       this.record('silence', { lane: enemy.lane, units: targets.length });
     }
-  }
-
-  /**
-   * このユニットがいちばん近い経路。沈黙の対象を決めるのに使う。
-   * 経路は折れ線なので、ウェイポイントとの距離で近似する
-   */
-  private nearestLane(unit: Unit): number {
-    let best = 0;
-    let bestDist = Number.POSITIVE_INFINITY;
-    this.paths.forEach((path, lane) => {
-      for (const segment of path.segments) {
-        const dist = Math.hypot(segment.from.x - unit.pos.x, segment.from.y - unit.pos.y);
-        if (dist < bestDist) {
-          bestDist = dist;
-          best = lane;
-        }
-      }
-    });
-    return best;
   }
 
   /**

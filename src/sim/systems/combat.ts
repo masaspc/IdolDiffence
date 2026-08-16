@@ -107,8 +107,11 @@ export function updateUnit(unit: Unit, ctx: CombatContext, dtMs: number): void {
             kind: onHit.status,
             value: onHit.value,
             remainingMs: onHit.durationMs,
-            // Echo の威力は付けた本人のもの（衣装・才能が人ごとに違う）
-            ...(onHit.status === 'echo' ? { stacks: onHit.value, dps: unit.echoDps } : {}),
+            // Echo の威力は付けた本人のもの（衣装・才能が人ごとに違う）。
+            // 貢献度で誰のダメージか数えるので、出どころも一緒に持たせる
+            ...(onHit.status === 'echo'
+              ? { stacks: onHit.value, dps: unit.echoDps, sourceId: unit.idolId }
+              : {}),
           },
           ctx.echoMaxStacks,
         );
