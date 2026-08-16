@@ -136,7 +136,7 @@ class GameClock {
 
 ## 5.5 強化の合流点 — `modifiers.ts`
 
-15 系統の強化が最終ステータスに合流する箇所を 1 ファイルに集約する。ここが balance の要。
+全強化系統が最終ステータスに合流する箇所を 1 ファイルに集約する。ここが balance の要。
 
 ```ts
 interface ModifierPool {
