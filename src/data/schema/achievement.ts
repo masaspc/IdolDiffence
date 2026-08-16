@@ -9,8 +9,15 @@ import { z } from 'zod';
  */
 export const achievementStatSchema = z.enum([
   // --- 進捗から導く ---
-  /** クリア済みのステージ数 */
+  /** クリア済みのステージ数（ボスを含む） */
   'clearedStages',
+  /**
+   * クリア済みの**本編**ステージ数（ボスを除く）。
+   *
+   * `clearedStages` と分けてある。B1 は寄り道なので、
+   * それを数に入れると S10 未クリアのまま「本編制覇」が立ってしまう
+   */
+  'clearedMainStages',
   /** 観客 100 を出したステージ数 */
   'perfectStages',
   /** クリア済みのボスステージ数 */
@@ -26,7 +33,7 @@ export const achievementStatSchema = z.enum([
   'rank',
   /** いちばん育っているメンバーのレベル */
   'maxIdolLevel',
-  /** 使えるメンバーの数 */
+  /** 使えるメンバーの数（**原作の 12 人だけ**。隠しキャラは数えない） */
   'roster',
   /** 進化を解放した数 */
   'evolved',

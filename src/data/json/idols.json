@@ -685,21 +685,21 @@
       "ayaha_friend"
     ],
     "base": {
-      "atk": 88,
+      "atk": 100,
       "range": 3.2,
-      "attackIntervalMs": 1900,
+      "attackIntervalMs": 1800,
       "critRate": 0.05,
       "critDmg": 0.5
     },
     "attack": {
       "kind": "aoe_ring",
-      "skillMul": 0.7,
+      "skillMul": 0.85,
       "radius": 1.5,
       "canHitFlying": true,
       "onHit": [
         {
           "status": "vulnerable",
-          "value": 0.18,
+          "value": 0.25,
           "durationMs": 2500
         }
       ]
@@ -731,14 +731,14 @@
       },
       "B": {
         "name": "食レポ全開",
-        "desc": "言葉を尽くす。脆弱 +35% に強化、攻撃間隔 ×0.85",
+        "desc": "言葉を尽くす。脆弱 +45% に強化、攻撃間隔 ×0.85",
         "mods": {
           "attackIntervalMul": 0.85
         },
         "onHit": [
           {
             "status": "vulnerable",
-            "value": 0.35,
+            "value": 0.45,
             "durationMs": 2500
           }
         ]
@@ -754,21 +754,21 @@
       "kaguya_partner"
     ],
     "base": {
-      "atk": 62,
-      "range": 1.9,
+      "atk": 78,
+      "range": 2.2,
       "attackIntervalMs": 550,
       "critRate": 0.08,
       "critDmg": 0.5
     },
     "attack": {
       "kind": "single",
-      "skillMul": 0.6,
+      "skillMul": 0.72,
       "radius": 0,
       "canHitFlying": false,
       "onHit": [
         {
           "status": "slow",
-          "value": 0.06,
+          "value": 0.1,
           "durationMs": 400
         }
       ]
@@ -828,7 +828,7 @@
       "tsukuyomi_guide"
     ],
     "base": {
-      "atk": 108,
+      "atk": 132,
       "range": 3.8,
       "attackIntervalMs": 1600,
       "critRate": 0.05,
@@ -836,14 +836,14 @@
     },
     "attack": {
       "kind": "single",
-      "skillMul": 0.85,
+      "skillMul": 0.92,
       "radius": 0,
       "canHitFlying": true,
       "onHit": [
         {
           "status": "stun",
           "value": 1,
-          "durationMs": 600
+          "durationMs": 900
         }
       ]
     },
@@ -887,13 +887,15 @@
     "awakening": {
       "A": {
         "name": "強制案内",
-        "desc": "止める時間を延ばす。スタン 1.2s",
-        "mods": {},
+        "desc": "止める時間を延ばし、同時に 2 体へ。スタン 1.6s",
+        "mods": {
+          "multiTarget": 2
+        },
         "onHit": [
           {
             "status": "stun",
             "value": 1,
-            "durationMs": 1200
+            "durationMs": 1600
           }
         ]
       },

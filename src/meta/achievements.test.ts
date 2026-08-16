@@ -183,6 +183,41 @@ describe('称号', () => {
   });
 });
 
+describe('数え方の境界', () => {
+  it('「本編制覇」はボスステージを数えない', () => {
+    // B1 は寄り道。数に入れると S10 未クリアのまま本編制覇が立ってしまう
+    const save = createNewSave();
+    const cleared = (ids: string[]): SaveData => ({
+      ...save,
+      stageProgress: Object.fromEntries(
+        ids.map((id) => [id, { cleared: true, bestAudience: 100, plays: 1 }]),
+      ),
+    });
+    // S1〜S9 + B1 = 10 ステージ。本編は 9 本しか終わっていない
+    const nine = cleared(['S1', 'S2', 'S3', 'S4', 'S5', 'S6', 'S7', 'S8', 'S9', 'B1']);
+    expect(statValue(nine, 'clearedStages')).toBe(10);
+    expect(statValue(nine, 'clearedMainStages')).toBe(9);
+    expect(achievementView(nine, 'all_main').unlocked).toBe(false);
+
+    const ten = cleared(['S1','S2','S3','S4','S5','S6','S7','S8','S9','S10']);
+    expect(achievementView(ten, 'all_main').unlocked).toBe(true);
+  });
+
+  it('「全員集合」は隠しキャラを数えない', () => {
+    // `rosterIds` は 12 人 + GM の 13 件。GM を出しただけで
+    // 「原作の 12 人すべて」が立ってしまってはいけない
+    const base = createNewSave();
+    const withSecret: SaveData = {
+      ...base,
+      // 初期 3 人 + 犬DOGE + オタ公 しか開いていない状態で GM だけ持つ
+      stageProgress: { S1: { cleared: true, bestAudience: 100, plays: 1 } },
+      secrets: ['GM'],
+    };
+    expect(statValue(withSecret, 'roster')).toBe(5);
+    expect(achievementView(withSecret, 'full_roster').unlocked).toBe(false);
+  });
+});
+
 describe('指標', () => {
   it('★は最高値と合計の両方を見る', () => {
     const save: SaveData = { ...createNewSave(), bestStar: { S1: 7, S2: 3 } };

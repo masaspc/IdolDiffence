@@ -483,6 +483,8 @@ export class BattleWorld {
   private readonly contribution = new Map<string, number>();
   /** コールの受付。小節ごとに 1 回だけ判定する */
   private callBar = -1;
+  /** 判定を終えた最後の小節。同じ小節の窓を開き直さないための印 */
+  private resolvedCallBar = -1;
   private lastCallJudge: CallJudge | null = null;
   private lastCallAgeMs = Number.POSITIVE_INFINITY;
   /** Perfect の連続数と、そのラン中の最大 */
@@ -625,7 +627,6 @@ export class BattleWorld {
         this.expireKillStack();
         this.events.emit('bar', { bar: info.bar });
         this.addVoltage(VOLTAGE_PER_BAR);
-        this.openCall(info.bar);
         this.checkCardPick(info.bar);
       }
     });
@@ -660,15 +661,25 @@ export class BattleWorld {
   // --- コール & レスポンス（02-core-battle.md 2.9） ---
 
   /**
-   * 小節の頭でコールの受付を開く。
+   * コールの受付を開く。
+   *
+   * **小節の頭より前に開ける。** 小節境界のフックで開けると、
+   * 早押し（-160〜0ms）が丸ごと弾かれて、±160ms のはずの窓が
+   * 「頭からの 160ms」という片側だけの窓になる。
    *
    * 判定の基準は**その小節の頭の時刻**で、`clock.barToMs` から引く。
    * 「開いた瞬間からの経過」で測ると、前の小節を押し逃したときに
    * 窓が閉じないまま次が開いてしまう。
    */
-  private openCall(bar: number): void {
-    if (!isCallSection(this.waveAt(bar)?.section)) return;
-    this.callBar = bar;
+  private openCall(): void {
+    if (this.callBar >= 0) return;
+    const now = this.clock.now;
+    // いちばん近い小節の頭。手前でも先でもよい
+    const nearest = Math.round(now / this.clock.msPerBar);
+    if (nearest <= this.resolvedCallBar) return;
+    if (Math.abs(this.clock.barToMs(nearest) - now) > GOOD_MS) return;
+    if (!isCallSection(this.waveAt(nearest)?.section)) return;
+    this.callBar = nearest;
   }
 
   /**
@@ -689,12 +700,14 @@ export class BattleWorld {
       }
     }
 
+    this.openCall();
     if (this.callBar < 0) return;
     // 窓を過ぎたら閉じる。押されなかったぶんはここで確定する
     if (this.clock.now - this.clock.barToMs(this.callBar) <= GOOD_MS) return;
 
     const bar = this.callBar;
     this.callBar = -1;
+    this.resolvedCallBar = bar;
     if (this.meta.call === true) {
       // 自分で押す設定なのに押さなかった = 見送り。Miss として数えるが罰は無い
       this.callCounts.miss++;
@@ -717,6 +730,7 @@ export class BattleWorld {
     // 窓の中で押した以上、外しても「そのぶんは終わり」。連打で拾い直せない
     const bar = this.callBar;
     this.callBar = -1;
+    this.resolvedCallBar = bar;
     this.applyCall(judge, bar, false);
     return judge;
   }

@@ -201,12 +201,15 @@ export class Renderer {
    * 8 秒のバフ全体を派手にすると、肝心の盤面が見えなくなる
    */
   private drawSpecialEffect(ctx: CanvasRenderingContext2D, snapshot: WorldSnapshot): void {
-    // 画面いっぱいの閃光がいちばん強い刺激。強度 0 なら丸ごと出さない
-    if (flashAmount(this.effects) <= 0) return;
+    // 画面いっぱいの閃光がいちばん強い刺激。強度 0 なら丸ごと出さない。
+    // **0 でないときも振れ幅を掛ける** —— ゲートにだけ使うと、
+    // 「控えめ」を選んだ人に標準と同じ閃光が出る（光過敏対策の意味が無い）
+    const flash = flashAmount(this.effects);
+    if (flash <= 0) return;
     // バフ中はうっすら色を乗せて、効果が続いていることを示す
     if (snapshot.specialRemainingMs > 0) {
       ctx.save();
-      ctx.fillStyle = 'rgba(255, 213, 79, 0.07)';
+      ctx.fillStyle = `rgba(255, 213, 79, ${0.07 * flash})`;
       ctx.fillRect(0, 0, this.widthCss, this.heightCss);
       ctx.restore();
     }
@@ -221,7 +224,7 @@ export class Renderer {
 
     // 閃光
     if (t < 0.22) {
-      ctx.fillStyle = `rgba(255, 255, 255, ${(1 - t / 0.22) * 0.75})`;
+      ctx.fillStyle = `rgba(255, 255, 255, ${(1 - t / 0.22) * 0.75 * flash})`;
       ctx.fillRect(0, 0, this.widthCss, this.heightCss);
     }
 
@@ -230,7 +233,7 @@ export class Renderer {
     for (let i = 0; i < 3; i++) {
       const rt = t * 1.5 - i * 0.12;
       if (rt <= 0 || rt >= 1) continue;
-      ctx.strokeStyle = `rgba(255, 213, 79, ${(1 - rt) * 0.7})`;
+      ctx.strokeStyle = `rgba(255, 213, 79, ${(1 - rt) * 0.7 * flash})`;
       ctx.lineWidth = 6 * (1 - rt) + 1;
       ctx.beginPath();
       ctx.arc(cx, cy, maxR * rt, 0, Math.PI * 2);
@@ -242,8 +245,10 @@ export class Renderer {
     if (bandT > 0 && bandT < 1) {
       const height = this.heightCss * 0.18;
       const slide = ease(bandT);
+      // 帯は文字を読ませるためのものなので、薄くしすぎない。
+      // 閃光ほど刺激が強くないぶん、落とし方を緩くする
       const alpha = bandT < 0.75 ? 1 : 1 - (bandT - 0.75) / 0.25;
-      ctx.globalAlpha = alpha;
+      ctx.globalAlpha = alpha * (0.55 + 0.45 * flash);
       ctx.translate(0, cy - height / 2);
 
       const gradient = ctx.createLinearGradient(0, 0, this.widthCss, 0);

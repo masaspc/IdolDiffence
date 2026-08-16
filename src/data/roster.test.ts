@@ -73,3 +73,43 @@ describe('M5 で加わった 3 人', () => {
     expect(new Set(costs).size).toBe(costs.length);
   });
 });
+
+/**
+ * 配置コストあたりの毎秒期待値。
+ *
+ * 系統をまたいで比べても意味が無い（ダンスは単体高火力、ヴィジュアルは支援）ので、
+ * **同じ系統のなかで**見る。範囲攻撃や状態異常はここに入らないが、
+ * 「素の殴り合いで話にならない」を検出するには足りる。
+ */
+function dpsPerCost(id: string): number {
+  const d = getIdol(id);
+  const crit = 1 + d.base.critRate * (0.5 + d.base.critDmg);
+  return (d.base.atk * d.attack.skillMul * crit) / (d.base.attackIntervalMs / 1000) / d.cost;
+}
+
+describe('後から足した 3 人が置き去りにならない', () => {
+  // 初出のときは 真実 0.85 / 犬DOGE 3.65 / FUSHI 0.93 で、
+  // どれも同系統の最下位付近だった。同じコストのまま底上げしてある
+  const LATECOMERS: Record<string, string> = { V4: 'vocal', D4: 'dance', Vi4: 'visual' };
+
+  it('同じ系統のなかで最下位ではない', () => {
+    for (const [id, type] of Object.entries(LATECOMERS)) {
+      const peers = canonIds.filter((other) => getIdol(other).type === type && other !== id);
+      const worst = Math.min(...peers.map(dpsPerCost));
+      expect(dpsPerCost(id), `${id} が同系統の最下位`).toBeGreaterThan(worst);
+    }
+  });
+
+  it('といって全系統の頂点でもない（既存を置き換えてしまわない）', () => {
+    const best = Math.max(...canonIds.map(dpsPerCost));
+    for (const id of Object.keys(LATECOMERS)) {
+      expect(dpsPerCost(id), `${id} が全体の頂点`).toBeLessThan(best);
+    }
+  });
+
+  it('配置コストは据え置き（強くしたのは中身だけ）', () => {
+    expect(getIdol('V4').cost).toBe(40);
+    expect(getIdol('D4').cost).toBe(20);
+    expect(getIdol('Vi4').cost).toBe(65);
+  });
+});

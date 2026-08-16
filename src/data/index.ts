@@ -125,7 +125,7 @@ export const rosterIds = [
 export const SECRET_IDS: readonly string[] = ['GM'];
 
 /** 原作の登場人物だけ。バランス計測と編成の基準はこちら */
-export const canonIds = rosterIds.filter((id) => !SECRET_IDS.includes(id));
+export const canonIds: readonly string[] = rosterIds.filter((id) => !SECRET_IDS.includes(id));
 
 /** 1 ライブに出撃できる人数（03-progression.md ⑤） */
 export const PARTY_SIZE = 5;
