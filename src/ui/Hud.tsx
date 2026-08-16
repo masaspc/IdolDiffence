@@ -256,7 +256,7 @@ export function Hud(props: HudProps): React.JSX.Element {
             <p className="note">
               {snapshot.won
                 ? 'リザルトの報酬でメンバーを育てて、より上の観客数を狙えます。'
-                : 'ツキビトを通しすぎました。強化とセットリストで火力を伸ばしましょう。'}
+                : 'ノイズを通しすぎました。強化とセットリストで火力を伸ばしましょう。'}
             </p>
             <div className="overlay-actions">
               <button type="button" className="restart" onClick={props.onRestart}>

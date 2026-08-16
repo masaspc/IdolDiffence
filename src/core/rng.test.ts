@@ -75,7 +75,7 @@ describe('seedFromString', () => {
   });
 
   it('32bit 符号なし整数を返す', () => {
-    const seed = seedFromString('竹取 かぐや');
+    const seed = seedFromString('月見 ヤチヨ');
     expect(Number.isInteger(seed)).toBe(true);
     expect(seed).toBeGreaterThanOrEqual(0);
     expect(seed).toBeLessThanOrEqual(0xffffffff);

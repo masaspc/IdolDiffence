@@ -97,8 +97,8 @@ describe('覚醒分岐', () => {
       return world.snapshot().units[0]!;
     };
 
-    const a = build('A'); // 千代: 遅いが範囲が広い
-    const b = build('B'); // 早口: 速いが範囲が狭い
+    const a = build('A'); // フルコーラス: 遅いが範囲が広い
+    const b = build('B'); // ラップコール: 速いが範囲が狭い
     expect(a.attackRadius).toBeGreaterThan(b.attackRadius);
   });
 
@@ -109,10 +109,10 @@ describe('覚醒分岐', () => {
     world.upgradeUnit(unit.id);
     world.upgradeUnit(unit.id);
     world.chooseAwakening(unit.id, 'B');
-    expect(world.snapshot().units[0]?.awakeningName).toBe('皓々');
+    expect(world.snapshot().units[0]?.awakeningName).toBe('モデレート');
   });
 
-  it('覚醒 A の望月で単体攻撃が範囲化する', () => {
+  it('覚醒 A の管理者権限で単体攻撃が範囲化する', () => {
     const world = richWorld();
     const unit = world.placeUnit('Vi1', 12, 5);
     if (typeof unit === 'string') throw new Error(unit);

@@ -8,7 +8,7 @@ const SEED = 20260816;
 describe('BattleWorld', () => {
   it('ステージと楽曲を読み込める', () => {
     const world = createWorld('S1', SEED);
-    expect(world.stage.name).toBe('竹林の路上ライブ');
+    expect(world.stage.name).toBe('ツクヨミ辺境・路地裏ステージ');
     expect(world.song.bpm).toBe(132);
   });
 

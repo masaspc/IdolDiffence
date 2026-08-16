@@ -1,5 +1,5 @@
 /**
- * ホーム（事務所）。育成とライブ開始の入口。
+ * ホーム。育成とライブ開始の入口。
  *
  * 「次に何をすればいいか」が一目で分かることを最優先にする。
  * レベルアップ可能なキャラにはバッジを出す（06-ui-ux.md 6.1）。
@@ -31,8 +31,8 @@ export function HomeScreen({ save, onLevelUp, onStart, lastResult }: HomeScreenP
     <div className="home">
       <header className="home-head">
         <div>
-          <h1>超・かぐや姫</h1>
-          <p className="home-sub">IDOL DIFFENCE — 事務所</p>
+          <h1>超かぐや姫！</h1>
+          <p className="home-sub">IDOL DIFFENCE — ホーム</p>
         </div>
         <div className="funds">
           <span className="funds-label">資金</span>

@@ -1,7 +1,7 @@
 {
   "V1": {
-    "name": "千歳 やちよ",
-    "shortName": "やちよ",
+    "name": "かぐや",
+    "shortName": "かぐや",
     "type": "vocal",
     "cost": 30,
     "base": {
@@ -19,16 +19,16 @@
     },
     "awakening": {
       "A": {
-        "name": "千代",
-        "desc": "攻撃が遅くなる代わりに、音波が大きく広がる",
+        "name": "フルコーラス",
+        "desc": "歌声を大きく広げる。遅くなる代わりに一度で多くを巻き込む",
         "mods": {
           "attackIntervalMul": 1.5,
           "radiusMul": 1.8
         }
       },
       "B": {
-        "name": "早口",
-        "desc": "連射に振り、命中ごとに Echo を重ねる",
+        "name": "ラップコール",
+        "desc": "畳みかけるように歌い、命中ごとに Echo を重ねる",
         "mods": {
           "attackIntervalMul": 0.6,
           "radiusMul": 0.7
@@ -42,8 +42,8 @@
     }
   },
   "D1": {
-    "name": "東雲 いろは",
-    "shortName": "いろは",
+    "name": "酒寄 彩葉",
+    "shortName": "彩葉",
     "type": "dance",
     "cost": 25,
     "base": {
@@ -67,14 +67,14 @@
     "awakening": {
       "A": {
         "name": "乱舞",
-        "desc": "同時に 3 体まで斬る",
+        "desc": "同時に 3 体まで捌く",
         "mods": {
           "multiTarget": 3
         }
       },
       "B": {
         "name": "一閃",
-        "desc": "クリティカル率 +35%",
+        "desc": "一点に集中する。クリティカル率 +35%",
         "mods": {
           "critRateAdd": 0.35
         }
@@ -82,8 +82,8 @@
     }
   },
   "Vi1": {
-    "name": "竹取 かぐや",
-    "shortName": "かぐや",
+    "name": "月見 ヤチヨ",
+    "shortName": "ヤチヨ",
     "type": "visual",
     "cost": 35,
     "base": {
@@ -106,15 +106,15 @@
     },
     "awakening": {
       "A": {
-        "name": "望月",
-        "desc": "減速を範囲化する",
+        "name": "管理者権限",
+        "desc": "ツクヨミの管理者として、範囲でまとめて減速をかける",
         "mods": {
           "toAoe": 1.1
         }
       },
       "B": {
-        "name": "皓々",
-        "desc": "減速を -45% に強化",
+        "name": "モデレート",
+        "desc": "一体を強く抑え込む。減速 -45%",
         "mods": {
           "slowValue": 0.45
         }
