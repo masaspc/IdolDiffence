@@ -1,10 +1,10 @@
 import { z } from 'zod';
 import { idolTypeSchema } from './common';
 
-/** 命中時に付与する状態異常。M1 では減速のみ */
+/** 命中時に付与する状態異常。減速と Echo（継続ダメージ） */
 export const onHitSchema = z.object({
-  status: z.enum(['slow']),
-  /** 減速なら -X%（0.25 = 25% 減速） */
+  status: z.enum(['slow', 'echo']),
+  /** 減速なら -X%（0.25 = 25% 減速）、Echo なら付与スタック数 */
   value: z.number(),
   durationMs: z.number().positive(),
 });
@@ -17,6 +17,29 @@ export const attackSchema = z.object({
   radius: z.number().nonnegative().default(0),
   /** 飛行敵を攻撃できるか。歌とヴィジュアルは true、ダンスは false */
   canHitFlying: z.boolean(),
+  onHit: onHitSchema.optional(),
+});
+
+/**
+ * 覚醒分岐（03-progression.md ②）。ポジション Lv3 到達時に A/B から 1 つを選ぶ。
+ * 単なる数値上昇ではなく、攻撃の挙動そのものが変わるようにしている。
+ */
+export const awakeningBranchSchema = z.object({
+  name: z.string().min(1),
+  desc: z.string().min(1),
+  mods: z
+    .object({
+      attackIntervalMul: z.number().positive().optional(),
+      radiusMul: z.number().positive().optional(),
+      critRateAdd: z.number().optional(),
+      /** 単体攻撃を同時 N 体へ */
+      multiTarget: z.number().int().positive().optional(),
+      /** 単体攻撃を範囲化する。値は半径 */
+      toAoe: z.number().positive().optional(),
+      /** onHit の効果量を上書きする */
+      slowValue: z.number().optional(),
+    })
+    .default({}),
   onHit: onHitSchema.optional(),
 });
 
@@ -35,11 +58,14 @@ export const idolSchema = z.object({
     critDmg: z.number().nonnegative().default(0.5),
   }),
   attack: attackSchema,
+  awakening: z.object({ A: awakeningBranchSchema, B: awakeningBranchSchema }).optional(),
 });
 
 export const idolsSchema = z.record(z.string(), idolSchema);
 
 export type OnHit = z.infer<typeof onHitSchema>;
 export type AttackDef = z.infer<typeof attackSchema>;
+export type AwakeningBranch = z.infer<typeof awakeningBranchSchema>;
 export type IdolDef = z.infer<typeof idolSchema>;
 export type Idols = z.infer<typeof idolsSchema>;
+export type AwakeningKey = 'A' | 'B';

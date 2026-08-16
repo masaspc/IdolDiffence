@@ -16,6 +16,29 @@
       "skillMul": 0.9,
       "radius": 1.2,
       "canHitFlying": true
+    },
+    "awakening": {
+      "A": {
+        "name": "千代",
+        "desc": "攻撃が遅くなる代わりに、音波が大きく広がる",
+        "mods": {
+          "attackIntervalMul": 1.5,
+          "radiusMul": 1.8
+        }
+      },
+      "B": {
+        "name": "早口",
+        "desc": "連射に振り、命中ごとに Echo を重ねる",
+        "mods": {
+          "attackIntervalMul": 0.6,
+          "radiusMul": 0.7
+        },
+        "onHit": {
+          "status": "echo",
+          "value": 1,
+          "durationMs": 4000
+        }
+      }
     }
   },
   "D1": {
@@ -35,7 +58,27 @@
       "skillMul": 0.8,
       "radius": 0,
       "canHitFlying": false,
-      "onHit": { "status": "slow", "value": 0.08, "durationMs": 300 }
+      "onHit": {
+        "status": "slow",
+        "value": 0.08,
+        "durationMs": 300
+      }
+    },
+    "awakening": {
+      "A": {
+        "name": "乱舞",
+        "desc": "同時に 3 体まで斬る",
+        "mods": {
+          "multiTarget": 3
+        }
+      },
+      "B": {
+        "name": "一閃",
+        "desc": "クリティカル率 +35%",
+        "mods": {
+          "critRateAdd": 0.35
+        }
+      }
     }
   },
   "Vi1": {
@@ -55,7 +98,27 @@
       "skillMul": 0.7,
       "radius": 0,
       "canHitFlying": true,
-      "onHit": { "status": "slow", "value": 0.25, "durationMs": 3000 }
+      "onHit": {
+        "status": "slow",
+        "value": 0.25,
+        "durationMs": 3000
+      }
+    },
+    "awakening": {
+      "A": {
+        "name": "望月",
+        "desc": "減速を範囲化する",
+        "mods": {
+          "toAoe": 1.1
+        }
+      },
+      "B": {
+        "name": "皓々",
+        "desc": "減速を -45% に強化",
+        "mods": {
+          "slowValue": 0.45
+        }
+      }
     }
   }
 }

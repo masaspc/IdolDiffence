@@ -11,6 +11,7 @@ import { stagesSchema, checkStageInvariants } from '../src/data/schema/stage';
 import { songsSchema } from '../src/data/schema/song';
 import { enemiesSchema } from '../src/data/schema/enemy';
 import { idolsSchema } from '../src/data/schema/idol';
+import { checkScheduleFitsWaves } from '../src/sim/systems/spawn';
 
 const here = dirname(fileURLToPath(import.meta.url));
 const jsonDir = join(here, '..', 'src', 'data', 'json');
@@ -57,6 +58,13 @@ if (stages.success && songs.success && enemies.success) {
       }
     }
     errors.push(...checkStageInvariants(id, stage));
+
+    // テンポ正規化後の実スケジュールを検査する。
+    // スキーマは正規化前の値しか見られないため、ここで実データを確かめる
+    const song = songs.data[stage.song];
+    if (song) {
+      errors.push(...checkScheduleFitsWaves(stage, song).map((message) => `${id}: ${message}`));
+    }
   }
 }
 

@@ -5,12 +5,25 @@ import type { Effectiveness } from './damage';
 
 export type EntityId = number;
 
-/** 状態異常。M1 は減速のみ。値は最大のものが適用される */
+/**
+ * 状態異常。
+ * - slow: 最大値のみ適用（重複しない）
+ * - echo: 独立にスタックし、毎秒ダメージ（02-core-battle.md 2.8）
+ */
 export interface StatusEffect {
-  kind: 'slow';
+  kind: 'slow' | 'echo';
   value: number;
   remainingMs: number;
+  /** echo のスタック数 */
+  stacks?: number;
+  /** echo の 1 スタックあたりの毎秒ダメージ */
+  dps?: number;
+  /** echo の端数ダメージ持ち越し */
+  accumulator?: number;
 }
+
+/** Echo の最大スタック（才能ボードのキーストーンで 8 まで伸びる想定） */
+export const ECHO_MAX_STACKS = 5;
 
 export interface Enemy {
   id: EntityId;

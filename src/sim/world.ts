@@ -9,6 +9,7 @@ import { GameClock } from '../core/clock';
 import { EventBus, type BattleEvents } from '../core/events';
 import { createRng, type Rng } from '../core/rng';
 import { getEnemy, getIdol, getSong, getStage, type Song, type Stage } from '../data';
+import { tempoMul } from '../data/schema/song';
 import { clamp, vec } from '../core/vec';
 import { buildPaths, type Path } from './path';
 import {
@@ -206,8 +207,11 @@ export class BattleWorld {
     if (!path) return;
 
     const start = path.segments[0]?.from ?? path.goal;
-    // テンポ正規化と、ウェーブ進行・ステージ係数による HP スケーリング
-    const hp = def.hp * waveHpMultiplier(scheduled.waveIndex) * this.stage.hpMul;
+    // HP にもテンポ正規化を掛ける。出現数だけを補正すると、
+    // 高 BPM の曲で「数は減ったが 1 体あたりは硬いまま」になり、
+    // 秒あたりの要求 DPS が曲ごとにずれる（02-core-battle.md 2.4）
+    const hp =
+      def.hp * tempoMul(this.song) * waveHpMultiplier(scheduled.waveIndex) * this.stage.hpMul;
 
     const enemy: Enemy = {
       id: this.nextEntityId++,

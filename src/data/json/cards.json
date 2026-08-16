@@ -1,0 +1,143 @@
+{
+  "vocal_practice": {
+    "name": "発声練習",
+    "rarity": "common",
+    "desc": "全員の攻撃力 +8%",
+    "effects": [{ "kind": "atkPct", "value": 0.08 }]
+  },
+  "stretch": {
+    "name": "柔軟",
+    "rarity": "common",
+    "desc": "全員の射程 +6%",
+    "effects": [{ "kind": "rangePct", "value": 0.06 }]
+  },
+  "gift": {
+    "name": "差し入れ",
+    "rarity": "common",
+    "desc": "声援 +80",
+    "effects": [{ "kind": "instantCheer", "value": 80 }],
+    "maxStacks": 5
+  },
+  "metronome": {
+    "name": "メトロノーム",
+    "rarity": "common",
+    "desc": "全員の攻撃速度 +7%",
+    "effects": [{ "kind": "attackSpeedPct", "value": 0.07 }]
+  },
+  "hand_mic": {
+    "name": "ハンドマイク",
+    "rarity": "common",
+    "desc": "歌の攻撃力 +14%",
+    "effects": [{ "kind": "typeAtkPct", "type": "vocal", "value": 0.14 }]
+  },
+  "dance_shoes": {
+    "name": "ダンスシューズ",
+    "rarity": "common",
+    "desc": "ダンスの攻撃力 +14%",
+    "effects": [{ "kind": "typeAtkPct", "type": "dance", "value": 0.14 }]
+  },
+  "lip_gloss": {
+    "name": "リップグロス",
+    "rarity": "common",
+    "desc": "ヴィジュアルの攻撃力 +14%",
+    "effects": [{ "kind": "typeAtkPct", "type": "visual", "value": 0.14 }]
+  },
+  "fan_letter": {
+    "name": "ファンレター",
+    "rarity": "common",
+    "desc": "声援の獲得 +12%",
+    "effects": [{ "kind": "cheerGainPct", "value": 0.12 }]
+  },
+  "spotlight_check": {
+    "name": "照明合わせ",
+    "rarity": "common",
+    "desc": "クリティカル率 +6%",
+    "effects": [{ "kind": "critRate", "value": 0.06 }]
+  },
+  "cheer_practice": {
+    "name": "コール練習",
+    "rarity": "common",
+    "desc": "月華の蓄積 +15%",
+    "effects": [{ "kind": "voltageGainPct", "value": 0.15 }]
+  },
+
+  "unison": {
+    "name": "ユニゾン",
+    "rarity": "rare",
+    "desc": "全員の攻撃力 +18%",
+    "effects": [{ "kind": "atkPct", "value": 0.18 }]
+  },
+  "quick_change": {
+    "name": "早着替え",
+    "rarity": "rare",
+    "desc": "全員の攻撃速度 +15%",
+    "effects": [{ "kind": "attackSpeedPct", "value": 0.15 }]
+  },
+  "moonlight_gaze": {
+    "name": "月光の視線",
+    "rarity": "rare",
+    "desc": "減速の効果 +40%",
+    "effects": [{ "kind": "slowPowerPct", "value": 0.4 }]
+  },
+  "long_runway": {
+    "name": "花道延長",
+    "rarity": "rare",
+    "desc": "全員の射程 +15%",
+    "effects": [{ "kind": "rangePct", "value": 0.15 }]
+  },
+  "sold_out": {
+    "name": "ソールドアウト",
+    "rarity": "rare",
+    "desc": "声援 +150、獲得 +10%",
+    "effects": [
+      { "kind": "instantCheer", "value": 150 },
+      { "kind": "cheerGainPct", "value": 0.1 }
+    ]
+  },
+  "sharp_edit": {
+    "name": "編集の妙",
+    "rarity": "rare",
+    "desc": "クリティカル率 +12%",
+    "effects": [{ "kind": "critRate", "value": 0.12 }]
+  },
+  "bamboo_light": {
+    "name": "光る竹",
+    "rarity": "rare",
+    "desc": "月華 +25、蓄積 +20%",
+    "effects": [
+      { "kind": "instantVoltage", "value": 25 },
+      { "kind": "voltageGainPct", "value": 0.2 }
+    ]
+  },
+
+  "encore": {
+    "name": "アンコール",
+    "rarity": "epic",
+    "desc": "全員の攻撃力 +25%、攻撃速度 +12%",
+    "effects": [
+      { "kind": "atkPct", "value": 0.25 },
+      { "kind": "attackSpeedPct", "value": 0.12 }
+    ],
+    "maxStacks": 2
+  },
+  "center_resolve": {
+    "name": "センターの覚悟",
+    "rarity": "epic",
+    "desc": "クリティカル率 +20%、クリティカル時の伸び +80%",
+    "effects": [
+      { "kind": "critRate", "value": 0.2 },
+      { "kind": "critDmg", "value": 0.8 }
+    ],
+    "maxStacks": 2
+  },
+  "full_moon_stage": {
+    "name": "満月のステージ",
+    "rarity": "epic",
+    "desc": "射程 +20%、月華の蓄積 +30%",
+    "effects": [
+      { "kind": "rangePct", "value": 0.2 },
+      { "kind": "voltageGainPct", "value": 0.3 }
+    ],
+    "maxStacks": 2
+  }
+}

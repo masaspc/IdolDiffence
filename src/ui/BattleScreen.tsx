@@ -55,18 +55,32 @@ export function BattleScreen(): React.JSX.Element {
     observer.observe(container);
 
     let sinceUiUpdate = 0;
-    let latest = world.snapshot();
+    let publishedFinish = false;
     const loop = new GameLoop({
       update: (dtMs) => {
         world.update(dtMs);
       },
       render: (alpha) => {
-        latest = world.snapshot();
+        const latest = world.snapshot();
         renderer.draw(latest, hoverRef.current, alpha);
+
+        // 決着したら 1 回だけ publish してループを止める。
+        // finished を毎フレーム publish すると、静止した結果画面のまま
+        // 60Hz で React が再描画され続ける
+        if (latest.finished) {
+          if (!publishedFinish) {
+            publishedFinish = true;
+            setSnapshot(latest);
+            setFps(loop.getStats().fps);
+            loop.stop();
+          }
+          return;
+        }
+
         // HUD の再レンダリングは 10Hz で足りる。60Hz で setState すると
         // React の再描画が Canvas の描画コストを上回ってしまう
         sinceUiUpdate += 1;
-        if (sinceUiUpdate >= 6 || latest.finished) {
+        if (sinceUiUpdate >= 6) {
           sinceUiUpdate = 0;
           setSnapshot(latest);
           setFps(loop.getStats().fps);
