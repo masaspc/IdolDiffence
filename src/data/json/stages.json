@@ -1,0 +1,46 @@
+{
+  "S1": {
+    "name": "竹林の路上ライブ",
+    "grid": { "w": 16, "h": 9 },
+    "lanes": [
+      {
+        "waypoints": [
+          [0, 4],
+          [6, 4],
+          [6, 7],
+          [11, 7],
+          [15, 5]
+        ]
+      }
+    ],
+    "placeable": [
+      [2, 2],
+      [3, 3],
+      [4, 6],
+      [5, 2],
+      [8, 3],
+      [8, 5],
+      [9, 2],
+      [11, 4],
+      [12, 5],
+      [13, 2]
+    ],
+    "cellTypes": {
+      "4,6": "audience",
+      "8,5": "runway",
+      "12,5": "runway"
+    },
+    "song": "kaguya_rising",
+    "hpMul": 1,
+    "waves": [
+      { "section": "intro", "bars": 8, "spawns": [], "cardPick": true },
+      { "section": "verse", "bars": 16, "spawns": [] },
+      { "section": "bridge", "bars": 8, "spawns": [] },
+      { "section": "chorus", "bars": 16, "spawns": [], "cardPick": true },
+      { "section": "verse", "bars": 16, "spawns": [] },
+      { "section": "chorus", "bars": 16, "spawns": [] },
+      { "section": "interlude", "bars": 8, "spawns": [], "cardPick": true },
+      { "section": "finale", "bars": 16, "spawns": [] }
+    ]
+  }
+}
