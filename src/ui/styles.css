@@ -2120,3 +2120,7 @@ kbd {
   animation: none !important;
   transition: none !important;
 }
+
+.salvage-result {
+  color: var(--visual);
+}

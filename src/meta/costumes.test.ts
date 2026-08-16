@@ -19,6 +19,7 @@ import {
   grantDrops,
   isEquipped,
   mainValue,
+  nextRarity,
   resolveCostumes,
   resolvePartyCostumes,
   salvageBlocker,
@@ -29,6 +30,7 @@ import {
   dropCount,
 } from './costumes';
 import { applyReward, calcReward } from './progression';
+import type { CostumeRarity } from '../data/schema/costume';
 import { COSTUME_SLOTS, MAX_ENHANCE, SLOT_MAIN_STATS } from '../data/schema/costume';
 import { costumeSeries, seriesIds } from '../data';
 import { createWorld } from '../sim/world';
@@ -238,20 +240,59 @@ describe('装備', () => {
 });
 
 describe('錬成', () => {
-  it('同じレアリティ 3 着が 1 着になる', () => {
-    const save = withDrops(60);
-    const rarity = save.costumes[0]!.rarity;
+  /** 指定レアリティを 3 着選ぶ。足りなければ例外 */
+  function pick(save: SaveData, rarity: CostumeRarity): string[] {
     const ids = save.costumes
       .filter((c) => c.rarity === rarity)
       .slice(0, SALVAGE_COUNT)
       .map((c) => c.id);
-    if (ids.length < SALVAGE_COUNT) throw new Error('同レアリティが 3 着必要');
+    if (ids.length < SALVAGE_COUNT) throw new Error(`${rarity} が 3 着必要`);
+    return ids;
+  }
+
+  it('3 着が 1 段上のレアリティ 1 着になる', () => {
+    const save = withDrops(60);
+    const ids = pick(save, 'R');
 
     const { save: next, created } = salvageCostumes(save, ids);
     expect(created).not.toBeNull();
-    expect(created?.rarity).toBe(rarity); // レアリティは上がらない
+    expect(created?.rarity).toBe('SR');
     expect(next.costumes).toHaveLength(save.costumes.length - SALVAGE_COUNT + 1);
     for (const id of ids) expect(next.costumes.find((c) => c.id === id)).toBeUndefined();
+  });
+
+  it('段は 1 つずつ上がる（R → SR → SSR → UR）', () => {
+    expect(nextRarity('R')).toBe('SR');
+    expect(nextRarity('SR')).toBe('SSR');
+    expect(nextRarity('SSR')).toBe('UR');
+  });
+
+  it('最高位（UR）は上がらず、同じ UR で引き直す', () => {
+    // 上が無いので副次の出目を打ち直す用途になる
+    expect(nextRarity('UR')).toBe('UR');
+    const save = withDrops(600);
+    const ids = pick(save, 'UR');
+    expect(salvageCostumes(save, ids).created?.rarity).toBe('UR');
+  });
+
+  it('積み上げれば R から UR まで届く（27 着 = 1 着）', () => {
+    // 「増えすぎた R の使い道が捨てるしか無い」を解消するのが狙い。
+    // 段が掛け算で効くことをここで固定する
+    let save = withDrops(400);
+    const fuse = (rarity: CostumeRarity): CostumeRarity | null => {
+      const ids = save.costumes.filter((c) => c.rarity === rarity).slice(0, SALVAGE_COUNT);
+      if (ids.length < SALVAGE_COUNT) return null;
+      const result = salvageCostumes(save, ids.map((c) => c.id));
+      save = result.save;
+      return result.created?.rarity ?? null;
+    };
+    // R を溶かし続けて SR を増やし、SR から SSR、SSR から UR まで上げる
+    let reached = false;
+    for (let i = 0; i < 200 && !reached; i++) {
+      if (fuse('SSR') === 'UR') reached = true;
+      else if (fuse('SR') === null && fuse('R') === null) break;
+    }
+    expect(reached, 'R を積み上げても UR に届かない').toBe(true);
   });
 
   it('レアリティが混ざっていると錬成できない', () => {

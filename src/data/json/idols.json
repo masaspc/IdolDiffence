@@ -36,17 +36,19 @@
     "evolution": {
       "name": "かぐや（Ray）",
       "shortName": "かぐやRay",
-      "desc": "劇中歌「ray」を歌い切った姿。声の届く輪そのものが大きくなる",
+      "desc": "劇中歌「ray」を歌い切った姿。声の届く輪そのものが大きくなり、届いた敵の守りを溶かす",
       "requires": {
         "stage": "S5",
         "level": 15
       },
       "cost": 3000,
-      "atkMul": 1.9,
-      "rangeMul": 1.15,
+      "atkMul": 2.8,
+      "rangeMul": 1.4,
       "mods": {
-        "radiusMul": 1.35,
-        "critRateAdd": 0.08
+        "radiusMul": 1.75,
+        "critRateAdd": 0.15,
+        "attackIntervalMul": 0.82,
+        "defIgnoreAdd": 0.35
       },
       "art": {
         "hairStyle": "long",
@@ -263,17 +265,18 @@
     "evolution": {
       "name": "酒寄 彩葉（Ray）",
       "shortName": "彩葉Ray",
-      "desc": "「ray」を仕上げたプロデューサーが前へ出る。同時に 2 体まで捌く",
+      "desc": "「ray」を仕上げたプロデューサーが前へ出る。同時に 4 体まで捌き、飛ぶ相手にも届く",
       "requires": {
         "stage": "S5",
         "level": 15
       },
       "cost": 3000,
-      "atkMul": 1.9,
-      "rangeMul": 1.2,
+      "atkMul": 2.8,
+      "rangeMul": 1.5,
       "mods": {
-        "multiTarget": 2,
-        "critRateAdd": 0.08
+        "multiTarget": 4,
+        "critRateAdd": 0.2,
+        "grantFlying": true
       },
       "art": {
         "hairStyle": "bob",
@@ -484,17 +487,20 @@
     "evolution": {
       "name": "月見 ヤチヨ（Ray）",
       "shortName": "ヤチヨRay",
-      "desc": "「ray」をかぐやと二人で歌う。足止めがひときわ強くなる",
+      "desc": "「ray」をかぐやと二人で歌う。足止めがひときわ強くなり、範囲ごと止めて守りを貫く",
       "requires": {
         "stage": "S5",
         "level": 15
       },
       "cost": 3000,
-      "atkMul": 2.2,
-      "rangeMul": 1.15,
+      "atkMul": 3.2,
+      "rangeMul": 1.45,
       "mods": {
-        "slowValue": 0.35,
-        "radiusMul": 1.2
+        "slowValue": 0.6,
+        "toAoe": 1.6,
+        "radiusMul": 1.3,
+        "critRateAdd": 0.12,
+        "defIgnoreAdd": 0.4
       },
       "art": {
         "hairStyle": "updo",

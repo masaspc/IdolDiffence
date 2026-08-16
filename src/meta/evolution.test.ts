@@ -53,6 +53,65 @@ describe('データ', () => {
       expect(evolution?.rangeMul).toBeGreaterThanOrEqual(1);
     }
   });
+
+  /** 進化を反映した毎秒期待値 */
+  function evolvedDps(id: string): number {
+    const d = getIdol(id);
+    const e = evolutionOf(id);
+    if (!e) throw new Error(`${id} に進化が無い`);
+    const interval = (d.base.attackIntervalMs * (e.mods.attackIntervalMul ?? 1)) / 1000;
+    const crit = d.base.critRate + (e.mods.critRateAdd ?? 0);
+    return (
+      (d.base.atk * e.atkMul * d.attack.skillMul * (1 + crit * (0.5 + d.base.critDmg))) / interval
+    );
+  }
+
+  function plainDps(id: string): number {
+    const d = getIdol(id);
+    return (
+      (d.base.atk * d.attack.skillMul * (1 + d.base.critRate * (0.5 + d.base.critDmg))) /
+      (d.base.attackIntervalMs / 1000)
+    );
+  }
+
+  it('進化は「少し強い」では済まない —— 3 倍以上', () => {
+    // 進化は一度きりの恒久解放なので、レベルを 2〜3 上げたのと
+    // 同じ体感では押す理由にならない。段が変わったと分かる幅にする
+    for (const id of STARTER_IDS) {
+      expect(evolvedDps(id) / plainDps(id), `${id} の進化が弱い`).toBeGreaterThan(3);
+    }
+  });
+
+  it('射程も伸びる（置ける場所そのものが変わる）', () => {
+    for (const id of STARTER_IDS) {
+      expect(evolutionOf(id)?.rangeMul, `${id}`).toBeGreaterThanOrEqual(1.4);
+    }
+  });
+
+  it('数値だけでなく、できることが増える', () => {
+    // 「攻撃力が上がるだけ」だと、進化しても盤面の組み方は変わらない。
+    // 3 人それぞれに**別の**解禁を置く
+    const kaguya = evolutionOf('V1')?.mods;
+    const ayaha = evolutionOf('D1')?.mods;
+    const yachiyo = evolutionOf('Vi1')?.mods;
+
+    // かぐや: 声の輪が広がり、守りを抜く
+    expect(kaguya?.radiusMul).toBeGreaterThan(1.5);
+    expect(kaguya?.defIgnoreAdd).toBeGreaterThan(0);
+    // 彩葉: 同時に捌き、**ダンスの原則（対空不可）を越える**
+    expect(ayaha?.multiTarget).toBeGreaterThanOrEqual(4);
+    expect(ayaha?.grantFlying).toBe(true);
+    expect(getIdol('D1').attack.canHitFlying, '素の彩葉は対空できない前提').toBe(false);
+    // ヤチヨ: 単体だったものが範囲になり、止める力が跳ね上がる
+    expect(yachiyo?.toAoe).toBeGreaterThan(0);
+    expect(getIdol('Vi1').attack.kind, '素のヤチヨは単体').toBe('single');
+    expect(yachiyo?.slowValue).toBeGreaterThan(0.5);
+  });
+
+  it('3 人の伸び幅がそろっている（1 人だけ桁が違わない）', () => {
+    const ratios = STARTER_IDS.map((id) => evolvedDps(id) / plainDps(id));
+    expect(Math.max(...ratios) / Math.min(...ratios)).toBeLessThan(1.5);
+  });
 });
 
 describe('解放条件', () => {
@@ -178,11 +237,15 @@ describe('盤面への反映', () => {
     const unit = world.placeUnit('D1', 4, 6);
     if (typeof unit === 'string') throw new Error(unit);
 
-    // D1 の進化は multiTarget 2、覚醒 A「乱舞」は 3。強い方が残る
-    expect(unit.attack.multiTarget).toBe(2);
+    // D1 の進化は multiTarget 4、覚醒 A「乱舞」は 3。**強い方が残る**。
+    // 底上げで進化が覚醒を上回ったので、ここは「覚醒を選んでも下がらない」
+    // ことの確認になった（弱い方で上書きされていないか）
+    expect(unit.attack.multiTarget).toBe(4);
     for (let level = 1; level < 3; level++) expect(world.upgradeUnit(unit.id)).toBeNull();
     expect(world.chooseAwakening(unit.id, 'A')).toBe(true);
-    expect(unit.attack.multiTarget).toBe(3);
+    expect(unit.attack.multiTarget).toBe(4);
+    // 覚醒 B「一閃」のクリ率は進化のぶんと**足し合わさる**（別の器）
+    expect(unit.critRate).toBeGreaterThan(getIdol('D1').base.critRate);
   });
 
   it('進化しても基本の命中時効果は消えない', () => {
