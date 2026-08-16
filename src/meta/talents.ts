@@ -1,14 +1,20 @@
 /**
  * 才能ボード（03-progression.md ⑧）。
  *
- * ポイントの出どころは設計ではプロデューサーランクだが、ランクは M4。
- * それまでは**ステージの初回クリア（+2）とランク S の初回達成（+1）**で配る。
- * ステージ 7 本で最大 21 ポイント、1 ブランチを埋めるのに 17 なので、
- * **全部は取れない**。どこに寄せるかを選ばせるのが狙い。
+ * ポイントの出どころは 3 つ:
+ * - ステージの初回クリア（+2）
+ * - ランク S（観客 100）の初回達成（+1）
+ * - **プロデューサーランク**（+2/Lv、M4 で追加）
+ *
+ * 前 2 つは「進んだこと」、ランクは「回したこと」に対する報酬で、性質が違う。
+ * ステージ 12 本ぶんの実績だけでは 1 ブランチを埋めるのがやっとなので、
+ * **2 つ目のブランチへ伸ばすにはランクを上げる**必要がある。
+ * どこに寄せるかを選ばせつつ、周回すれば選び直さずに済む形にしている。
  */
 import { getTalent, talents } from '../data';
 import type { TalentMods, TalentNode } from '../data/schema/talent';
 import type { IdolType } from '../data/schema/common';
+import { talentPointsFromRank } from './rank';
 import type { SaveData } from './save';
 
 /** ステージ初回クリアで入るポイント */
@@ -20,9 +26,9 @@ export const RESPEC_COST = 800;
 
 export const talentIds = Object.keys(talents);
 
-/** 到達済みの実績から才能ポイントの総量を求める。セーブに数を持たない */
+/** 到達済みの実績とランクから才能ポイントの総量を求める。セーブに数を持たない */
 export function totalTalentPoints(save: SaveData): number {
-  let total = 0;
+  let total = talentPointsFromRank(save);
   for (const progress of Object.values(save.stageProgress)) {
     if (progress.cleared) total += POINTS_PER_CLEAR;
     if (progress.bestAudience >= 100) total += POINTS_PER_PERFECT;

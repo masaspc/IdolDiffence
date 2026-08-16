@@ -118,6 +118,10 @@ describe('マイグレーション', () => {
     expect(parsed.data.evolved).toEqual([]);
     expect(parsed.data.costumes).toEqual([]);
     expect(parsed.data.equipped).toEqual({});
+    expect(parsed.data.totalExp).toBe(0);
+    expect(parsed.data.songExp).toEqual({});
+    // ★だけは遡って引き継ぐ。クリア済み = ★1 到達
+    expect(parsed.data.bestStar).toEqual({ S1: 1 });
   });
 
   it('全バージョンぶんの移行が用意されている', () => {

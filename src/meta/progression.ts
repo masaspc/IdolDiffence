@@ -2,7 +2,9 @@
  * 恒久進行（アイドルレベル）と、リザルト報酬。
  * 「負ける → 育てる → 勝つ」のループを成立させる最小構成（03-progression.md ⑦）。
  */
-import { getIdol, idolUnlockStage, PARTY_SIZE, rosterIds } from '../data';
+import { getIdol, getStage, idolUnlockStage, PARTY_SIZE, rosterIds } from '../data';
+import { clampStar, MAX_STAR, starCoefficients } from '../sim/star';
+import { battleExp, songExp } from './rank';
 import { dropCount, grantDrops } from './costumes';
 import type { CostumeInstance, SaveData } from './save';
 
@@ -111,6 +113,8 @@ export interface BattleOutcome {
   won: boolean;
   audience: number;
   killed: number;
+  /** 挑んだ★難度。省略時は 1 */
+  star?: number;
 }
 
 export interface Reward {
@@ -126,12 +130,22 @@ export function calcReward(outcome: BattleOutcome): Reward {
   const base = outcome.won ? 120 : 40;
   const kills = outcome.killed * 3;
   const audience = outcome.won ? Math.round(outcome.audience * 1.5) : 0;
+  const plain = base + kills + audience;
+
+  // ★の報酬倍率（02-core-battle.md 2.10）。
+  // ★10 で約 4 倍。要求戦力の伸び（約 60 倍）よりずっと緩いので、
+  // 「稼ぐために★を上げる」ではなく「勝てるようになったから上げる」順序になる
+  const star = clampStar(outcome.star ?? 1);
+  const starMul = starCoefficients(star).rewardMul;
+  const funds = Math.round(plain * starMul);
+
   return {
-    funds: base + kills + audience,
+    funds,
     breakdown: [
       { label: outcome.won ? '完走ボーナス' : '参加報酬', value: base },
       { label: `撃破 ${outcome.killed} 体`, value: kills },
       ...(audience > 0 ? [{ label: `観客 ${outcome.audience}`, value: audience }] : []),
+      ...(star > 1 ? [{ label: `★${star} 補正 ×${starMul.toFixed(2)}`, value: funds - plain }] : []),
     ],
   };
 }
@@ -149,6 +163,9 @@ export function applyReward(
   reward: Reward,
 ): { save: SaveData; dropped: CostumeInstance[] } {
   const previous = save.stageProgress[outcome.stageId];
+  const star = clampStar(outcome.star ?? 1);
+  const songId = getStage(outcome.stageId).song;
+
   const updated: SaveData = {
     ...save,
     funds: save.funds + reward.funds,
@@ -160,7 +177,35 @@ export function applyReward(
         plays: (previous?.plays ?? 0) + 1,
       },
     },
+    // ★の記録は**勝ったときだけ**伸びる。挑んだだけで解放されると、
+    // ★10 を選んで即負けするのが最速の解放手段になってしまう
+    bestStar: outcome.won
+      ? { ...save.bestStar, [outcome.stageId]: Math.max(save.bestStar[outcome.stageId] ?? 0, star) }
+      : save.bestStar,
+    totalExp: save.totalExp + battleExp(outcome.won, outcome.audience, star),
+    songExp: {
+      ...save.songExp,
+      [songId]: (save.songExp[songId] ?? 0) + songExp(outcome.won, star),
+    },
   };
   // 衣装のドロップ（03-progression.md ⑨）。資金と同じく**負けても出る**
   return grantDrops(updated, dropCount(outcome.won, outcome.audience));
+}
+
+// --- ★難度の解放 ---
+
+/**
+ * そのステージで選べる最高の★。
+ *
+ * **1 つずつしか開かない。** まとめて開くと、いきなり ★10 に挑んで
+ * 「何が足りないのか分からないまま負ける」ことになる。
+ * 1 段ずつなら、直前の勝ち方との差分で足りないものが分かる。
+ */
+export function maxSelectableStar(save: SaveData, stageId: string): number {
+  const best = save.bestStar[stageId] ?? 0;
+  return Math.min(MAX_STAR, best + 1);
+}
+
+export function bestStarOf(save: SaveData, stageId: string): number {
+  return save.bestStar[stageId] ?? 0;
 }

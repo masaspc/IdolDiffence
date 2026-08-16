@@ -24,6 +24,7 @@ import {
   salvageCostumes,
   unequipSlot,
 } from '../meta/costumes';
+import { soloPartForStage } from '../meta/rank';
 import { randomSeed } from '../core/rng';
 import {
   DEFAULT_RNG_STATE,
@@ -161,12 +162,14 @@ export function App(): React.JSX.Element {
       onOpenParty={() => setScreen('party')}
       onOpenTalents={() => setScreen('talents')}
       onOpenCostumes={() => setScreen('costumes')}
-      onStart={(id) => {
+      onStart={(id, star) => {
         setStageId(id);
         setLastResult(null);
         // sim にメタ層を触らせないための境界。ここで解決して以後は固定
         const { party, center } = normalizeParty(save);
         setBattleMeta({
+          star,
+          soloPart: soloPartForStage(save, id),
           atkByIdol: Object.fromEntries(
             unlockedIds(save).map((rid) => [rid, resolvedAtk(save, rid)]),
           ),

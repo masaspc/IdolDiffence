@@ -12,7 +12,7 @@ import { costumeRaritySchema, costumeSlotSchema, costumeStatSchema } from '../da
 import { seedFromString } from '../core/rng';
 
 export const SAVE_KEY = 'idoldiffence.save';
-export const CURRENT_VERSION = 5;
+export const CURRENT_VERSION = 6;
 
 /**
  * 生成された衣装 1 着（03-progression.md ⑨）。
@@ -69,6 +69,22 @@ export const saveSchema = z.object({
    * ヘッドレスで測れるようにし、リロードして引き直すのも塞ぐ
    */
   rngState: z.number().int().nonnegative(),
+  /**
+   * ステージ ID -> 到達した最高の★（02-core-battle.md 2.10）。
+   *
+   * `stageProgress` に混ぜず別に持つ。「クリアしたか」と
+   * 「どこまで難しくして勝てたか」は別の問いで、前者は解放、後者は周回の指標になる
+   */
+  bestStar: z.record(z.string(), z.number().int().positive()),
+  /**
+   * プロデューサーランクの累計経験値（03-progression.md ⑫）。
+   *
+   * **ランクそのものは持たない。** 曲線を調整したときに、
+   * 保存済みのランクだけが古い曲線のまま残るのを避ける（衣装の実効値と同じ理由）
+   */
+  totalExp: z.number().nonnegative(),
+  /** 楽曲 ID -> 累計習熟度（⑩）。レベルはここから導く */
+  songExp: z.record(z.string(), z.number().nonnegative()),
 });
 
 export type SaveData = z.infer<typeof saveSchema>;
@@ -99,6 +115,9 @@ export function createNewSave(rngState: number = DEFAULT_RNG_STATE): SaveData {
     equipped: {},
     costumeSeq: 0,
     rngState,
+    bestStar: {},
+    totalExp: 0,
+    songExp: {},
   };
 }
 
@@ -128,6 +147,21 @@ const migrations: Record<number, Migration> = {
     equipped: {},
     costumeSeq: 0,
     rngState: DEFAULT_RNG_STATE,
+  }),
+  // v5 -> v6: ★難度・プロデューサーランク・楽曲レベルを追加した（M4）。
+  // 遡ってランクを配ることはしない（周回で伸ばす軸なので、
+  // 過去のプレイぶんを推定して配ると初日から上限近くになってしまう）。
+  // ★はクリア済みステージを ★1 到達として引き継ぐ
+  5: (old) => ({
+    ...old,
+    version: 6,
+    bestStar: Object.fromEntries(
+      Object.entries((old.stageProgress ?? {}) as Record<string, { cleared?: boolean }>)
+        .filter(([, p]) => p?.cleared)
+        .map(([id]) => [id, 1]),
+    ),
+    totalExp: 0,
+    songExp: {},
   }),
 };
 

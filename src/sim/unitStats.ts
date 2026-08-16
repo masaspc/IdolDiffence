@@ -136,6 +136,8 @@ export interface ResolveOptions {
   talentPool?: ModifierPool;
   /** 衣装（このユニットが着ているぶん）。同じく加算プール */
   costumePool?: ModifierPool;
+  /** ★の追加ルール（系統ペナルティ）。同じく加算プール */
+  starPool?: ModifierPool;
   /** 衣装のうち、ステータスの器に載らないもの（03-progression.md ⑨） */
   costume?: CostumeCombatBonus | undefined;
   /** センター（編成で 1 人）と配置マスの種別 */
@@ -150,6 +152,8 @@ export interface ResolveOptions {
   killSpeedBonus?: number;
   /** Echo 1 スタックあたりの素の毎秒ダメージ。強化前の基準値 */
   baseEchoDps: number;
+  /** ソロパート（楽曲レベル）の攻撃力倍率。掛かっていなければ 1 */
+  soloAtkMul?: number;
 }
 
 /**
@@ -187,6 +191,8 @@ export function resolveUnit(unit: Unit, options: ResolveOptions): void {
     mulPct(local, 'range', options.formation.rangeMul);
   }
   if (options.killSpeedBonus) mulPct(local, 'attackSpeed', 1 + options.killSpeedBonus);
+  // ソロパートは 1 人にだけ乗る。乗算枠なので、他の強化と噛み合うほど効く
+  if (options.soloAtkMul && options.soloAtkMul !== 1) mulPct(local, 'atk', options.soloAtkMul);
 
   // 味方オーラは「同じ器に足し込む」加算側。近くに何人いても線形に伸びる
   const allyAtk = options.allyAtkPct ?? 0;
@@ -195,7 +201,8 @@ export function resolveUnit(unit: Unit, options: ResolveOptions): void {
 
   const talentPool = options.talentPool ?? emptyPool();
   const costumePool = options.costumePool ?? emptyPool();
-  const pools = [options.runPool, talentPool, costumePool, local];
+  const starPool = options.starPool ?? emptyPool();
+  const pools = [options.runPool, talentPool, costumePool, starPool, local];
 
   unit.atk = resolveStat(unit.baseAtk, 'atk', pools, unit.type);
   unit.range = resolveStat(def.base.range, 'range', pools);

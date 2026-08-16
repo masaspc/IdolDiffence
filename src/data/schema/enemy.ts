@@ -36,6 +36,53 @@ export const enemyTraitsSchema = z.object({
       count: z.number().int().positive(),
     })
     .optional(),
+  /**
+   * HP が減るごとに属性が変わる。ボス「偽アカウント」。
+   *
+   * 3 すくみ（02-core-battle.md 2.5）を一周させることで、
+   * 「相性のいい 1 系統に寄せる」が通じない相手になる。
+   * `at` は**残り HP の割合**で、高い順に並んでいなくてもよい（読み込み時に整列する）。
+   */
+  phases: z
+    .array(
+      z.object({
+        /** この残 HP 割合を下回ったら切り替わる（0.66 = 残り 66%） */
+        at: z.number().min(0).max(1),
+        attr: attributeSchema,
+      }),
+    )
+    .optional(),
+  /**
+   * 一定間隔で 1 レーンのメンバーを沈黙させる。最終ボス「強制ログアウト」。
+   *
+   * 沈黙中は攻撃できない。「配置を 1 レーンに固めると全部止まる」ので、
+   * 分散とレーンをまたぐ射程が答えになる。
+   */
+  silence: z
+    .object({
+      /** 発動間隔（ミリ秒） */
+      everyMs: z.number().positive(),
+      /** 沈黙する時間（ミリ秒） */
+      durationMs: z.number().positive(),
+    })
+    .optional(),
+  /**
+   * 状態異常の耐性（02-core-battle.md 2.8）。効果時間に `1 - resist` を掛ける。
+   * `1` は完全無効。
+   *
+   * **ボスには必ず要る。** 乃依（Vi2）は 1.5 秒間隔で 2 秒の魅了を撒くので、
+   * 耐性が無いとボスは永久に足を止められ、フェーズ変化も沈黙も出番が無くなる。
+   * 「HP の大きい置物」になってしまい、ボスを置いた意味が消える
+   */
+  resist: z
+    .object({
+      stun: z.number().min(0).max(1).default(0),
+      charm: z.number().min(0).max(1).default(0),
+      slow: z.number().min(0).max(1).default(0),
+    })
+    .optional(),
+  /** ボスとして扱う。HP バーの出し方と撃破演出が変わる */
+  boss: z.boolean().default(false),
 });
 
 export const enemySchema = z.object({

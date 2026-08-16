@@ -26,6 +26,14 @@ export interface StatusEffect {
   dps?: number;
   /** echo の端数ダメージ持ち越し */
   accumulator?: number;
+  /**
+   * この効果を付けたアイドル ID。いまは echo の貢献度集計だけが使う。
+   *
+   * echo は複数人で重なるが、毎秒ダメージは**最も強い 1 人のぶん**で計算する
+   * （`applyStatus` 参照）ので、その 1 人に全額を付ける。スタックの出どころを
+   * 人数ぶん覚えて按分するほどの差は出ないし、敵 1 体ごとに表を持つのは重い
+   */
+  sourceId?: string;
 }
 
 /** Echo の最大スタック。才能ボードのキーストーン「無限旋律」で 8 まで伸びる */
@@ -126,6 +134,11 @@ export interface Unit {
   attack: ResolvedAttack;
   aura: ResolvedAura | null;
   /**
+   * 沈黙の残り時間（ミリ秒）。0 より大きいあいだは攻撃できない。
+   * 最終ボス「強制ログアウト」がレーンごとに掛ける
+   */
+  silencedMs: number;
+  /**
    * このユニットが付ける Echo の毎秒ダメージ（1 スタックあたり）。
    *
    * **付けた本人の強化で決まる。** world がひとつの値を配ると、
@@ -181,11 +194,30 @@ export function vulnerability(statuses: readonly StatusEffect[]): number {
   return max;
 }
 
+/**
+ * 状態異常の耐性（02-core-battle.md 2.8）。効果時間に `1 - resist` を掛ける。
+ * 定義の無い種類は 0（そのまま通る）。
+ */
+export function statusResist(enemy: Enemy, kind: StatusKind): number {
+  const resist = enemy.traits.resist;
+  if (!resist) return 0;
+  if (kind === 'stun') return resist.stun;
+  if (kind === 'charm') return resist.charm;
+  if (kind === 'slow') return resist.slow;
+  return 0;
+}
+
 export function applyStatus(
   enemy: Enemy,
   incoming: StatusEffect,
   echoMaxStacks = ECHO_MAX_STACKS,
 ): void {
+  // 耐性は**付ける瞬間に効果時間へ畳む**。判定側で毎フレーム割るのではなく
+  // ここで一度だけ縮めるので、上書き規則（強い方・長い方）が耐性後の値で働く
+  const resist = statusResist(enemy, incoming.kind);
+  if (resist >= 1) return;
+  if (resist > 0) incoming = { ...incoming, remainingMs: incoming.remainingMs * (1 - resist) };
+
   const existing = enemy.statuses.find((s) => s.kind === incoming.kind);
   if (!existing) {
     enemy.statuses.push({ ...incoming, accumulator: 0 });
@@ -195,7 +227,13 @@ export function applyStatus(
   if (incoming.kind === 'echo') {
     // Echo はスタックする。上限までは重ねられ、時間は最新で更新
     existing.stacks = Math.min(echoMaxStacks, (existing.stacks ?? 1) + (incoming.stacks ?? 1));
-    existing.dps = Math.max(existing.dps ?? 0, incoming.dps ?? 0);
+    // 毎秒ダメージを更新したときは**貢献者も一緒に**更新する。
+    // 片方だけ動かすと、他人の火力が別人の貢献度に積まれる
+    if ((incoming.dps ?? 0) > (existing.dps ?? 0)) {
+      existing.dps = incoming.dps ?? 0;
+      if (incoming.sourceId === undefined) delete existing.sourceId;
+      else existing.sourceId = incoming.sourceId;
+    }
     existing.remainingMs = Math.max(existing.remainingMs, incoming.remainingMs);
     return;
   }

@@ -124,6 +124,90 @@ export const STAGE_PLANS: Record<string, StagePlan> = {
       { idolId: 'D1', x: 3, y: 0 },
     ],
   },
+  // S8 は トコヤミ（攻撃速度デバフ）が主役。デバフ源を早く抜きたいので、
+  // 合流点の手前に単体火力を寄せる
+  S8: {
+    party: ['V1', 'D3', 'Vi1', 'V3', 'Vi3'],
+    center: 'V1',
+    placements: [
+      { idolId: 'V1', x: 9, y: 2, upgradeTo: 6, awakening: 'A' },
+      { idolId: 'V1', x: 9, y: 6, upgradeTo: 6, awakening: 'A' },
+      { idolId: 'V3', x: 11, y: 2, upgradeTo: 6, awakening: 'A' },
+      { idolId: 'V3', x: 11, y: 6, upgradeTo: 6, awakening: 'A' },
+      { idolId: 'D3', x: 5, y: 3, upgradeTo: 6, awakening: 'A' },
+      { idolId: 'D3', x: 5, y: 5, upgradeTo: 6, awakening: 'A' },
+      { idolId: 'Vi3', x: 13, y: 2, upgradeTo: 4, awakening: 'B' },
+      { idolId: 'Vi3', x: 13, y: 6, upgradeTo: 4, awakening: 'B' },
+      { idolId: 'Vi1', x: 4, y: 2, upgradeTo: 4, awakening: 'B' },
+      { idolId: 'Vi1', x: 4, y: 6, upgradeTo: 4, awakening: 'B' },
+    ],
+  },
+  // S9 は雨で射程 -10%。届かないぶんを配置の密度で補う
+  S9: {
+    party: ['V1', 'D3', 'Vi1', 'V3', 'Vi3'],
+    center: 'V1',
+    placements: [
+      { idolId: 'V1', x: 9, y: 2, upgradeTo: 6, awakening: 'A' },
+      { idolId: 'V1', x: 9, y: 6, upgradeTo: 6, awakening: 'A' },
+      { idolId: 'V3', x: 11, y: 2, upgradeTo: 6, awakening: 'A' },
+      { idolId: 'V3', x: 11, y: 6, upgradeTo: 6, awakening: 'A' },
+      { idolId: 'Vi1', x: 5, y: 3, upgradeTo: 4, awakening: 'A' },
+      { idolId: 'Vi1', x: 5, y: 5, upgradeTo: 4, awakening: 'A' },
+      { idolId: 'Vi3', x: 13, y: 2, upgradeTo: 4, awakening: 'B' },
+      { idolId: 'Vi3', x: 13, y: 6, upgradeTo: 4, awakening: 'B' },
+      { idolId: 'D3', x: 4, y: 2, upgradeTo: 4, awakening: 'A' },
+      { idolId: 'D3', x: 4, y: 6, upgradeTo: 4, awakening: 'A' },
+    ],
+  },
+  // S10 は総合力テスト。これまでの敵が全部出るので、答えも全部並べる
+  S10: {
+    party: ['V1', 'D3', 'Vi1', 'V3', 'Vi3'],
+    center: 'V1',
+    placements: [
+      { idolId: 'V1', x: 9, y: 2, upgradeTo: 6, awakening: 'A' },
+      { idolId: 'V1', x: 9, y: 6, upgradeTo: 6, awakening: 'A' },
+      { idolId: 'V3', x: 11, y: 2, upgradeTo: 6, awakening: 'A' },
+      { idolId: 'V3', x: 11, y: 6, upgradeTo: 6, awakening: 'A' },
+      { idolId: 'Vi3', x: 13, y: 2, upgradeTo: 6, awakening: 'B' },
+      { idolId: 'Vi3', x: 13, y: 6, upgradeTo: 6, awakening: 'B' },
+      { idolId: 'D3', x: 5, y: 3, upgradeTo: 4, awakening: 'A' },
+      { idolId: 'D3', x: 5, y: 5, upgradeTo: 4, awakening: 'A' },
+      { idolId: 'Vi1', x: 4, y: 2, upgradeTo: 4, awakening: 'B' },
+      { idolId: 'Vi1', x: 4, y: 6, upgradeTo: 4, awakening: 'B' },
+    ],
+  },
+  // B1 はボスの属性が 3 すくみを一周する。**3 系統を混ぜる**のが答え
+  B1: {
+    party: ['V1', 'D3', 'Vi1', 'V3', 'Vi3'],
+    center: 'V1',
+    placements: [
+      { idolId: 'V1', x: 9, y: 4, upgradeTo: 6, awakening: 'A' },
+      { idolId: 'V3', x: 11, y: 4, upgradeTo: 6, awakening: 'A' },
+      { idolId: 'V1', x: 7, y: 4, upgradeTo: 6, awakening: 'A' },
+      { idolId: 'Vi3', x: 13, y: 4, upgradeTo: 4, awakening: 'B' },
+      { idolId: 'D3', x: 4, y: 6, upgradeTo: 4, awakening: 'A' },
+      { idolId: 'Vi1', x: 9, y: 2, upgradeTo: 4, awakening: 'B' },
+      { idolId: 'Vi1', x: 11, y: 2, upgradeTo: 4, awakening: 'B' },
+      { idolId: 'D3', x: 2, y: 6, upgradeTo: 4, awakening: 'A' },
+    ],
+  },
+  // B2 は 1 レーンが 4 秒沈黙する。**分散**しないと止まっているあいだに抜かれる
+  B2: {
+    party: ['V1', 'D3', 'Vi1', 'V3', 'Vi3'],
+    center: 'V1',
+    placements: [
+      { idolId: 'V1', x: 9, y: 2, upgradeTo: 6, awakening: 'A' },
+      { idolId: 'V1', x: 9, y: 6, upgradeTo: 6, awakening: 'A' },
+      { idolId: 'V3', x: 11, y: 2, upgradeTo: 6, awakening: 'A' },
+      { idolId: 'V3', x: 11, y: 6, upgradeTo: 6, awakening: 'A' },
+      { idolId: 'Vi3', x: 13, y: 2, upgradeTo: 6, awakening: 'B' },
+      { idolId: 'Vi3', x: 13, y: 6, upgradeTo: 6, awakening: 'B' },
+      { idolId: 'D3', x: 5, y: 3, upgradeTo: 4, awakening: 'A' },
+      { idolId: 'D3', x: 5, y: 5, upgradeTo: 4, awakening: 'A' },
+      { idolId: 'Vi1', x: 2, y: 2, upgradeTo: 4, awakening: 'B' },
+      { idolId: 'Vi1', x: 2, y: 6, upgradeTo: 4, awakening: 'B' },
+    ],
+  },
 };
 
 export const PLAN_STAGES = Object.keys(STAGE_PLANS);

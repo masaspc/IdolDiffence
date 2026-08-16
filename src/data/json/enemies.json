@@ -65,7 +65,10 @@
     "flying": false,
     "radius": 0.32,
     "traits": {
-      "healAura": { "radius": 2.4, "percentPerSec": 0.03 }
+      "healAura": {
+        "radius": 2.4,
+        "percentPerSec": 0.03
+      }
     }
   },
   "e_shield": {
@@ -93,7 +96,10 @@
     "flying": false,
     "radius": 0.34,
     "traits": {
-      "onDeathSpawn": { "enemy": "e_swarm", "count": 3 }
+      "onDeathSpawn": {
+        "enemy": "e_swarm",
+        "count": 3
+      }
     }
   },
   "e_drainer": {
@@ -107,7 +113,60 @@
     "flying": false,
     "radius": 0.4,
     "traits": {
-      "drainAura": { "radius": 3.0, "speedMul": 0.75 }
+      "drainAura": {
+        "radius": 3.0,
+        "speedMul": 0.75
+      }
+    }
+  },
+  "e_boss_utsushi": {
+    "name": "偽アカウント",
+    "attr": "glare",
+    "hp": 12000,
+    "def": 160,
+    "speed": 0.6,
+    "leak": 45,
+    "bounty": 120,
+    "radius": 0.62,
+    "traits": {
+      "boss": true,
+      "resist": {
+        "stun": 0.7,
+        "charm": 1,
+        "slow": 0.3
+      },
+      "phases": [
+        {
+          "at": 0.66,
+          "attr": "noise"
+        },
+        {
+          "at": 0.33,
+          "attr": "silence"
+        }
+      ]
+    }
+  },
+  "e_boss_hagoromo": {
+    "name": "強制ログアウト",
+    "attr": "silence",
+    "hp": 18000,
+    "def": 200,
+    "speed": 0.4,
+    "leak": 40,
+    "bounty": 150,
+    "radius": 0.7,
+    "traits": {
+      "boss": true,
+      "resist": {
+        "stun": 0.7,
+        "charm": 1,
+        "slow": 0.3
+      },
+      "silence": {
+        "everyMs": 9000,
+        "durationMs": 4000
+      }
     }
   }
 }

@@ -13,7 +13,7 @@
 import { describe, expect, it } from 'vitest';
 import { createWorld, type BattleMeta } from '../sim/world';
 import { autoplay } from '../sim/autoplay';
-import { getIdol, rosterIds, stageOrder } from '../data';
+import { bossStageIds, getIdol, mainStageIds, rosterIds, stageOrder } from '../data';
 import { levelAtkMultiplier } from '../meta/progression';
 import { PLAN_STAGES, STAGE_PLANS } from './plans';
 
@@ -32,19 +32,24 @@ function metaAt(stageId: string, level: number): BattleMeta {
   };
 }
 
-function wins(stageId: string, level: number, placements = true): boolean {
+function play(stageId: string, level: number, placements = true) {
   const plan = STAGE_PLANS[stageId];
   const world = createWorld(stageId, SEED, metaAt(stageId, level));
   const { snapshot } = autoplay(world, {
     plan: placements ? (plan?.placements ?? []) : [],
     useSpecial: true,
   });
-  return snapshot.won;
+  return snapshot;
+}
+
+function wins(stageId: string, level: number, placements = true): boolean {
+  return play(stageId, level, placements).won;
 }
 
 describe('バランス', () => {
   it('参照盤面はすべてのステージに用意されている', () => {
-    expect(PLAN_STAGES).toEqual([...stageOrder]);
+    // 並び順は問わない（表示順とファイル内の順序は別物）。**漏れが無いこと**だけ見る
+    expect([...PLAN_STAGES].sort()).toEqual([...stageOrder].sort());
     for (const stageId of stageOrder) {
       const plan = STAGE_PLANS[stageId];
       expect(plan?.placements.length ?? 0).toBeGreaterThan(0);
@@ -100,4 +105,41 @@ describe('バランス', () => {
     },
     TIMEOUT,
   );
+
+  it(
+    '最終盤（S8〜S10）は Lv15 では届かず、Lv25 で届く',
+    () => {
+      for (const stageId of ['S8', 'S9', 'S10']) {
+        expect(wins(stageId, 15), `${stageId} が Lv15 で勝ててしまう`).toBe(false);
+        expect(wins(stageId, 25), `${stageId} が Lv25 で勝てない`).toBe(true);
+      }
+    },
+    TIMEOUT,
+  );
+
+  it(
+    'ボスは Lv30 なら取りこぼさず倒し切れる',
+    () => {
+      // ボスの leak は重い（45 / 40）。素通しすると観客が大きく減るので、
+      // **観客 100 = ボスを 1 体も通していない**の意味になる
+      for (const stageId of bossStageIds) {
+        expect(play(stageId, 30).audience, `${stageId} が Lv30 でも取りこぼす`).toBe(100);
+      }
+    },
+    TIMEOUT,
+  );
+
+  it(
+    '最終ボス（B2）は Lv10 では完走できない',
+    () => {
+      expect(wins('B2', 10)).toBe(false);
+    },
+    TIMEOUT,
+  );
+
+  it('ボスは寄り道と最後に置かれ、本編の前提にはならない', () => {
+    // B1 をクリアしないと S7 が開かない、という形にはしない
+    expect(bossStageIds).toEqual(['B1', 'B2']);
+    expect(mainStageIds).toHaveLength(10);
+  });
 });

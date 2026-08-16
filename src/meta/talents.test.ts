@@ -70,10 +70,24 @@ describe('ボードの形', () => {
     }
   });
 
-  it('全ノードを取るより、稼げるポイントのほうが少ない（全部は取れない）', () => {
+  it('実績だけでは全ノードに届かない（序盤はどこに寄せるかを選ぶ）', () => {
     const everything = talentIds.reduce((sum, id) => sum + getTalent(id).cost, 0);
-    const maxPoints = totalTalentPoints(cleared(stageOrder.length, true));
-    expect(maxPoints).toBeLessThan(everything);
+    // ランク 1（周回ゼロ）で、全ステージをランク S でクリアした状態
+    const maxFromStages = totalTalentPoints(cleared(stageOrder.length, true));
+    expect(maxFromStages).toBeLessThan(everything);
+  });
+
+  it('ランクを上げてもキーストーンは片方しか取れない', () => {
+    // プロデューサーランク（+2/Lv）でポイントの制約はいずれ外れる。
+    // そこから先の「選ばせる」を担うのは**キーストーンの排他**なので、
+    // ポイントが余っても両取りできないことを固定しておく
+    const rich: SaveData = { ...cleared(stageOrder.length, true), totalExp: 10_000_000 };
+    expect(remainingTalentPoints(rich)).toBeGreaterThan(60);
+
+    let save = takeChain(rich, 'vo_k1');
+    expect(talentBlocker(save, 'vo_k2')).toBe('keystone-taken');
+    save = takeChain(save, 'da_k1');
+    expect(talentBlocker(save, 'da_k2')).toBe('keystone-taken');
   });
 });
 

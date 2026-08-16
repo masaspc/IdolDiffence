@@ -4,7 +4,11 @@
  * 「次に何をすればいいか」が一目で分かることを最優先にする。
  * レベルアップ可能なキャラにはバッジを出す（06-ui-ux.md 6.1）。
  */
+import { useState } from 'react';
 import { getIdol, getSong, getStage, requiredStage, stageOrder } from '../data';
+import { MAX_STAR, starRuleText } from '../sim/star';
+import { MAX_SONG_LEVEL, rankOf, rankProgress, songLevelOf } from '../meta/rank';
+import { bestStarOf, maxSelectableStar } from '../meta/progression';
 import { remainingTalentPoints } from '../meta/talents';
 import {
   canEvolve,
@@ -53,7 +57,7 @@ interface HomeScreenProps {
   onOpenParty: () => void;
   onOpenTalents: () => void;
   onOpenCostumes: () => void;
-  onStart: (stageId: string) => void;
+  onStart: (stageId: string, star: number) => void;
   lastResult: {
     won: boolean;
     audience: number;
@@ -88,6 +92,13 @@ export function HomeScreen({
         <div className="funds">
           <span className="funds-label">資金</span>
           <span className="funds-value">¥{save.funds.toLocaleString()}</span>
+        </div>
+        <div className="rank-badge">
+          <span className="funds-label">プロデューサーランク</span>
+          <span className="funds-value">{rankOf(save.totalExp)}</span>
+          <span className="rank-bar">
+            <span style={{ width: `${rankProgress(save.totalExp).ratio * 100}%` }} />
+          </span>
         </div>
       </header>
 
@@ -238,39 +249,88 @@ export function HomeScreen({
       <section className="stage-select">
         <h2>ライブ</h2>
         <div className="stage-list">
-          {stageOrder.map((stageId) => {
-            const stage = getStage(stageId);
-            const song = getSong(stage.song);
-            const progress = save.stageProgress[stageId];
-            const gate = requiredStage(stageId);
-            const locked = gate !== null && !save.stageProgress[gate]?.cleared;
-
-            return (
-              <button
-                key={stageId}
-                type="button"
-                className={`stage-card${locked ? ' is-locked' : ''}`}
-                onClick={() => onStart(stageId)}
-                disabled={locked}
-              >
-                <span className="stage-no">{stageId}</span>
-                <span className="stage-name">{stage.name}</span>
-                <span className="stage-meta">
-                  {locked
-                    ? `${getStage(gate).name} をクリアすると解放`
-                    : progress?.cleared
-                      ? `クリア済み・最高観客 ${progress.bestAudience}`
-                      : '未クリア'}
-                </span>
-                <span className="stage-song">
-                  ♪ {song.name}・{song.bpm} BPM・{stage.lanes.length} レーン
-                  {progress ? ` ・ ${progress.plays} 回` : ''}
-                </span>
-              </button>
-            );
-          })}
+          {stageOrder.map((stageId) => (
+            <StageCard key={stageId} save={save} stageId={stageId} onStart={onStart} />
+          ))}
         </div>
       </section>
+    </div>
+  );
+}
+
+interface StageCardProps {
+  save: SaveData;
+  stageId: string;
+  onStart: (stageId: string, star: number) => void;
+}
+
+/**
+ * ステージ 1 枚。★を選んでから出撃する。
+ *
+ * ★は**1 つずつしか開かない**（`maxSelectableStar`）。まとめて開くと
+ * いきなり ★10 に挑んで「何が足りないのか分からないまま負ける」ことになる。
+ */
+function StageCard({ save, stageId, onStart }: StageCardProps): React.JSX.Element {
+  const stage = getStage(stageId);
+  const song = getSong(stage.song);
+  const progress = save.stageProgress[stageId];
+  const gate = requiredStage(stageId);
+  const locked = gate !== null && !save.stageProgress[gate]?.cleared;
+
+  const best = bestStarOf(save, stageId);
+  const maxStar = maxSelectableStar(save, stageId);
+  // 既定は**到達済みの最高★**。1 に戻すと、周回のたびに毎回引き上げ直すことになる。
+  // 1 段上（未到達）を既定にしないのは、周回の目的がたいてい「稼ぎ」だから
+  const [star, setStar] = useState(Math.max(1, best));
+  const chosen = Math.min(star, maxStar);
+  const rule = starRuleText(chosen);
+  const songLevel = songLevelOf(save, stage.song);
+
+  return (
+    <div className={`stage-card${locked ? ' is-locked' : ''}${stage.boss ? ' is-boss' : ''}`}>
+      <div className="stage-head">
+        <span className="stage-no">{stageId}</span>
+        <span className="stage-name">{stage.name}</span>
+        {stage.boss && <span className="boss-chip">ボス</span>}
+      </div>
+      <span className="stage-meta">
+        {locked
+          ? `${getStage(gate).name} をクリアすると解放`
+          : progress?.cleared
+            ? `クリア済み・最高観客 ${progress.bestAudience}・最高 ★${best}`
+            : '未クリア'}
+      </span>
+      <span className="stage-song">
+        ♪ {song.name}（Lv{songLevel}
+        {songLevel >= MAX_SONG_LEVEL ? ' 上限' : ''}）・{song.bpm} BPM・
+        {stage.lanes.length} レーン{progress ? ` ・ ${progress.plays} 回` : ''}
+      </span>
+      {stage.modifiers.note && <span className="stage-gimmick">{stage.modifiers.note}</span>}
+
+      {!locked && (
+        <>
+          <div className="star-picker">
+            <span className="star-label">難度</span>
+            <input
+              type="range"
+              min={1}
+              max={maxStar}
+              value={chosen}
+              disabled={maxStar === 1}
+              onChange={(event) => setStar(Number(event.target.value))}
+              aria-label={`${stage.name} の難度`}
+            />
+            <span className="star-value">
+              ★{chosen}
+              <span className="star-max"> / {MAX_STAR}</span>
+            </span>
+          </div>
+          {rule && <span className="star-rule">★{chosen} の追加ルール: {rule}</span>}
+          <button type="button" className="stage-go" onClick={() => onStart(stageId, chosen)}>
+            ★{chosen} で出撃
+          </button>
+        </>
+      )}
     </div>
   );
 }

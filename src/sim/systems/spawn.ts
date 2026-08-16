@@ -34,7 +34,7 @@ export function waveHpMultiplier(waveIndex: number): number {
  * 前のウェーブの敵が湧き続ける（最悪、大サビを越えて曲の外へこぼれる）。
  * 間隔を `interval / tempo` にすると、密度だけが変わり占有する小節数は保たれる。
  */
-export function buildSpawnSchedule(stage: Stage, song: Song): ScheduledSpawn[] {
+export function buildSpawnSchedule(stage: Stage, song: Song, countMul = 1): ScheduledSpawn[] {
   const msPerBar = (60000 / song.bpm) * song.beatsPerBar;
   const tempo = tempoMul(song);
   const schedule: ScheduledSpawn[] = [];
@@ -44,10 +44,13 @@ export function buildSpawnSchedule(stage: Stage, song: Song): ScheduledSpawn[] {
 
   stage.waves.forEach((wave, waveIndex) => {
     for (const spawn of wave.spawns) {
-      const scaled = spawn.count * tempo + countCarry;
+      // ★の密度係数はテンポ正規化と**同じ器**に掛ける。
+      // 別々に丸めると端数が二重に出て、総数が狙いからずれる
+      const scaled = spawn.count * tempo * countMul + countCarry;
       const count = Math.max(1, Math.round(scaled));
       countCarry = scaled - count;
-      const interval = spawn.intervalBars / tempo;
+      // 間隔も同じだけ縮める。数だけ増やすとウェーブの尻からはみ出す
+      const interval = spawn.intervalBars / (tempo * countMul);
 
       for (let i = 0; i < count; i++) {
         const bar = waveStartBar + spawn.bar + i * interval;
@@ -72,9 +75,9 @@ export function buildSpawnSchedule(stage: Stage, song: Song): ScheduledSpawn[] {
  *
  * @returns 問題の説明。空配列なら OK
  */
-export function checkScheduleFitsWaves(stage: Stage, song: Song): string[] {
+export function checkScheduleFitsWaves(stage: Stage, song: Song, countMul = 1): string[] {
   const msPerBar = (60000 / song.bpm) * song.beatsPerBar;
-  const schedule = buildSpawnSchedule(stage, song);
+  const schedule = buildSpawnSchedule(stage, song, countMul);
   const errors: string[] = [];
 
   const waveEndBars: number[] = [];
