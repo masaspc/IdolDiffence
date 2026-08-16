@@ -14,7 +14,7 @@
  */
 import { withinRange } from '../../core/vec';
 import type { IdolType } from '../../data/schema/common';
-import type { UnitTag } from '../../data/schema/idol';
+import type { AffinityDef, UnitTag } from '../../data/schema/idol';
 import type { EntityId } from '../entities';
 
 /** 配置マスとして隣り合っているとみなす距離 */
@@ -22,7 +22,13 @@ export const ADJACENT = 2.25;
 /** 三角形の判定はやや緩く見る。3 マスが密に固まる盤面は多くない */
 export const TRIO_RANGE = 3.2;
 
-export type FormationId = 'pair_type' | 'pair_tag' | 'trio' | 'line' | 'center_guard';
+export type FormationId =
+  | 'pair_type'
+  | 'pair_tag'
+  | 'trio'
+  | 'line'
+  | 'center_guard'
+  | 'affinity';
 
 export interface FormationHit {
   id: FormationId;
@@ -55,6 +61,8 @@ export interface FormationUnit {
   cell: { x: number; y: number };
   pos: { x: number; y: number };
   tags: readonly UnitTag[];
+  /** 名指しの相性（04-content.md 4.1）。原作の関係をそのまま盤面へ持ってきたもの */
+  affinity: readonly AffinityDef[];
 }
 
 const EMPTY: UnitFormationMods = { atkMul: 1, attackSpeedMul: 1, rangeMul: 1 };
@@ -108,6 +116,30 @@ export function evaluateFormations(
       unitIds: [a.id, b.id],
     });
   });
+
+  // --- 名指しの相性: 原作の関係。**片側にだけ**掛かる ---
+  // 「FUSHI はかぐやが苦手」は FUSHI 側の事情なので、かぐやの出力は下がらない。
+  // 双方向にすると、悪い相性が事実上「2 人ぶんの罰」になって置く気が失せる
+  for (const unit of units) {
+    for (const rule of unit.affinity) {
+      const partners = units.filter(
+        (other) =>
+          other.id !== unit.id &&
+          rule.with.includes(other.idolId) &&
+          withinRange(unit.pos, other.pos, ADJACENT),
+      );
+      if (partners.length === 0) continue;
+      // 相手が何人いても 1 回だけ。悪い相性が人数ぶん重なると即死級になる
+      if (rule.atkPct !== 0) mods(unit.id).atkMul *= 1 + rule.atkPct;
+      if (rule.attackSpeedPct !== 0) mods(unit.id).attackSpeedMul *= 1 + rule.attackSpeedPct;
+      hits.push({
+        id: 'affinity',
+        name: rule.name,
+        desc: rule.desc,
+        unitIds: [unit.id, ...partners.map((p) => p.id)],
+      });
+    }
+  }
 
   // --- 3 系統の三角形: 3 人の攻撃速度 +15%、全体の月華蓄積 +10% ---
   for (let i = 0; i < units.length; i++) {

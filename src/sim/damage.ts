@@ -21,14 +21,25 @@ const TYPE_CHART: Record<IdolType, Record<Attribute, number>> = {
   visual: { silence: 1.0, noise: 0.9, glare: 1.2 },
 };
 
-export function typeMultiplier(type: IdolType, attr: Attribute): number {
-  return TYPE_CHART[type][attr];
+/** 常に有利として扱うときの倍率。3 すくみの「有利」と同じ値にそろえる */
+export const ALWAYS_EFFECTIVE_MUL = 1.2;
+
+export function typeMultiplier(
+  type: IdolType,
+  attr: Attribute,
+  alwaysEffective = false,
+): number {
+  return alwaysEffective ? ALWAYS_EFFECTIVE_MUL : TYPE_CHART[type][attr];
 }
 
 export type Effectiveness = 'strong' | 'neutral' | 'weak';
 
-export function effectivenessOf(type: IdolType, attr: Attribute): Effectiveness {
-  const mul = typeMultiplier(type, attr);
+export function effectivenessOf(
+  type: IdolType,
+  attr: Attribute,
+  alwaysEffective = false,
+): Effectiveness {
+  const mul = typeMultiplier(type, attr, alwaysEffective);
   if (mul > 1) return 'strong';
   if (mul < 1) return 'weak';
   return 'neutral';
@@ -47,6 +58,8 @@ export interface DamageInput {
   critDmg: number;
   /** 攻撃力バフの合算（加算プール） */
   atkBonus?: number;
+  /** 3 すくみを無視して常に有利。隠しキャラ MASA だけが持つ */
+  alwaysEffective?: boolean;
 }
 
 export interface DamageTarget {
@@ -67,7 +80,7 @@ export function computeDamage(
   target: DamageTarget,
   rng: Rng,
 ): DamageResult {
-  const typeMul = typeMultiplier(attacker.type, target.attr);
+  const typeMul = typeMultiplier(attacker.type, target.attr, attacker.alwaysEffective);
   const crit = rng.chance(attacker.critRate);
   const critMul = crit ? 1.5 + attacker.critDmg : 1;
 
@@ -84,6 +97,6 @@ export function computeDamage(
     // 内部計算は浮動小数のまま保持し、表示だけ丸める
     amount,
     crit,
-    effectiveness: effectivenessOf(attacker.type, target.attr),
+    effectiveness: effectivenessOf(attacker.type, target.attr, attacker.alwaysEffective),
   };
 }

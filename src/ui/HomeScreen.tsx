@@ -5,10 +5,11 @@
  * レベルアップ可能なキャラにはバッジを出す（06-ui-ux.md 6.1）。
  */
 import { useState } from 'react';
-import { getIdol, getSong, getStage, requiredStage, stageOrder } from '../data';
+import { useSecretCode } from './useSecretCode';
+import { getIdol, getSong, getStage, requiredStage, SECRET_IDS, stageOrder } from '../data';
 import { MAX_STAR, starRuleText } from '../sim/star';
 import { MAX_SONG_LEVEL, rankOf, rankProgress, songLevelOf } from '../meta/rank';
-import { bestStarOf, maxSelectableStar } from '../meta/progression';
+import { bestStarOf, isUnlocked, maxSelectableStar } from '../meta/progression';
 import { remainingTalentPoints } from '../meta/talents';
 import {
   canEvolve,
@@ -58,6 +59,8 @@ interface HomeScreenProps {
   onOpenTalents: () => void;
   onOpenCostumes: () => void;
   onStart: (stageId: string, star: number) => void;
+  /** 隠しキャラの合言葉が揃ったとき（`ui/useSecretCode.ts`） */
+  onSecret: (idolId: string) => void;
   lastResult: {
     won: boolean;
     audience: number;
@@ -74,9 +77,13 @@ export function HomeScreen({
   onOpenTalents,
   onOpenCostumes,
   onStart,
+  onSecret,
   lastResult,
 }: HomeScreenProps): React.JSX.Element {
   const roster = unlockedIds(save);
+  // 全部解放済みなら監視を止める。押しても打っても何も起きない状態で
+  // キー入力を拾い続ける理由が無い
+  const { onTitleTap } = useSecretCode(!SECRET_IDS.every((id) => isUnlocked(save, id)), onSecret);
   // 進化は一度きりで見落としやすいので、レッスンとは別にバッジを出す
   const upgradable = roster.filter((id) => canLevelUp(save, id) || canEvolve(save, id)).length;
   const { party, center } = normalizeParty(save);
@@ -86,7 +93,9 @@ export function HomeScreen({
     <div className="home">
       <header className="home-head">
         <div>
-          <h1>超かぐや姫！</h1>
+          {/* タイトルは隠しキャラの入口も兼ねる（`ui/useSecretCode.ts`）。
+              見た目は変えない ―― 押せそうに見えたら隠れていない */}
+          <h1 onClick={onTitleTap}>超かぐや姫！</h1>
           <p className="home-sub">IDOL DIFFENCE — ホーム</p>
         </div>
         <div className="funds">

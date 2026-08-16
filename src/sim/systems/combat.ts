@@ -74,6 +74,7 @@ export function updateUnit(unit: Unit, ctx: CombatContext, dtMs: number): void {
         type: unit.type,
         critRate: unit.critRate,
         critDmg: unit.critDmg,
+        alwaysEffective: unit.attack.alwaysEffective,
       },
       {
         attr: victim.attr,

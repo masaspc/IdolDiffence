@@ -20,6 +20,7 @@ function unit(idolId: string, x: number, y: number): FormationUnit {
     cell: { x, y },
     pos: { x: x + 0.5, y: y + 0.5 },
     tags: def.tags,
+    affinity: def.affinity,
   };
 }
 

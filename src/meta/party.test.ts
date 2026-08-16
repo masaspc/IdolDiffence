@@ -13,7 +13,7 @@ import {
   toggleParty,
   unlockedIds,
 } from './progression';
-import { PARTY_SIZE, rosterIds } from '../data';
+import { canonIds, PARTY_SIZE, rosterIds, SECRET_IDS, stageOrder } from '../data';
 import { createWorld } from '../sim/world';
 import { runHeadless } from '../core/loop';
 
@@ -38,9 +38,18 @@ describe('解放条件', () => {
     expect(isUnlocked(cleared('S1'), 'V2')).toBe(true);
   });
 
-  it('全ステージをクリアすると 9 人そろう', () => {
-    const save = cleared('S1', 'S2', 'S3', 'S4', 'S5');
-    expect(unlockedIds(save)).toHaveLength(rosterIds.length);
+  it('本編をクリアすると原作の 12 人がそろう', () => {
+    const save = cleared('S1', 'S2', 'S3', 'S4', 'S5', 'S6', 'S7');
+    expect(unlockedIds(save)).toEqual([...canonIds]);
+  });
+
+  it('隠しキャラはステージをいくら進めても出てこない', () => {
+    // ステージ解放の表に混ぜてしまうと、ホームに「○○をクリアすると解放」と
+    // 出てしまい隠れていない。鍵は合言葉だけ（`meta/secrets.ts`）
+    const save = cleared(...stageOrder);
+    for (const id of SECRET_IDS) {
+      expect(isUnlocked(save, id), `${id} がステージで解放されている`).toBe(false);
+    }
   });
 });
 

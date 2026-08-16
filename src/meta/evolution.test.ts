@@ -16,7 +16,7 @@ import {
   evolvedForBattle,
   isEvolved,
 } from './evolution';
-import { getIdol, rosterIds } from '../data';
+import { canonIds, getIdol } from '../data';
 import { createWorld } from '../sim/world';
 import { STARTER_IDS } from './save';
 
@@ -41,8 +41,8 @@ describe('データ', () => {
     }
   });
 
-  it('進化を持つのは初期メンバーだけ（後発組は素で強い）', () => {
-    const withEvolution = rosterIds.filter((id) => evolutionOf(id) !== null);
+  it('原作メンバーで進化を持つのは初期の 3 人だけ（後発組は素で強い）', () => {
+    const withEvolution = canonIds.filter((id) => evolutionOf(id) !== null);
     expect(withEvolution).toEqual([...STARTER_IDS]);
   });
 

@@ -313,6 +313,7 @@ function resolveAttack(
     execute: def.attack.execute,
     knockback: bestKnockback(def.attack.knockback, branches),
     resetCooldownOnKill: branches.some((b) => b.mods.resetCooldownOnKill === true),
+    alwaysEffective: def.attack.alwaysEffective,
     onHit,
   };
 }
