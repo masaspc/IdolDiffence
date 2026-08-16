@@ -120,6 +120,7 @@ describe('マイグレーション', () => {
     expect(parsed.data.equipped).toEqual({});
     expect(parsed.data.totalExp).toBe(0);
     expect(parsed.data.songExp).toEqual({});
+    expect(parsed.data.secrets).toEqual([]);
     // ★だけは遡って引き継ぐ。クリア済み = ★1 到達
     expect(parsed.data.bestStar).toEqual({ S1: 1 });
   });

@@ -25,6 +25,7 @@ import {
   unequipSlot,
 } from '../meta/costumes';
 import { soloPartForStage } from '../meta/rank';
+import { unlockSecret } from '../meta/secrets';
 import { randomSeed } from '../core/rng';
 import {
   DEFAULT_RNG_STATE,
@@ -158,6 +159,7 @@ export function App(): React.JSX.Element {
       save={save}
       lastResult={lastResult}
       onLevelUp={handleLevelUp}
+      onSecret={(idolId) => setSave((current) => unlockSecret(current, idolId))}
       onEvolve={handleEvolve}
       onOpenParty={() => setScreen('party')}
       onOpenTalents={() => setScreen('talents')}

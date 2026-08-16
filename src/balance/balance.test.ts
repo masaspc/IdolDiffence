@@ -13,7 +13,15 @@
 import { describe, expect, it } from 'vitest';
 import { createWorld, type BattleMeta } from '../sim/world';
 import { autoplay } from '../sim/autoplay';
-import { bossStageIds, getIdol, mainStageIds, rosterIds, stageOrder } from '../data';
+import {
+  bossStageIds,
+  canonIds,
+  getIdol,
+  mainStageIds,
+  rosterIds,
+  SECRET_IDS,
+  stageOrder,
+} from '../data';
 import { levelAtkMultiplier } from '../meta/progression';
 import { PLAN_STAGES, STAGE_PLANS } from './plans';
 
@@ -47,6 +55,47 @@ function wins(stageId: string, level: number, placements = true): boolean {
 }
 
 describe('バランス', () => {
+  it('参照盤面は原作の 12 人だけで組む', () => {
+    // 隠しキャラ（MASA）を混ぜると、持っていない人にとっての難度が測れなくなる。
+    // 難度の基準は**誰でも到達できる戦力**で置く
+    for (const stageId of stageOrder) {
+      const plan = STAGE_PLANS[stageId];
+      for (const id of plan?.party ?? []) {
+        expect(canonIds, `${stageId} の参照盤面に ${id} が入っている`).toContain(id);
+      }
+      for (const placement of plan?.placements ?? []) {
+        expect(SECRET_IDS, `${stageId} の配置に隠しキャラが入っている`).not.toContain(
+          placement.idolId,
+        );
+      }
+    }
+  });
+
+  it(
+    '隠しキャラを入れると難度の曲線が消える（だから基準には入れない）',
+    () => {
+      // MASA は「全部やり切った人への上がり」。曲線の外にいることを**測って**確かめる。
+      // ここが崩れる = 最強のつもりが最強でない、か、基準に混ざっている
+      const plan = STAGE_PLANS['S10'];
+      if (!plan) throw new Error('S10 の参照盤面が無い');
+      const world = createWorld('S10', SEED, {
+        ...metaAt('S10', 1),
+        party: [...plan.party.slice(0, 4), 'GM'],
+        center: 'GM',
+      });
+      const { snapshot } = autoplay(world, {
+        // 半分を MASA に差し替える
+        plan: plan.placements.map((p, i) => (i % 2 === 0 ? { ...p, idolId: 'GM' } : p)),
+        useSpecial: true,
+      });
+      // 原作勢は Lv20 で初めて完走する（下の「最終盤」の検証）。MASA は Lv1 で満点
+      expect(wins('S10', 1)).toBe(false);
+      expect(snapshot.won).toBe(true);
+      expect(snapshot.audience).toBe(100);
+    },
+    TIMEOUT,
+  );
+
   it('参照盤面はすべてのステージに用意されている', () => {
     // 並び順は問わない（表示順とファイル内の順序は別物）。**漏れが無いこと**だけ見る
     expect([...PLAN_STAGES].sort()).toEqual([...stageOrder].sort());

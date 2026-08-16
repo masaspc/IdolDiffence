@@ -12,7 +12,7 @@ import { costumeRaritySchema, costumeSlotSchema, costumeStatSchema } from '../da
 import { seedFromString } from '../core/rng';
 
 export const SAVE_KEY = 'idoldiffence.save';
-export const CURRENT_VERSION = 6;
+export const CURRENT_VERSION = 7;
 
 /**
  * 生成された衣装 1 着（03-progression.md ⑨）。
@@ -85,6 +85,14 @@ export const saveSchema = z.object({
   totalExp: z.number().nonnegative(),
   /** 楽曲 ID -> 累計習熟度（⑩）。レベルはここから導く */
   songExp: z.record(z.string(), z.number().nonnegative()),
+  /**
+   * 解放済みの隠し要素（いまは隠しキャラの ID だけ）。
+   *
+   * 解放済みキャラの一覧ではなく**隠し要素の鍵**を持つ。通常のメンバーは
+   * ステージ進捗から毎回導いており（`isUnlocked`）、解放結果を保存すると
+   * 条件を変えたときに古いセーブだけ食い違う
+   */
+  secrets: z.array(z.string()),
 });
 
 export type SaveData = z.infer<typeof saveSchema>;
@@ -118,6 +126,7 @@ export function createNewSave(rngState: number = DEFAULT_RNG_STATE): SaveData {
     bestStar: {},
     totalExp: 0,
     songExp: {},
+    secrets: [],
   };
 }
 
@@ -163,6 +172,10 @@ const migrations: Record<number, Migration> = {
     totalExp: 0,
     songExp: {},
   }),
+  // v6 -> v7: 原作の登場人物 3 人（真実・犬DOGE・FUSHI）と隠しキャラを追加した。
+  // 3 人はステージ進捗から解放されるので遡って配られる。
+  // 隠しキャラは合言葉が鍵なので、既存プレイヤーも改めて打つところから
+  6: (old) => ({ ...old, version: 7, secrets: [] }),
 };
 
 export function migrate(raw: Record<string, unknown>): Record<string, unknown> {

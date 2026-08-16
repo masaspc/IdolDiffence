@@ -89,6 +89,8 @@ export interface ResolvedAttack {
   knockback: Knockback | undefined;
   /** 撃破時に攻撃間隔を即座に空ける。D3 覚醒「追撃」 */
   resetCooldownOnKill: boolean;
+  /** 3 すくみを無視して常に有利。隠しキャラ MASA だけが持つ */
+  alwaysEffective: boolean;
   onHit: readonly OnHit[];
 }
 

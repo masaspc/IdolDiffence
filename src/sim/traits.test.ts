@@ -181,7 +181,7 @@ describe('ノックバック', () => {
 });
 
 describe('ドット絵の指定', () => {
-  it('9 人全員に art がある（欠けると黙って丸に戻る）', () => {
+  it('全員に art がある（欠けると黙って丸に戻る）', () => {
     for (const id of rosterIds) {
       expect(getIdol(id).art, `${id} に art が無い`).toBeDefined();
     }
@@ -191,7 +191,9 @@ describe('ドット絵の指定', () => {
     const byType = new Map<string, string[]>();
     for (const id of rosterIds) {
       const def = getIdol(id);
-      const key = `${def.art!.hairStyle}/${def.art!.hair}`;
+      // 人型でない 2 体（犬DOGE・FUSHI）は体の作りから違う。
+      // 髪型の欄は使っていないので、`form` も鍵に混ぜて見る
+      const key = `${def.art!.form}/${def.art!.hairStyle}/${def.art!.hair}`;
       const list = byType.get(def.type) ?? [];
       list.push(key);
       byType.set(def.type, list);

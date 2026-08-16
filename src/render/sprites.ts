@@ -14,6 +14,14 @@
  * | 月見 ヤチヨ | 乙姫モチーフ、和傘、腹部のメンダコ、花魁風に肩を開けた衣装 |
  * | 酒寄 彩葉 | 狐テーマ、赤いアイシャドー、額の装飾 |
  * | 忠犬オタ公 | 犬 |
+ * | 犬DOGE | 犬であること（かぐやが作ったオリジナル） |
+ * | FUSHI | もふもふのウミウシであること |
+ *
+ * 犬DOGE と FUSHI は**人型ではない**ので、髪型と服を載せる人型のリグを通さず
+ * 専用の組み立てにしている（`art.form`）。無理に通すと 2 体とも
+ * 「獣耳の女の子」になってしまい、原作と食い違う。
+ * 柴犬風・触角と二次鰓という**具体的な形は本作が選んだもの**で、
+ * 一次情報で確認できたのは上表の一言だけ。
  *
  * **髪や衣装の色までは確認できていない**ので、そこは本作が選んだもの。
  * 上表に無いキャラクターは外見の情報が取れておらず、盤面で見分けるための
@@ -125,6 +133,19 @@ function build(art: SpriteArt, accentFallback: string): PixelCanvas {
   const px = new PixelCanvas(SPRITE_SIZE, SPRITE_SIZE);
   const accent = art.accent ?? accentFallback;
 
+  // 人型でない登場人物は別のリグで組む。髪型と服のパーツを載せる作りに
+  // 無理やり通すと、犬もウミウシも「獣耳の女の子」になってしまう
+  if (art.form === 'dog') {
+    buildDog(px, art, accent);
+    px.outline(OUTLINE);
+    return px;
+  }
+  if (art.form === 'seaslug') {
+    buildSeaSlug(px, art, accent);
+    px.outline(OUTLINE);
+    return px;
+  }
+
   drawBehind(px, art);
   drawLegs(px, art);
   drawBody(px, art, accent);
@@ -135,6 +156,114 @@ function build(art: SpriteArt, accentFallback: string): PixelCanvas {
 
   px.outline(OUTLINE);
   return px;
+}
+
+/**
+ * 犬DOGE。かぐやが携帯ゲームキットで作ったオリジナルの犬（04-content.md 4.1）。
+ *
+ * **お座りの正面向き**にする。横向きの走り姿だと盤面で 1 マスに収まらず、
+ * 他の（正面を向いている）メンバーと目線が揃わない。
+ * 元ネタの DOGE に寄せて、頭を大きめ・目を離し気味に取る。
+ */
+function buildDog(px: PixelCanvas, art: SpriteArt, accent: string): void {
+  const fur = art.hair;
+  const belly = art.outfit;
+  const dark = shade(fur, -0.3);
+  const light = shade(fur, 0.25);
+
+  // しっぽ。体より奥。丸めて背中の横へ出す
+  px.disc(CX + 12, 34, 4, 5, dark);
+  px.disc(CX + 12, 34, 2.5, 3.5, fur);
+
+  // 後ろ足（お座りなので横へ張り出す）
+  pairDisc(px, 8, 41, 5, 4, fur);
+  pairDisc(px, 9, 43, 4, 2, light);
+
+  // 胴
+  px.disc(CX, 36, 9, 9, fur);
+  px.disc(CX, 38, 5.5, 6, belly);
+
+  // 前足。胴の前へ 2 本そろえて下ろす
+  pair(px, 6, 38, 4, 9, fur);
+  pair(px, 6, 45, 5, 2, light);
+
+  // 頭。胴より大きく取ると幼く見え、DOGE の顔の間延びした感じが出る
+  px.disc(CX, 17, 12, 11, fur);
+  // 立ち耳。柴犬の耳は猫より**短くて根元が広い**。
+  // 高く尖らせると狐（彩葉）と見分けが付かなくなる
+  for (let i = 0; i < 6; i++) pair(px, 14 - i, 4 + i, i * 2 + 2, 1, fur);
+  for (let i = 0; i < 4; i++) pair(px, 12 - i, 6 + i, i + 1, 1, accent);
+
+  // 口まわり。明るい色の丸を下寄りに置くのが柴犬らしさの要
+  px.disc(CX, 22, 7.5, 5.5, belly);
+  px.disc(CX, 19.5, 1.6, 1.2, OUTLINE); // 鼻
+  // 口。への字を 2 本
+  for (let i = 0; i < 3; i++) pair(px, 1 + i, 22 + Math.min(i, 1), 1, 1, OUTLINE);
+  px.rect(CX - 1, 24, 3, 2, '#e06a8a'); // 舌
+
+  // 目。離し気味に置く
+  pair(px, 7, 15, 3, 4, EYE_WHITE);
+  pair(px, 6, 16, 2, 3, art.eye ?? OUTLINE);
+  pair(px, 6, 16, 1, 1, '#ffffff');
+  pair(px, 8, 13, 4, 1, dark); // 眉
+
+  // 眉上の斑。柴犬の「まろ眉」
+  pair(px, 8, 11, 3, 2, light);
+}
+
+/**
+ * FUSHI。ヤチヨの相棒の**もふもふのウミウシ**（04-content.md 4.1）。
+ *
+ * ウミウシの見分けどころは 頭の触角（rhinophore）と背中の二次鰓（えら）の 2 つ。
+ * この 2 つを外すと、ただの丸い生き物になって何なのか伝わらない。
+ */
+function buildSeaSlug(px: PixelCanvas, art: SpriteArt, accent: string): void {
+  const body = art.hair;
+  const mantle = art.outfit;
+  const foot = art.outfit2 ?? shade(mantle, -0.25);
+  const light = shade(body, 0.3);
+  const frill = shade(accent, 0.25);
+
+  // 二次鰓。**背中の後ろ**で開く房。触角と同じ高さに置くと
+  // 頭の上のリボンに見えてしまうので、肩の外へ左右に振り分ける
+  for (const [dx, dy, r] of [
+    [-15, 20, 4.0],
+    [15, 20, 4.0],
+    [-13, 15, 3.2],
+    [13, 15, 3.2],
+    [-9, 12, 2.6],
+    [9, 12, 2.6],
+  ] as const) {
+    px.disc(CX + dx, dy, r, r, accent);
+    px.disc(CX + dx, dy, r - 1.3, r - 1.3, frill);
+  }
+
+  // 触角（rhinophore）。ウミウシの見分けどころ。
+  // 2 本を**離して**立て、先を膨らませる。詰めると 1 本の角に見える
+  pair(px, 9, 4, 3, 14, body);
+  pairDisc(px, 8, 4, 2.6, 3.2, accent);
+  pairDisc(px, 8, 4, 1.4, 1.8, frill);
+
+  // 這っている足（腹足）。下端に平たく敷く
+  px.disc(CX, 42, 14, 4, foot);
+  px.rect(CX - 14, 41, 29, 4, foot);
+  for (let i = 0; i < 5; i++) px.rect(CX - 11 + i * 6, 43, 4, 1, shade(foot, -0.3));
+
+  // 胴。上にマントル、下に明るい腹
+  px.disc(CX, 29, 14, 12, mantle);
+  px.disc(CX, 32, 11.5, 9.5, body);
+  px.disc(CX, 35, 7.5, 5.5, light);
+  // マントルの縁のひらひら
+  for (let i = 0; i < 6; i++) pair(px, 5 + i * 2, 20 + i * 1.5, 2, 2, shade(mantle, 0.32));
+
+  // 顔。もふもふの見た目に反して物言いがストレート、なので目つきは強め
+  const eye = art.eye ?? OUTLINE;
+  pair(px, 8, 27, 5, 5, EYE_WHITE);
+  pair(px, 7, 28, 3, 4, eye);
+  pair(px, 7, 28, 1, 1, '#ffffff');
+  pair(px, 9, 25, 5, 1, eye); // 半眼のまぶた
+  span(px, 2, 35, 1, shade(eye, 0.2)); // 口
+  pair(px, 10, 32, 3, 2, '#ff9db8'); // 頬
 }
 
 /** 体より奥に置くもの。垂らした髪 */
@@ -352,6 +481,22 @@ function drawAccessory(px: PixelCanvas, art: SpriteArt, accent: string): void {
         pair(px, left, 9 + i, 4, 1, hair);
         if (i > 1 && i < 10) pair(px, left - 1, 9 + i, 2, 1, dark);
       }
+      break;
+    case 'crown':
+      // 王冠。**隠しキャラの MASA だけ**が被る。
+      // 山を 3 つにして、宝石を真ん中に 1 つ。原作の誰かの装いではないので、
+      // 他のメンバーと形が混ざらないように角ばらせる
+      // 台座
+      px.rect(CX - 9, 6, 19, 4, accent);
+      px.rect(CX - 9, 9, 19, 1, shade(accent, -0.45));
+      px.rect(CX - 9, 6, 19, 1, shade(accent, 0.4));
+      // 山。四角を並べると帯にしか見えないので三角に積む
+      for (const cx of [CX - 7, CX + 1, CX + 9]) {
+        for (let i = 0; i < 5; i++) px.rect(cx - i, 1 + i, i * 2 + 1, 1, accent);
+        px.set(cx, 1, shade(accent, 0.55));
+      }
+      px.rect(CX - 1, 6, 3, 3, '#ff4d6d'); // 宝石
+      px.set(CX - 1, 6, '#ffd9e0');
       break;
     default:
       break;

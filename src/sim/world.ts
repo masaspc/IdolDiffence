@@ -1142,6 +1142,7 @@ export class BattleWorld {
         execute: def.attack.execute,
         knockback: def.attack.knockback,
         resetCooldownOnKill: false,
+        alwaysEffective: def.attack.alwaysEffective,
         onHit: def.attack.onHit,
       },
       aura: null,
@@ -1250,6 +1251,7 @@ export class BattleWorld {
         cell: u.cell,
         pos: u.pos,
         tags: getIdol(u.idolId).tags,
+        affinity: getIdol(u.idolId).affinity,
       })),
       this.centerIdolId,
     );

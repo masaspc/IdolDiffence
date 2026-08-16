@@ -1,11 +1,11 @@
 /**
  * 編成画面（03-progression.md ⑤ / 04-content.md 4.2）。
  *
- * 9 人から 5 人を選び、そのうち 1 人をセンターに置く。
+ * 原作の 12 人から 5 人を選び、そのうち 1 人をセンターに置く。
  * センターは全体パッシブなので、**選んだ効果がその場で読める**ことを優先し、
  * カードに効果文をそのまま出している。
  */
-import { getIdol, getStage, idolUnlockStage, PARTY_SIZE, rosterIds } from '../data';
+import { getIdol, getStage, idolUnlockStage, PARTY_SIZE, rosterIds, SECRET_IDS } from '../data';
 import { isUnlocked, normalizeParty } from '../meta/progression';
 import { displayName, evolutionOf, isEvolved } from '../meta/evolution';
 import type { SaveData } from '../meta/save';
@@ -17,6 +17,8 @@ const TAG_LABEL: Record<string, string> = {
   black_onyx: 'Black onyX',
   tsukuyomi_liver: 'ツクヨミのライバー',
   ayaha_friend: '彩葉の友人',
+  tsukuyomi_guide: 'ツクヨミの案内役',
+  kaguya_partner: 'かぐやの相棒',
 };
 
 /** 進化を解放しているぶんの倍率。未解放なら 1 */
@@ -74,6 +76,9 @@ export function PartyScreen({
           {rosterIds.map((id) => {
             const idol = getIdol(id);
             const unlocked = isUnlocked(save, id);
+            // 隠しキャラは**解放するまで枠ごと出さない**。
+            // 他のメンバーと同じ「？？？」で並べると、そこに何かある事実だけが漏れる
+            if (!unlocked && SECRET_IDS.includes(id)) return null;
             const inParty = party.includes(id);
             const isCenter = center === id;
             const gate = idolUnlockStage[id];

@@ -2,7 +2,7 @@
  * 恒久進行（アイドルレベル）と、リザルト報酬。
  * 「負ける → 育てる → 勝つ」のループを成立させる最小構成（03-progression.md ⑦）。
  */
-import { getIdol, getStage, idolUnlockStage, PARTY_SIZE, rosterIds } from '../data';
+import { getIdol, getStage, idolUnlockStage, PARTY_SIZE, rosterIds, SECRET_IDS } from '../data';
 import { clampStar, MAX_STAR, starCoefficients } from '../sim/star';
 import { battleExp, songExp } from './rank';
 import { dropCount, grantDrops } from './costumes';
@@ -49,12 +49,15 @@ export function resolvedAtk(save: SaveData, idolId: string): number {
 // --- 解放と編成 ---
 
 const ROSTER = new Set<string>(rosterIds);
+const SECRETS = new Set<string>(SECRET_IDS);
 
 export function isUnlocked(save: SaveData, idolId: string): boolean {
   // ロスターに無い ID は「解放前」ではなく**存在しない**。
   // 手で書き換えたセーブや、キャラを削除した後の古いセーブがここを通ると、
   // 後段の getIdol() が例外を投げてゲームごと起動しなくなる
   if (!ROSTER.has(idolId)) return false;
+  // 隠しキャラはステージでは開かない。合言葉だけが鍵（`meta/secrets.ts`）
+  if (SECRETS.has(idolId)) return save.secrets.includes(idolId);
   const gate = idolUnlockStage[idolId];
   if (gate === null || gate === undefined) return true;
   return save.stageProgress[gate]?.cleared === true;

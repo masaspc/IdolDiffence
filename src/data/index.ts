@@ -83,8 +83,40 @@ export function getIdol(id: string): IdolDef {
   return idol;
 }
 
-/** 全アイドル。表示順もこの並びに従う */
-export const rosterIds = ['V1', 'V2', 'V3', 'D1', 'D2', 'D3', 'Vi1', 'Vi2', 'Vi3'] as const;
+/**
+ * 全アイドル。表示順もこの並びに従う。
+ *
+ * 原作の 12 人は 歌 4 / ダンス 4 / ヴィジュアル 4 で揃えてある。
+ * 末尾の `GM` は**隠しキャラ**で、この均衡の外に置いている（`SECRET_IDS`）。
+ */
+export const rosterIds = [
+  'V1',
+  'V2',
+  'V3',
+  'V4',
+  'D1',
+  'D2',
+  'D3',
+  'D4',
+  'Vi1',
+  'Vi2',
+  'Vi3',
+  'Vi4',
+  'GM',
+] as const;
+
+/**
+ * 隠しキャラ。ステージクリアでは解放されず、セーブの `secrets` に
+ * 積まれて初めてロスターに現れる（`meta/secrets.ts`）。
+ *
+ * **バランスの基準からは外す。** 参照盤面（`balance/plans.ts`）も CI の難度検証も
+ * 原作の 12 人だけで組む。隠しキャラを前提にすると、
+ * 持っていない人にとっての難度が測れなくなる
+ */
+export const SECRET_IDS: readonly string[] = ['GM'];
+
+/** 原作の登場人物だけ。バランス計測と編成の基準はこちら */
+export const canonIds = rosterIds.filter((id) => !SECRET_IDS.includes(id));
 
 /** 1 ライブに出撃できる人数（03-progression.md ⑤） */
 export const PARTY_SIZE = 5;
@@ -101,12 +133,20 @@ export const idolUnlockStage: Record<string, string | null> = {
   V1: null,
   D1: null,
   Vi1: null,
+  // 犬DOGE はかぐやが携帯ゲームキットで作った相棒。最初のライブを終えた時点で連れてこられる
+  D4: 'S1',
   V2: 'S1',
   D2: 'S2',
   Vi2: 'S3',
   V3: 'S4',
   D3: 'S5',
   Vi3: 'S5',
+  // 諌山 真実 は彩葉の友人。「彩葉の友人」タグを 2 人にする（04-content.md）
+  V4: 'S6',
+  // FUSHI はヤチヨの相棒。ツクヨミの案内役なので、本編が終盤へ入るところで合流する
+  Vi4: 'S7',
+  // GM は隠しキャラ。ステージでは解放されない（`meta/secrets.ts`）
+  GM: null,
 };
 
 /**

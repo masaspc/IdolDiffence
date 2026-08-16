@@ -52,6 +52,34 @@ export const attackSchema = z.object({
   execute: executeSchema.optional(),
   knockback: knockbackSchema.optional(),
   onHit: z.array(onHitSchema).default([]),
+  /**
+   * 3 すくみを無視して**常に有利**として扱う（02-core-battle.md 2.5）。
+   *
+   * 隠しキャラの MASA だけが持つ。相性は本作の判断の背骨なので、
+   * これを配ると編成を考える理由がひとつ消える。
+   * 「全部やり込んだ人への上がり」の位置に置いているから許される特権で、
+   * 通常のロスターへは決して足さない
+   */
+  alwaysEffective: z.boolean().default(false),
+});
+
+/**
+ * 特定の相手と隣り合ったときだけ効く相性（04-content.md 4.1）。
+ *
+ * フォーメーション（[03 ④](../../docs/design/03-progression.md)）は
+ * 「系統」「タグ」「並び」で成立するが、**原作の関係には
+ * 良い相性と悪い相性の両方がある**。FUSHI がかぐやと犬DOGE に敵対的なのは
+ * 原作の設定なので、タグでまとめるのではなく相手を名指しで書けるようにする。
+ *
+ * 値は符号つき。`-0.25` なら隣接しているあいだ攻撃力 -25%。
+ */
+export const affinitySchema = z.object({
+  name: z.string().min(1),
+  desc: z.string().min(1),
+  /** 相手のアイドル ID。1 人でも隣接していれば成立する */
+  with: z.array(z.string().min(1)).min(1),
+  atkPct: z.number().default(0),
+  attackSpeedPct: z.number().default(0),
 });
 
 /**
@@ -151,6 +179,10 @@ export const unitTagSchema = z.enum([
   'tsukuyomi_liver',
   /** 彩葉の友人 */
   'ayaha_friend',
+  /** ツクヨミの案内役（ヤチヨと FUSHI）。原作でヤチヨの相棒として案内を共に担う */
+  'tsukuyomi_guide',
+  /** かぐやの相棒（かぐやと犬DOGE）。かぐやが携帯ゲームキットで作った犬 */
+  'kaguya_partner',
 ]);
 
 /**
@@ -164,6 +196,14 @@ export const unitTagSchema = z.enum([
 const hexColor = z.string().regex(/^#[0-9a-f]{6}$/i);
 
 export const spriteArtSchema = z.object({
+  /**
+   * 体の作り。
+   *
+   * 原作には**人型でない登場人物**がいる（ウミウシの FUSHI、犬の 犬DOGE）。
+   * 人型のリグに髪型と服を載せる作りのままだと、この 2 体は
+   * 「犬耳を付けた女の子」になってしまい、原作と食い違う
+   */
+  form: z.enum(['human', 'dog', 'seaslug']).default('human'),
   hairStyle: z.enum(['long', 'bob', 'short', 'twin', 'ponytail', 'spiky', 'updo']),
   /** 髪の色 */
   hair: hexColor,
@@ -183,7 +223,7 @@ export const spriteArtSchema = z.object({
    * 頭のモチーフ。**原作で確認できた形だけ**を入れる
    * （かぐや=兎 / 彩葉=狐 / オタ公=犬 / ヤチヨ=和傘）
    */
-  accessory: z.enum(['none', 'rabbit', 'fox', 'dog', 'umbrella']).default('none'),
+  accessory: z.enum(['none', 'rabbit', 'fox', 'dog', 'umbrella', 'crown']).default('none'),
   /** 三日月の髪飾り（かぐや） */
   crescent: z.boolean().default(false),
   /** 額の装飾（彩葉） */
@@ -245,6 +285,8 @@ export const idolSchema = z.object({
   attack: attackSchema,
   art: spriteArtSchema.optional(),
   aura: auraSchema.optional(),
+  /** 名指しの相性。原作の関係を配置条件へ変換したもの */
+  affinity: z.array(affinitySchema).default([]),
   centerPassive: centerPassiveSchema.optional(),
   awakening: z.object({ A: awakeningBranchSchema, B: awakeningBranchSchema }).optional(),
   evolution: evolutionSchema.optional(),
@@ -257,6 +299,7 @@ export type Knockback = z.infer<typeof knockbackSchema>;
 export type Execute = z.infer<typeof executeSchema>;
 export type AttackDef = z.infer<typeof attackSchema>;
 export type AuraDef = z.infer<typeof auraSchema>;
+export type AffinityDef = z.infer<typeof affinitySchema>;
 export type SpriteArt = z.infer<typeof spriteArtSchema>;
 export type BranchMods = z.infer<typeof branchModsSchema>;
 export type AwakeningBranch = z.infer<typeof awakeningBranchSchema>;
