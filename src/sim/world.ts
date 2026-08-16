@@ -4,15 +4,24 @@
  * **DOM に一切依存しない**。React はフレームごとに読み取り専用のスナップショットを
  * 受け取るだけで、逆方向の参照は持たない（docs/design/05-architecture.md 5.1）。
  * これによりヘッドレスのバランス検証とテストが成立する。
- *
- * M0 の段階では敵・ユニットはまだ存在せず、
- * 時計・経済・ウェーブ進行だけが動く「空のステージ」。
  */
 import { GameClock } from '../core/clock';
 import { EventBus, type BattleEvents } from '../core/events';
 import { createRng, type Rng } from '../core/rng';
-import { getSong, getStage, type Song, type Stage } from '../data';
-import { clamp } from '../core/vec';
+import { getEnemy, getIdol, getSong, getStage, type Song, type Stage } from '../data';
+import { clamp, vec } from '../core/vec';
+import { buildPaths, type Path } from './path';
+import {
+  tickStatuses,
+  type Enemy,
+  type EntityId,
+  type FloatingText,
+  type Unit,
+} from './entities';
+import { buildSpawnSchedule, waveHpMultiplier, type ScheduledSpawn } from './systems/spawn';
+import { advanceEnemy } from './systems/movement';
+import { updateUnit } from './systems/combat';
+import type { DamageResult } from './damage';
 
 /** 声援の自然回復。観客ゲージへの依存は意図的に浅い（02-core-battle.md 2.3） */
 const CHEER_REGEN_BASE = 5.0;
@@ -23,14 +32,52 @@ const INITIAL_AUDIENCE = 100;
 /** 小節ごとの月華（ボルテージ）基礎蓄積。劣勢からの逆転経路を確保するため */
 const VOLTAGE_PER_BAR = 2.0;
 const VOLTAGE_MAX = 100;
+/** 与ダメージ 100 につき */
+const VOLTAGE_PER_100_DAMAGE = 0.4;
+const VOLTAGE_PER_KILL = 1.5;
+
+/** 売却時の返却率。編成ミスのリカバリーを許す */
+const SELL_REFUND = 0.6;
+
+const FLOATING_TEXT_LIFE_MS = 700;
 
 export interface WaveInfo {
   index: number;
   section: string;
-  /** 曲頭からの開始小節 */
   startBar: number;
   bars: number;
   cardPick: boolean;
+}
+
+export interface UnitView {
+  id: EntityId;
+  idolId: string;
+  shortName: string;
+  type: string;
+  cell: { x: number; y: number };
+  x: number;
+  y: number;
+  range: number;
+  cost: number;
+  /** 直近の攻撃からの経過。攻撃演出に使う */
+  lastAttackAgeMs: number;
+  targetX: number | null;
+  targetY: number | null;
+  attackKind: string;
+  attackRadius: number;
+}
+
+export interface EnemyView {
+  id: EntityId;
+  name: string;
+  attr: string;
+  x: number;
+  y: number;
+  prevX: number;
+  prevY: number;
+  radius: number;
+  hpRatio: number;
+  slowed: boolean;
 }
 
 export interface WorldSnapshot {
@@ -49,7 +96,16 @@ export interface WorldSnapshot {
   speed: number;
   finished: boolean;
   won: boolean;
+  units: UnitView[];
+  enemies: EnemyView[];
+  floatingTexts: readonly FloatingText[];
+  /** 残りスポーン数。「あと何体で終わりか」を HUD に出す */
+  remainingSpawns: number;
+  killed: number;
+  leaked: number;
 }
+
+export type PlacementError = 'not-placeable' | 'occupied' | 'insufficient-cheer' | 'finished';
 
 export class BattleWorld {
   readonly stage: Stage;
@@ -61,12 +117,24 @@ export class BattleWorld {
 
   private readonly waves: WaveInfo[];
   private readonly totalBars: number;
+  private readonly paths: Path[];
+  private readonly schedule: ScheduledSpawn[];
+  private readonly placeableKeys: Set<string>;
+
+  private scheduleCursor = 0;
+  private nextEntityId = 1;
+
+  private enemies: Enemy[] = [];
+  private units: Unit[] = [];
+  private floatingTexts: FloatingText[] = [];
 
   private cheer = INITIAL_CHEER;
   private audience = INITIAL_AUDIENCE;
   private voltage = 0;
   private finished = false;
   private won = false;
+  private killed = 0;
+  private leaked = 0;
 
   constructor(
     readonly stageId: string,
@@ -77,6 +145,9 @@ export class BattleWorld {
     this.clock = new GameClock(this.song.bpm, this.song.beatsPerBar);
     this.seed = seed;
     this.rng = createRng(seed);
+    this.paths = buildPaths(this.stage);
+    this.schedule = buildSpawnSchedule(this.stage, this.song);
+    this.placeableKeys = new Set(this.stage.placeable.map(([x, y]) => `${x},${y}`));
 
     let startBar = 0;
     this.waves = this.stage.waves.map((wave, index) => {
@@ -104,17 +175,201 @@ export class BattleWorld {
         this.addVoltage(VOLTAGE_PER_BAR);
       }
     });
-
     if (advanced === 0) return;
 
-    const seconds = advanced / 1000;
-    const regen = CHEER_REGEN_BASE + CHEER_REGEN_PER_AUDIENCE * this.audience;
-    this.addCheer(regen * seconds);
+    this.updateEconomy(advanced);
+    this.spawnDueEnemies();
+    this.updateEnemies(advanced);
+    this.updateUnits(advanced);
+    this.updateFloatingTexts(advanced);
+    this.checkCompletion();
+  }
 
-    if (this.clock.bar >= this.totalBars) {
-      this.finish(true);
+  private updateEconomy(dtMs: number): void {
+    const regen = CHEER_REGEN_BASE + CHEER_REGEN_PER_AUDIENCE * this.audience;
+    this.addCheer((regen * dtMs) / 1000);
+  }
+
+  private spawnDueEnemies(): void {
+    const now = this.clock.now;
+    while (this.scheduleCursor < this.schedule.length) {
+      const next = this.schedule[this.scheduleCursor];
+      if (!next || next.atMs > now) break;
+      this.scheduleCursor++;
+      this.spawnEnemy(next);
     }
   }
+
+  private spawnEnemy(scheduled: ScheduledSpawn): void {
+    const def = getEnemy(scheduled.enemyId);
+    const path = this.paths[scheduled.lane] ?? this.paths[0];
+    if (!path) return;
+
+    const start = path.segments[0]?.from ?? path.goal;
+    // テンポ正規化と、ウェーブ進行・ステージ係数による HP スケーリング
+    const hp = def.hp * waveHpMultiplier(scheduled.waveIndex) * this.stage.hpMul;
+
+    const enemy: Enemy = {
+      id: this.nextEntityId++,
+      defId: scheduled.enemyId,
+      name: def.name,
+      attr: def.attr,
+      hp,
+      maxHp: hp,
+      def: def.def,
+      baseSpeed: def.speed,
+      flying: def.flying,
+      radius: def.radius,
+      leak: def.leak,
+      bounty: def.bounty,
+      lane: scheduled.lane,
+      pathIndex: 0,
+      pathT: 0,
+      progress: 0,
+      pos: vec(start.x, start.y),
+      prevPos: vec(start.x, start.y),
+      statuses: [],
+      alive: true,
+    };
+    this.enemies.push(enemy);
+    this.events.emit('enemySpawned', { id: enemy.id, defId: enemy.defId });
+  }
+
+  private updateEnemies(dtMs: number): void {
+    for (let i = this.enemies.length - 1; i >= 0; i--) {
+      const enemy = this.enemies[i];
+      if (!enemy) continue;
+
+      if (!enemy.alive) {
+        this.enemies.splice(i, 1);
+        continue;
+      }
+
+      tickStatuses(enemy, dtMs);
+      const path = this.paths[enemy.lane] ?? this.paths[0];
+      if (!path) continue;
+
+      if (advanceEnemy(enemy, path, dtMs)) {
+        enemy.alive = false;
+        this.enemies.splice(i, 1);
+        this.leaked++;
+        this.events.emit('enemyLeaked', { id: enemy.id, leak: enemy.leak });
+        this.leakAudience(enemy.leak);
+      }
+    }
+  }
+
+  private updateUnits(dtMs: number): void {
+    const ctx = {
+      rng: this.rng,
+      enemies: this.enemies,
+      applyDamage: (enemy: Enemy, result: DamageResult) => this.applyDamage(enemy, result),
+    };
+    for (const unit of this.units) {
+      updateUnit(unit, ctx, dtMs);
+    }
+  }
+
+  private applyDamage(enemy: Enemy, result: DamageResult): void {
+    if (!enemy.alive) return;
+    enemy.hp -= result.amount;
+    this.addVoltage((result.amount / 100) * VOLTAGE_PER_100_DAMAGE);
+
+    this.floatingTexts.push({
+      x: enemy.pos.x,
+      y: enemy.pos.y,
+      amount: Math.round(result.amount),
+      crit: result.crit,
+      effectiveness: result.effectiveness,
+      ageMs: 0,
+      lifeMs: FLOATING_TEXT_LIFE_MS,
+    });
+
+    if (enemy.hp <= 0) {
+      enemy.alive = false;
+      this.killed++;
+      this.addCheer(enemy.bounty);
+      this.addVoltage(VOLTAGE_PER_KILL);
+      this.events.emit('enemyKilled', { id: enemy.id, defId: enemy.defId, bounty: enemy.bounty });
+    }
+  }
+
+  private updateFloatingTexts(dtMs: number): void {
+    for (let i = this.floatingTexts.length - 1; i >= 0; i--) {
+      const text = this.floatingTexts[i];
+      if (!text) continue;
+      text.ageMs += dtMs;
+      if (text.ageMs >= text.lifeMs) this.floatingTexts.splice(i, 1);
+    }
+  }
+
+  /** 全ウェーブを流し切り、残った敵も片付いたら完走 */
+  private checkCompletion(): void {
+    const spawnsDone = this.scheduleCursor >= this.schedule.length;
+    const barsDone = this.clock.bar >= this.totalBars;
+    if (spawnsDone && barsDone && this.enemies.length === 0) this.finish(true);
+  }
+
+  // --- 操作 ---
+
+  canPlace(idolId: string, x: number, y: number): PlacementError | null {
+    if (this.finished) return 'finished';
+    if (!this.placeableKeys.has(`${x},${y}`)) return 'not-placeable';
+    if (this.units.some((u) => u.cell.x === x && u.cell.y === y)) return 'occupied';
+    if (this.cheer < getIdol(idolId).cost) return 'insufficient-cheer';
+    return null;
+  }
+
+  placeUnit(idolId: string, x: number, y: number): Unit | PlacementError {
+    const error = this.canPlace(idolId, x, y);
+    if (error) return error;
+
+    const def = getIdol(idolId);
+    this.spendCheer(def.cost);
+
+    const unit: Unit = {
+      id: this.nextEntityId++,
+      idolId,
+      name: def.name,
+      shortName: def.shortName,
+      type: def.type,
+      cell: { x, y },
+      pos: vec(x + 0.5, y + 0.5),
+      cost: def.cost,
+      atk: def.base.atk,
+      range: def.base.range,
+      attackIntervalMs: def.base.attackIntervalMs,
+      critRate: def.base.critRate,
+      critDmg: def.base.critDmg,
+      attack: def.attack,
+      cooldownMs: 0,
+      lastTargetPos: null,
+      lastAttackAgeMs: Number.POSITIVE_INFINITY,
+    };
+    this.units.push(unit);
+    return unit;
+  }
+
+  /** 投入コストの 60% を返却する */
+  sellUnit(id: EntityId): boolean {
+    const index = this.units.findIndex((u) => u.id === id);
+    if (index < 0) return false;
+    const unit = this.units[index];
+    if (!unit) return false;
+    this.units.splice(index, 1);
+    this.addCheer(Math.floor(unit.cost * SELL_REFUND));
+    return true;
+  }
+
+  unitAt(x: number, y: number): Unit | null {
+    return this.units.find((u) => u.cell.x === x && u.cell.y === y) ?? null;
+  }
+
+  isPlaceable(x: number, y: number): boolean {
+    return this.placeableKeys.has(`${x},${y}`);
+  }
+
+  // --- リソース ---
 
   addCheer(delta: number): void {
     const next = Math.max(0, this.cheer + delta);
@@ -123,7 +378,6 @@ export class BattleWorld {
     if (applied !== 0) this.events.emit('cheerChanged', { value: this.cheer, delta: applied });
   }
 
-  /** 配置・強化で消費する。足りなければ false を返して何もしない */
   spendCheer(cost: number): boolean {
     if (this.cheer < cost) return false;
     this.addCheer(-cost);
@@ -137,7 +391,6 @@ export class BattleWorld {
     this.events.emit('voltageChanged', { value: this.voltage });
   }
 
-  /** 敵がセンターステージへ到達したとき */
   leakAudience(amount: number): void {
     this.audience = Math.max(0, this.audience - amount);
     this.events.emit('audienceChanged', { value: this.audience });
@@ -152,7 +405,6 @@ export class BattleWorld {
     this.events.emit('battleEnded', { won, audienceLeft: this.audience });
   }
 
-  /** 現在のウェーブ。全ウェーブを終えていれば null */
   get currentWave(): WaveInfo | null {
     const bar = this.clock.bar;
     for (const wave of this.waves) {
@@ -161,7 +413,10 @@ export class BattleWorld {
     return null;
   }
 
-  /** 描画・UI 向けの読み取り専用ビュー */
+  get totalSpawnCount(): number {
+    return this.schedule.length;
+  }
+
   snapshot(): WorldSnapshot {
     return {
       stageId: this.stageId,
@@ -179,6 +434,38 @@ export class BattleWorld {
       speed: this.clock.playbackSpeed,
       finished: this.finished,
       won: this.won,
+      killed: this.killed,
+      leaked: this.leaked,
+      remainingSpawns: this.schedule.length - this.scheduleCursor,
+      units: this.units.map((u) => ({
+        id: u.id,
+        idolId: u.idolId,
+        shortName: u.shortName,
+        type: u.type,
+        cell: u.cell,
+        x: u.pos.x,
+        y: u.pos.y,
+        range: u.range,
+        cost: u.cost,
+        lastAttackAgeMs: u.lastAttackAgeMs,
+        targetX: u.lastTargetPos?.x ?? null,
+        targetY: u.lastTargetPos?.y ?? null,
+        attackKind: u.attack.kind,
+        attackRadius: u.attack.radius,
+      })),
+      enemies: this.enemies.map((e) => ({
+        id: e.id,
+        name: e.name,
+        attr: e.attr,
+        x: e.pos.x,
+        y: e.pos.y,
+        prevX: e.prevPos.x,
+        prevY: e.prevPos.y,
+        radius: e.radius,
+        hpRatio: Math.max(0, e.hp / e.maxHp),
+        slowed: e.statuses.some((s) => s.kind === 'slow'),
+      })),
+      floatingTexts: this.floatingTexts,
     };
   }
 }

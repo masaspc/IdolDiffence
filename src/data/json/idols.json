@@ -1,0 +1,61 @@
+{
+  "V1": {
+    "name": "千歳 やちよ",
+    "shortName": "やちよ",
+    "type": "vocal",
+    "cost": 30,
+    "base": {
+      "atk": 90,
+      "range": 3.0,
+      "attackIntervalMs": 1600,
+      "critRate": 0.05,
+      "critDmg": 0.5
+    },
+    "attack": {
+      "kind": "aoe_ring",
+      "skillMul": 0.9,
+      "radius": 1.2,
+      "canHitFlying": true
+    }
+  },
+  "D1": {
+    "name": "東雲 いろは",
+    "shortName": "いろは",
+    "type": "dance",
+    "cost": 25,
+    "base": {
+      "atk": 130,
+      "range": 2.2,
+      "attackIntervalMs": 700,
+      "critRate": 0.08,
+      "critDmg": 0.5
+    },
+    "attack": {
+      "kind": "single",
+      "skillMul": 0.8,
+      "radius": 0,
+      "canHitFlying": false,
+      "onHit": { "status": "slow", "value": 0.08, "durationMs": 300 }
+    }
+  },
+  "Vi1": {
+    "name": "竹取 かぐや",
+    "shortName": "かぐや",
+    "type": "visual",
+    "cost": 35,
+    "base": {
+      "atk": 60,
+      "range": 3.4,
+      "attackIntervalMs": 1200,
+      "critRate": 0.05,
+      "critDmg": 0.5
+    },
+    "attack": {
+      "kind": "single",
+      "skillMul": 0.7,
+      "radius": 0,
+      "canHitFlying": true,
+      "onHit": { "status": "slow", "value": 0.25, "durationMs": 3000 }
+    }
+  }
+}

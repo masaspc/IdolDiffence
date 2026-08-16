@@ -231,3 +231,182 @@ kbd {
   font-size: 0.8rem;
   color: var(--text-dim);
 }
+
+/* --- 配置パレット（M1） --- */
+
+.palette {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.palette-item {
+  position: relative;
+  display: grid;
+  grid-template-columns: auto 1fr;
+  grid-template-rows: auto auto;
+  gap: 0 0.4rem;
+  align-items: center;
+  padding: 0.4rem 0.7rem 0.4rem 0.55rem;
+  border-radius: 10px;
+  border: 1px solid var(--panel-edge);
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--text);
+  font: inherit;
+  cursor: pointer;
+  transition: border-color 120ms, background 120ms;
+}
+
+.palette-item:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.11);
+}
+
+.palette-item:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.palette-item.is-selected {
+  background: rgba(255, 255, 255, 0.14);
+}
+
+.palette-item.type-vocal.is-selected {
+  border-color: var(--vocal);
+}
+.palette-item.type-dance.is-selected {
+  border-color: var(--dance);
+}
+.palette-item.type-visual.is-selected {
+  border-color: var(--visual);
+}
+
+.palette-icon {
+  grid-row: 1 / -1;
+  font-size: 1.3rem;
+  line-height: 1;
+}
+
+.type-vocal .palette-icon {
+  color: var(--vocal);
+}
+.type-dance .palette-icon {
+  color: var(--dance);
+}
+.type-visual .palette-icon {
+  color: var(--visual);
+}
+
+.palette-name {
+  font-size: 0.85rem;
+  text-align: left;
+}
+
+.palette-cost {
+  font-size: 0.75rem;
+  color: var(--text-dim);
+  text-align: left;
+  font-variant-numeric: tabular-nums;
+}
+
+.palette-item kbd {
+  position: absolute;
+  top: 0.15rem;
+  right: 0.25rem;
+  font-size: 0.6rem;
+}
+
+.hint {
+  position: absolute;
+  left: 50%;
+  bottom: 5.5rem;
+  transform: translateX(-50%);
+  z-index: 2;
+  padding: 0.4rem 0.9rem;
+  border-radius: 999px;
+  background: var(--panel);
+  border: 1px solid var(--panel-edge);
+  font-size: 0.8rem;
+  pointer-events: none;
+}
+
+.unit-panel {
+  position: absolute;
+  left: 1.25rem;
+  top: 4.2rem;
+  z-index: 2;
+  min-width: 12rem;
+  padding: 0.85rem 1rem;
+  border-radius: 12px;
+  border: 1px solid var(--panel-edge);
+  background: var(--panel);
+  backdrop-filter: blur(6px);
+}
+
+.unit-panel-head {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 1rem;
+  margin-bottom: 0.5rem;
+}
+
+.unit-panel-icon.type-vocal {
+  color: var(--vocal);
+}
+.unit-panel-icon.type-dance {
+  color: var(--dance);
+}
+.unit-panel-icon.type-visual {
+  color: var(--visual);
+}
+
+.unit-panel dl {
+  margin: 0 0 0.7rem;
+  display: grid;
+  gap: 0.2rem;
+  font-size: 0.8rem;
+}
+
+.unit-panel dl > div {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.unit-panel dt {
+  color: var(--text-dim);
+}
+
+.unit-panel dd {
+  margin: 0;
+  font-variant-numeric: tabular-nums;
+}
+
+.unit-panel .sell,
+.overlay-card .restart {
+  width: 100%;
+  padding: 0.45rem 0.8rem;
+  border-radius: 8px;
+  border: 1px solid var(--panel-edge);
+  background: rgba(255, 255, 255, 0.07);
+  color: var(--text);
+  font: inherit;
+  font-size: 0.8rem;
+  cursor: pointer;
+}
+
+.unit-panel .sell:hover,
+.overlay-card .restart:hover {
+  background: rgba(255, 255, 255, 0.14);
+}
+
+.overlay-card .restart {
+  margin-top: 1.2rem;
+  font-size: 0.95rem;
+  padding: 0.6rem 1rem;
+}
+
+.overlay-card .rank {
+  font-size: 2rem;
+  color: var(--visual);
+  margin: 0.2rem 0 0.6rem;
+}
