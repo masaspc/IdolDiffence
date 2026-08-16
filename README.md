@@ -6,7 +6,32 @@
 
 メインキャラクターは **かぐや（ヴィジュアル）/ やちよ（歌）/ いろは（ダンス）** の 3 人。
 
-**現在のステータス: 設計フェーズ**（実装未着手）
+**現在のステータス: M0（基盤）完了** — 空のステージが 60fps で動きます。敵とアイドルの配置は M1 から。
+
+## 開発
+
+```bash
+npm install
+npm run dev            # 開発サーバー
+npm test               # 単体テスト
+npm run lint           # 決定性ルールを含む Lint
+npm run typecheck      # 型チェック
+npm run validate:data  # ゲームデータの検証
+npm run build          # 本番ビルド
+```
+
+### 実装済み（M0）
+
+| モジュール | 内容 |
+|---|---|
+| `src/core/loop.ts` | 固定タイムステップ 1/60 秒 + 描画補間。実時間に触れてよい唯一の場所 |
+| `src/core/clock.ts` | `GameClock` — sim 時刻の唯一の源。BPM / 拍 / 小節、ポーズとカード選択時のスナップ |
+| `src/core/rng.ts` | seed 付き PRNG（mulberry32）。`Math.random()` は Lint で禁止 |
+| `src/core/events.ts` | 型付き EventBus |
+| `src/core/vec.ts` | ベクトル演算（アロケーションを避ける out 引数方式） |
+| `src/sim/world.ts` | バトル状態。DOM 非依存で、React はスナップショットを読むだけ |
+| `src/render/renderer.ts` | Canvas 2D。静的レイヤをオフスクリーンにキャッシュ |
+| `src/data/` | JSON + Zod スキーマ。ビルド時に検証 |
 
 ## ドキュメント
 
