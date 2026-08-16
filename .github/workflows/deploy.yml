@@ -53,8 +53,13 @@ jobs:
         if: steps.guard.outputs.ready == 'true'
         run: npm run build
 
+      # enablement: true にしておくと、リポジトリ設定で Pages を有効化していなくても
+      # 初回デプロイ時に pages: write 権限で自動的に有効化される。
+      # 手動で「Settings → Pages → Source を GitHub Actions に切り替える」操作が要らなくなる
       - uses: actions/configure-pages@v5
         if: steps.guard.outputs.ready == 'true'
+        with:
+          enablement: true
 
       - uses: actions/upload-pages-artifact@v3
         if: steps.guard.outputs.ready == 'true'
