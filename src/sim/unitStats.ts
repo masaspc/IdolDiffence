@@ -199,7 +199,7 @@ export function resolveUnit(unit: Unit, options: ResolveOptions): void {
  * このユニットに乗っている「枝」。
  *
  * Lv3 で選んだ覚醒 1 つと、Lv6 で自動的に付く**もう一方**（03-progression.md ②）、
- * それに進化（⑨）を加えたもの。Lv3 の選択は「どちらを先に手に入れるか」の
+ * それに進化（⑦-2）を加えたもの。Lv3 の選択は「どちらを先に手に入れるか」の
  * 判断になり、6 まで伸ばせた 1 人だけが両方を得る。
  *
  * 進化を**覚醒と同じ形で**混ぜているのは、攻撃解決に分岐を足さないため。
@@ -254,8 +254,9 @@ function resolveAttack(
   // 才能「大合唱」などで範囲そのものが伸びる。線の太さ（貫通）にも同じく効かせる
   radius *= resolveStat(1, 'aoeRadius', pools);
 
-  // 減速の効果量はカードでも伸びる。継続時間はモニター前のマスで伸びる
-  const slowPower = resolveStat(1, 'slowPower', pools);
+  // 状態異常の効果量はカード・才能・センターで伸びる。
+  // 継続時間はモニター前のマスで伸びる（別枠）
+  const statusPower = resolveStat(1, 'slowPower', pools);
   const durationMul = resolveStat(1, 'statusDuration', pools);
   const slowValue = branches
     .map((b) => b.mods.slowValue)
@@ -264,7 +265,7 @@ function resolveAttack(
 
   const onHit = mergeOnHit(def.attack.onHit, branches).map((entry) => ({
     ...entry,
-    value: entry.status === 'slow' ? (slowValue ?? entry.value) * slowPower : entry.value,
+    value: scaleStatusValue(entry, slowValue, statusPower),
     durationMs: entry.durationMs * durationMul,
   }));
 
@@ -280,6 +281,28 @@ function resolveAttack(
     resetCooldownOnKill: branches.some((b) => b.mods.resetCooldownOnKill === true),
     onHit,
   };
+}
+
+/**
+ * 「状態異常の効果量 +N%」を命中時効果へ掛ける。
+ *
+ * **量を持つものだけ**が対象。減速率と脆弱は 0.25 / 0.30 のような割合なので伸びるが、
+ * 魅了とスタンは「止まるか止まらないか」しかなく（効くのは時間だけ）、
+ * Echo の `value` はスタック数なので、掛けると意味が変わる
+ * （Echo の威力は `echoPower` が別に持つ）。
+ *
+ * 減速だけを伸ばしていたころは、ヴィジュアルのキーストーン「絶対領域」が
+ * 攻撃力 -25% を払わせておきながら脆弱を一切伸ばさず、
+ * 「デバフの効果量 +40%」という文言と食い違っていた。
+ */
+function scaleStatusValue(
+  entry: OnHit,
+  slowOverride: number | undefined,
+  statusPower: number,
+): number {
+  if (entry.status === 'slow') return (slowOverride ?? entry.value) * statusPower;
+  if (entry.status === 'vulnerable') return entry.value * statusPower;
+  return entry.value;
 }
 
 /**

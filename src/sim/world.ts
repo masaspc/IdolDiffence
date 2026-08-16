@@ -42,7 +42,7 @@ import {
 import { advanceEnemy, knockbackEnemy } from './systems/movement';
 import { updateUnit } from './systems/combat';
 import { applyCard, drawOffers, type CardOffer } from './systems/cards';
-import { addPct, addTypePct, emptyPool, resolveStat, type ModifierPool } from './modifiers';
+import { addFlat, addPct, addTypePct, emptyPool, resolveStat, type ModifierPool } from './modifiers';
 import {
   centerEconomyPool,
   resolveUnit,
@@ -104,6 +104,12 @@ const FLOATING_TEXT_LIFE_MS = 700;
  *
  * 才能は**加算**（03-progression.md E-1）。乗算にすると、系統を寄せたときだけ
  * 掛け算が伸びて他の系統が置き去りになる。
+ *
+ * ただしクリティカル率とクリティカルダメージだけは `addFlat` を使う。
+ * これらは倍率ではなく**確率と割合そのもの**で、「+3%」は
+ * 「0.05 → 0.08」の意味であって「0.05 × 1.03 = 0.0515」ではない。
+ * `addPct` に通すとノードがほぼ無価値になり、
+ * カード（`applyCard` は同じ意味で `addFlat` を使う）とも食い違う。
  */
 function buildTalentPool(effects: TalentEffects | undefined): ModifierPool {
   const pool = emptyPool();
@@ -112,8 +118,8 @@ function buildTalentPool(effects: TalentEffects | undefined): ModifierPool {
   addPct(pool, 'atk', effects.atkPct);
   addPct(pool, 'range', effects.rangePct);
   addPct(pool, 'attackSpeed', effects.attackSpeedPct);
-  addPct(pool, 'critRate', effects.critRateAdd);
-  addPct(pool, 'critDmg', effects.critDmgAdd);
+  addFlat(pool, 'critRate', effects.critRateAdd);
+  addFlat(pool, 'critDmg', effects.critDmgAdd);
   addPct(pool, 'cheerGain', effects.cheerGainPct);
   addPct(pool, 'voltageGain', effects.voltageGainPct);
   addPct(pool, 'slowPower', effects.statusPowerPct);
@@ -227,6 +233,11 @@ export interface WorldSnapshot {
   takenCards: { name: string; count: number }[];
   /** 成立中のフォーメーション。同じ種類はまとめて数える */
   formations: { id: string; name: string; desc: string; count: number }[];
+  /**
+   * 才能「ステップアップ」の現在の累積（0.4 = 攻撃速度 +40%）。
+   * ウェーブ内でしか続かないので、HUD に出すなら残量として見せる
+   */
+  killSpeedBonus: number;
 }
 
 export type PlacementError =
@@ -414,6 +425,9 @@ export class BattleWorld {
     const advanced = this.clock.advance(dtMs, (info) => {
       this.events.emit('beat', { bar: info.bar, beat: info.beat });
       if (info.beat === 0) {
+        // 期限切れは通知より先に。購読側が「もう終わったウェーブの累積」を
+        // 読んでしまうのを避ける
+        this.expireKillStack();
         this.events.emit('bar', { bar: info.bar });
         this.addVoltage(VOLTAGE_PER_BAR);
         this.checkCardPick(info.bar);
@@ -659,18 +673,27 @@ export class BattleWorld {
     const stack = this.talents?.killSpeedStack;
     if (!stack) return;
 
-    const wave = this.currentWave?.index ?? -1;
-    if (wave !== this.killSpeedWave) {
-      this.killSpeedWave = wave;
-      if (this.killSpeedBonus !== 0) {
-        this.killSpeedBonus = 0;
-        this.refreshUnitStats();
-      }
-    }
-
+    this.killSpeedWave = this.currentWave?.index ?? -1;
     const next = Math.min(stack.max, this.killSpeedBonus + stack.perKill);
     if (next === this.killSpeedBonus) return;
     this.killSpeedBonus = next;
+    this.refreshUnitStats();
+  }
+
+  /**
+   * ウェーブが変わったら累積を落とす。
+   *
+   * 撃破時にだけ見ていると、**次のウェーブの最初の 1 体を倒すまで前の
+   * ウェーブのぶんが乗り続ける**。ウェーブは楽曲の時計で進むので、
+   * 撃破とは無関係に切り替わる。小節の頭で見れば取りこぼさない
+   * （ウェーブの長さは小節単位なので、境界は必ず小節の頭に来る）。
+   */
+  private expireKillStack(): void {
+    const wave = this.currentWave?.index ?? -1;
+    if (wave === this.killSpeedWave) return;
+    this.killSpeedWave = wave;
+    if (this.killSpeedBonus === 0) return;
+    this.killSpeedBonus = 0;
     this.refreshUnitStats();
   }
 
@@ -1186,6 +1209,7 @@ export class BattleWorld {
         count,
       })),
       formations: summariseFormations(this.formation.hits),
+      killSpeedBonus: this.killSpeedBonus,
     };
   }
 }
