@@ -145,8 +145,9 @@ export function SettingsScreen({
         </p>
         <p className="settings-note">
           ステージの楽曲名は<strong>原作の劇中歌</strong>で、作曲者と歌唱もそのクレジットです。
-          ただし<strong>流れている音は本作が合成したオリジナル</strong>で、原作の音源では
-          ありません。原作の曲は Netflix と各配信サービスでお聴きください。
+          <strong>このゲームに音声はまだありません。</strong>
+          今後 BGM を鳴らす場合も本作が合成したオリジナルで、
+          <strong>原作の音源は使いません</strong>。原作の曲は Netflix と各配信サービスでお聴きください。
         </p>
         <p className="settings-note">
           ステージ・敵・数値・ドット絵は本作が作ったものです。
