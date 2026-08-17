@@ -15,7 +15,7 @@
  * 数値を変えたときに文だけ古いまま残る。
  */
 import { useState } from 'react';
-import { getIdol, getStage, idolUnlockStage } from '../data';
+import { getIdol, getStage } from '../data';
 import { displayName, evolutionOf, evolveBlocker, isEvolved, type EvolveBlock } from '../meta/evolution';
 import {
   canLevelUp,
@@ -27,7 +27,6 @@ import {
   unlockedIds,
 } from '../meta/progression';
 import { equippedCostume, mainValue, resolveCostumes } from '../meta/costumes';
-import { SECRET_STAR_GATE } from '../meta/secrets';
 import type { SaveData } from '../meta/save';
 import {
   affinityText,
@@ -38,6 +37,7 @@ import {
   centerLines,
   evolutionLines,
   evolutionRequirement,
+  joinText,
   TYPE_LABEL,
   TYPE_STRONG_AGAINST,
 } from './idolText';
@@ -126,16 +126,6 @@ export function IdolScreen({
   const worn = (['stage', 'accessory', 'mic', 'makeup'] as const)
     .map((slot) => ({ slot, costume: equippedCostume(save, id, slot) }))
     .filter((entry) => entry.costume !== null);
-
-  // 加入の経緯。隠しキャラは `idolUnlockStage` に載っていない（載せると
-  // 未解放のうちから条件が先出しされる）ので、ここで別に書く
-  const gate = idolUnlockStage[id];
-  const starGate = SECRET_STAR_GATE[id];
-  const joinText = starGate
-    ? `（${getStage(starGate.stage).name} を ★${starGate.star} で勝ち、ツクヨミの外から接続してきた）`
-    : gate
-      ? `（${getStage(gate).name} をクリアして加入）`
-      : '（最初から使えます）';
 
   return (
     <div className="home idol-screen">
@@ -310,7 +300,7 @@ export function IdolScreen({
             <p className="detail-lead">
               資金でレベルを上げます。Lv{MAX_LEVEL} が上限で、攻撃力は 1 レベルごとに
               素の 6% ぶん増えます。
-              {joinText}
+              （{joinText(save, id)}）
             </p>
             <button
               type="button"

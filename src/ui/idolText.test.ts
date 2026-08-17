@@ -6,7 +6,9 @@
  * 具体的な数字そのものではない（データを触るたびに書き直す羽目になる）。
  */
 import { describe, expect, it } from 'vitest';
-import { canonIds, getIdol } from '../data';
+import { canonIds, getIdol, getStage } from '../data';
+import { createNewSave, type SaveData } from '../meta/save';
+import { unlockSecret } from '../meta/secrets';
 import {
   affinityText,
   attackLines,
@@ -15,6 +17,7 @@ import {
   centerLines,
   evolutionLines,
   evolutionRequirement,
+  joinText,
   modLines,
   onHitText,
   TYPE_LABEL,
@@ -137,6 +140,30 @@ describe('相性・オーラ・センター', () => {
 
   it('配置コストの割引も「-8%」の形で出る', () => {
     expect(centerLines(getIdol('D1')).some((l) => l.includes('配置コスト -8%'))).toBe(true);
+  });
+});
+
+describe('加入の経緯', () => {
+  it('初期メンバーと、ステージで加入した人を書き分ける', () => {
+    expect(joinText(createNewSave(), 'V1')).toBe('最初から使える');
+    expect(joinText(createNewSave(), 'Vi4')).toContain('をクリアして加入');
+  });
+
+  it('隠しキャラは**実際に通った経路**で書く', () => {
+    // 鍵は合言葉と腕前の 2 つある。条件を持っていることだけを見て
+    // 「S5 を ★5 で勝った」と書くと、合言葉で呼んだ人に身に覚えの無い戦績が付く
+    const byCode = unlockSecret(createNewSave(), 'GM');
+    expect(joinText(byCode, 'GM')).toContain('合言葉');
+    expect(joinText(byCode, 'GM')).not.toContain('★');
+
+    const bySkill: SaveData = { ...createNewSave(), bestStar: { S5: 5 } };
+    expect(joinText(bySkill, 'GM')).toContain('★5');
+    expect(joinText(bySkill, 'GM')).toContain(getStage('S5').name);
+  });
+
+  it('両方の鍵を持っていれば、腕前のほうを書く（そちらは事実だから）', () => {
+    const both: SaveData = { ...unlockSecret(createNewSave(), 'GM'), bestStar: { S5: 5 } };
+    expect(joinText(both, 'GM')).toContain('★5');
   });
 });
 

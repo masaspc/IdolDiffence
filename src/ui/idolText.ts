@@ -10,7 +10,9 @@
  *
  * DOM に触らないので、文言そのものをテストで固定できる。
  */
-import { getIdol, getStage } from '../data';
+import { getIdol, getStage, idolUnlockStage } from '../data';
+import { SECRET_STAR_GATE, secretGateMet } from '../meta/secrets';
+import type { SaveData } from '../meta/save';
 import type {
   AffinityDef,
   AwakeningBranch,
@@ -204,6 +206,25 @@ export function auraLines(def: IdolDef): string[] {
   if (aura.allyAtkPct > 0) lines.push(`範囲内の味方の攻撃力 +${pct(aura.allyAtkPct)}`);
   if (aura.enemyDefPct > 0) lines.push(`範囲内の敵の防御 -${pct(aura.enemyDefPct)}`);
   return lines;
+}
+
+/**
+ * 加入の経緯。
+ *
+ * 隠しキャラは `idolUnlockStage` に載っていない（載せると未解放のうちから
+ * 条件が先出しされる）ので、ここで別に書く。**実際に通った経路で書くこと** ——
+ * 鍵が 2 つあるので、条件を持っていることだけを見て「S5 を ★5 で勝った」と
+ * 書くと、合言葉で呼び出した人に身に覚えの無い戦績が付く。
+ */
+export function joinText(save: SaveData, idolId: string): string {
+  const starGate = SECRET_STAR_GATE[idolId];
+  if (starGate) {
+    return secretGateMet(save, idolId)
+      ? `${getStage(starGate.stage).name} を ★${starGate.star} で勝ち、ツクヨミの外から接続してきた`
+      : '合言葉に応えて、ツクヨミの外から接続してきた';
+  }
+  const gate = idolUnlockStage[idolId];
+  return gate ? `${getStage(gate).name} をクリアして加入` : '最初から使える';
 }
 
 /** センターパッシブ。編成で 1 人だけ選び、ライブ中は盤面全体に効く */
