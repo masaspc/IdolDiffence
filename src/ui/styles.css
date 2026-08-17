@@ -1361,6 +1361,29 @@ kbd {
   gap: 1rem;
 }
 
+/* 章の見出し。34 本を 1 列に並べると「今どのあたりか」が読めない */
+.stage-chapter + .stage-chapter {
+  margin-top: 2rem;
+}
+
+.chapter-name {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.6rem;
+  margin: 0 0 0.75rem;
+  font-size: 0.95rem;
+  letter-spacing: 0.08em;
+  border-bottom: 1px solid var(--panel-edge);
+  padding-bottom: 0.4rem;
+}
+
+.chapter-lead {
+  font-size: 0.72rem;
+  font-weight: normal;
+  color: var(--text-dim);
+}
+
 .stage-card .stage-song {
   font-size: 0.72rem;
   color: var(--text-dim);

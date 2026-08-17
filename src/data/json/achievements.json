@@ -19,19 +19,19 @@
   },
   "all_main": {
     "name": "天守まで登る",
-    "desc": "本編ステージ 20 すべてをクリアする（ボスを除く）",
+    "desc": "本編ステージ 30 すべてをクリアする（ボスを除く）",
     "title": "ヤチヨ城の常連",
     "stat": "clearedMainStages",
-    "goal": 20,
+    "goal": 30,
     "points": 3,
     "funds": 20000
   },
   "all_stages": {
     "name": "全ステージ制覇",
-    "desc": "ボスを含む 23 ステージすべてをクリアする",
+    "desc": "ボスを含む 34 ステージすべてをクリアする",
     "title": "八百万の頂",
     "stat": "clearedStages",
-    "goal": 23,
+    "goal": 34,
     "points": 5,
     "funds": 50000
   },
@@ -100,10 +100,10 @@
   },
   "star_grind": {
     "name": "周回の果て",
-    "desc": "全ステージの★を合計 120 まで積む",
+    "desc": "全ステージの★を合計 170 まで積む",
     "title": "八千年ぶんの練習",
     "stat": "starTotal",
-    "goal": 120,
+    "goal": 170,
     "points": 4,
     "funds": 40000
   },

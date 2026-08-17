@@ -6,7 +6,7 @@
  */
 import { useState } from 'react';
 import { useSecretCode } from './useSecretCode';
-import { getIdol, getSong, getStage, requiredStage, SECRET_IDS, stageOrder } from '../data';
+import { chapters, getIdol, getSong, getStage, requiredStage, SECRET_IDS } from '../data';
 import { MAX_STAR, starRuleText } from '../sim/star';
 import { MAX_SONG_LEVEL, rankOf, rankProgress, songLevelOf } from '../meta/rank';
 import { bestStarOf, isUnlocked, maxSelectableStar } from '../meta/progression';
@@ -200,11 +200,20 @@ export function HomeScreen({
 
       <section className="stage-select">
         <h2>ライブ</h2>
-        <div className="stage-list">
-          {stageOrder.map((stageId) => (
-            <StageCard key={stageId} save={save} stageId={stageId} onStart={onStart} />
-          ))}
-        </div>
+        {/* 34 本を 1 列に並べると「今どのあたりか」が読めない。章で区切る */}
+        {chapters.map((chapter) => (
+          <div key={chapter.name} className="stage-chapter">
+            <h3 className="chapter-name">
+              {chapter.name}
+              <span className="chapter-lead">{chapter.lead}</span>
+            </h3>
+            <div className="stage-list">
+              {chapter.stages.map((stageId) => (
+                <StageCard key={stageId} save={save} stageId={stageId} onStart={onStart} />
+              ))}
+            </div>
+          </div>
+        ))}
       </section>
     </div>
   );

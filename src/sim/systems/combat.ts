@@ -10,6 +10,7 @@ import { computeDamage, type DamageResult } from '../damage';
 import {
   applyStatus,
   isCharmed,
+  linkFactor,
   typeGuardFactor,
   vulnerability,
   type Enemy,
@@ -103,6 +104,10 @@ export function updateUnit(unit: Unit, ctx: CombatContext, dtMs: number): void {
     // 3 すくみの 0.9 と違って数を積んでも答えにならない。
     // Echo は系統を持たないので通る（「焼けないなら燻す」が答え）
     result.amount *= typeGuardFactor(victim, unit.type);
+
+    // 守り手が近くにいるあいだは通らない。**狙う順番**への問い ——
+    // 「先頭を狙う」「HP が高い方を狙う」という既定がそのまま裏目になる
+    result.amount *= linkFactor(victim, ctx.enemies);
 
     ctx.applyDamage(victim, result, unit);
     if (!victim.alive) killedAny = true;

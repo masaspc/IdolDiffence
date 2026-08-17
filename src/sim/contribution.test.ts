@@ -40,6 +40,8 @@ function makeEnemy(): Enemy {
     statuses: [],
     alive: true,
     revivesLeft: 0,
+    barrier: 0,
+    barrierIdleMs: 0,
   };
 }
 

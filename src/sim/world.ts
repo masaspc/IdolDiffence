@@ -53,6 +53,7 @@ import { advanceEnemy, knockbackEnemy } from './systems/movement';
 import { updateUnit } from './systems/combat';
 import { applyCard, drawOffers, type CardOffer } from './systems/cards';
 import { addFlat, addPct, addTypePct, emptyPool, resolveStat, type ModifierPool } from './modifiers';
+import { absorbByBarrier, maxBarrier, tickBarrier } from './entities';
 import {
   centerEconomyPool,
   resolveUnit,
@@ -248,6 +249,13 @@ export interface EnemyView {
   prevY: number;
   radius: number;
   hpRatio: number;
+  /**
+   * 残りバリアの割合（`traits.barrier`）。持たない敵は 0。
+   *
+   * HP バーだけだと、バリアを削っているあいだ**何も動かない**ように見える。
+   * 「集めて一気に割る」が効いていることを、その場で読めるようにする
+   */
+  barrierRatio: number;
   slowed: boolean;
   /** 魅了・スタンで足が止まっている */
   bound: boolean;
@@ -913,7 +921,11 @@ export class BattleWorld {
       alive: true,
       // 蘇生の残りは**個体ごと**。定義を書き換えると 2 体目から蘇らなくなる
       revivesLeft: def.traits.revive?.times ?? 0,
+      barrier: 0,
+      barrierIdleMs: 0,
     };
+    // バリアは最大 HP から決まるので、個体を組み立てたあとで満たす
+    enemy.barrier = maxBarrier(enemy);
     this.enemies.push(enemy);
     this.events.emit('enemySpawned', { id: enemy.id, defId: enemy.defId });
     return enemy;
@@ -937,6 +949,7 @@ export class BattleWorld {
       }
 
       this.updatePhase(enemy);
+      tickBarrier(enemy, dtMs);
       // 最後の 1 tick で効果が切れると `tickStatuses` が消してしまうので、先に控えておく
       const echoSource =
         enemy.statuses.length > 0
@@ -1085,25 +1098,24 @@ export class BattleWorld {
     source?: string,
   ): void {
     if (!enemy.alive) return;
+    // バリアが先に受け止める（月の都の門番）。**貢献度と月華もここで頭打ちになる** ——
+    // 吸われたぶんまで数えると、割れないバリアを叩き続けるのが最も稼げる手になる
+    const amount = absorbByBarrier(enemy, result.amount);
+    if (amount <= 0) {
+      // 吸われたぶんは**別枠で**出す。0 とだけ出すと、盾があと少しなのか
+      // 戻ったばかりなのかが読めず、「集めて割る」が効いていることが伝わらない
+      if (showText) this.pushDamageText(enemy, result, result.amount, true);
+      return;
+    }
     // 過剰キル分は数えない。硬い敵を溶かした最後の一撃だけが得をするのを避ける
-    const dealt = Math.min(result.amount, enemy.hp);
-    enemy.hp -= result.amount;
+    const dealt = Math.min(amount, enemy.hp);
+    enemy.hp -= amount;
     // 貢献度は**過剰キル分を除いた実ダメージ**で数える。
     // 素の値で数えると、硬い敵にとどめを刺した 1 人だけが不当に伸びる
     if (source) this.contribution.set(source, (this.contribution.get(source) ?? 0) + dealt);
     this.addVoltage((dealt / enemy.maxHp) * VOLTAGE_PER_ENEMY_HP);
 
-    if (showText) {
-      this.floatingTexts.push({
-        x: enemy.pos.x,
-        y: enemy.pos.y,
-        amount: Math.round(result.amount),
-        crit: result.crit,
-        effectiveness: result.effectiveness,
-        ageMs: 0,
-        lifeMs: FLOATING_TEXT_LIFE_MS,
-      });
-    }
+    if (showText) this.pushDamageText(enemy, result, amount);
 
     if (enemy.hp <= 0) {
       // 不死の薬。**倒せていない**ので撃破にも声援にも分裂にも数えない。
@@ -1125,6 +1137,28 @@ export class BattleWorld {
       this.addKillStack();
       this.spawnOnDeath(enemy);
     }
+  }
+
+  /**
+   * ダメージ表示。バリアに吸われたぶんは `absorbed` を立てて別の見た目で出す ——
+   * HP には通っていないので、素の色で出すと「削れているのに減らない」ように見える
+   */
+  private pushDamageText(
+    enemy: Enemy,
+    result: DamageResult,
+    amount: number,
+    absorbed = false,
+  ): void {
+    this.floatingTexts.push({
+      x: enemy.pos.x,
+      y: enemy.pos.y,
+      amount: Math.round(amount),
+      crit: result.crit,
+      effectiveness: result.effectiveness,
+      ageMs: 0,
+      lifeMs: FLOATING_TEXT_LIFE_MS,
+      ...(absorbed ? { absorbed: true } : {}),
+    });
   }
 
   /**
@@ -1700,6 +1734,7 @@ export class BattleWorld {
         prevY: e.prevPos.y,
         radius: e.radius,
         hpRatio: Math.max(0, e.hp / e.maxHp),
+        barrierRatio: maxBarrier(e) > 0 ? Math.max(0, e.barrier / maxBarrier(e)) : 0,
         slowed: e.statuses.some((s) => s.kind === 'slow'),
         bound: isImmobilized(e.statuses),
         echo: echoStacks(e.statuses),

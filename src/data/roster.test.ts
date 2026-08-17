@@ -6,7 +6,15 @@
  * 「選べる人がいない系統」になり、相性を考える意味が薄れる。
  */
 import { describe, expect, it } from 'vitest';
-import { canonIds, getIdol, idolUnlockStage, rosterIds, SECRET_IDS, stageOrder } from '../data';
+import {
+  canonIds,
+  chapters,
+  getIdol,
+  idolUnlockStage,
+  rosterIds,
+  SECRET_IDS,
+  stageOrder,
+} from '../data';
 
 describe('原作の 12 人', () => {
   it('系統が 4 / 4 / 4 で揃っている', () => {
@@ -111,5 +119,25 @@ describe('後から足した 3 人が置き去りにならない', () => {
     expect(getIdol('V4').cost).toBe(40);
     expect(getIdol('D4').cost).toBe(20);
     expect(getIdol('Vi4').cost).toBe(65);
+  });
+});
+
+/**
+ * 章の区切り（表示用）。
+ *
+ * `stageOrder` から切り出しているので、並びを足したときに**どこかの章に
+ * 必ず入る**ことだけ見る。章に入れ忘れたステージはホーム画面から消える。
+ */
+describe('章の区切り', () => {
+  it('全ステージがちょうど 1 回ずつ入る', () => {
+    expect(chapters.flatMap((c) => [...c.stages])).toEqual([...stageOrder]);
+  });
+
+  it('どの章も空でなく、見出しが付いている', () => {
+    for (const chapter of chapters) {
+      expect(chapter.stages.length, `${chapter.name} が空`).toBeGreaterThan(0);
+      expect(chapter.name.length).toBeGreaterThan(0);
+      expect(chapter.lead.length).toBeGreaterThan(0);
+    }
   });
 });

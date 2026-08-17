@@ -35,7 +35,14 @@ export type Investment =
   /** 才能ボードを 1 枝ぶん + 初期 3 人の進化（S11〜S15） */
   | 'talents'
   /** さらに衣装 SSR+9 相当（S16〜B3） */
-  | 'full';
+  | 'full'
+  /**
+   * 恒久強化を積み切った状態（S21〜B4）。衣装 UR+15。
+   *
+   * 03-progression.md E-2 の到達点そのもの。**ここが最後の段階**で、
+   * これ以上の前提は置けない —— 置いたら「遊べば届く範囲」の外になる
+   */
+  | 'max';
 
 export interface StagePlan {
   /** 出撃メンバー。そのステージに挑む時点で解放されている 5 人を想定する */
@@ -442,6 +449,238 @@ export const STAGE_PLANS: Record<string, StagePlan> = {
       { idolId: 'V4', x: 13, y: 6, upgradeTo: 4, awakening: 'A' },
       { idolId: 'Vi3', x: 2, y: 2, upgradeTo: 4, awakening: 'B' },
       { idolId: 'Vi3', x: 2, y: 6, upgradeTo: 4, awakening: 'B' },
+    ],
+  },
+  // --- 羽衣の章（S21〜B4）。ここからは衣装 UR+15 まで積んだ前提 ---
+
+  // S21 月の都の門番（バリア）。**削るのをやめると満タンへ戻る**ので、
+  // 合流点へ火力を寄せて一気に割る。薄く広く当てる盤面は通らない
+  S21: {
+    party: ['V1', 'V3', 'V4', 'Vi1', 'Vi3'],
+    center: 'V1',
+    investment: 'max',
+    placements: [
+      { idolId: 'V3', x: 9, y: 2, upgradeTo: 6, awakening: 'A' },
+      { idolId: 'V3', x: 9, y: 6, upgradeTo: 6, awakening: 'A' },
+      { idolId: 'V1', x: 6, y: 2, upgradeTo: 6, awakening: 'A' },
+      { idolId: 'V1', x: 6, y: 6, upgradeTo: 6, awakening: 'A' },
+      { idolId: 'V4', x: 12, y: 2, upgradeTo: 6, awakening: 'A' },
+      { idolId: 'V4', x: 12, y: 6, upgradeTo: 6, awakening: 'A' },
+      // かぐや（V1）の真上・真下にヤチヨ（Vi1）。「二人で歌う」が両方に乗る
+      { idolId: 'Vi1', x: 6, y: 0, upgradeTo: 4, awakening: 'B' },
+      { idolId: 'Vi1', x: 6, y: 8, upgradeTo: 4, awakening: 'B' },
+      { idolId: 'Vi3', x: 2, y: 2, upgradeTo: 4, awakening: 'B' },
+      { idolId: 'Vi3', x: 2, y: 6, upgradeTo: 4, awakening: 'B' },
+    ],
+  },
+  // S22 月の衛士（連携）。守り手が近くにいるあいだは 80% 通らない。
+  // 回廊なので置ける場所が少なく、**中央の列に火力を集めて守り手ごと巻き込む**
+  S22: {
+    party: ['V1', 'V3', 'V4', 'Vi3', 'D3'],
+    center: 'V1',
+    investment: 'max',
+    placements: [
+      { idolId: 'V1', x: 6, y: 4, upgradeTo: 6, awakening: 'A' },
+      { idolId: 'V1', x: 9, y: 4, upgradeTo: 6, awakening: 'A' },
+      { idolId: 'V3', x: 3, y: 4, upgradeTo: 6, awakening: 'A' },
+      { idolId: 'V3', x: 12, y: 4, upgradeTo: 6, awakening: 'A' },
+      { idolId: 'D3', x: 7, y: 1, upgradeTo: 6, awakening: 'A' },
+      { idolId: 'D3', x: 7, y: 7, upgradeTo: 6, awakening: 'A' },
+      { idolId: 'Vi3', x: 11, y: 1, upgradeTo: 4, awakening: 'B' },
+      { idolId: 'Vi3', x: 11, y: 7, upgradeTo: 4, awakening: 'B' },
+      { idolId: 'V4', x: 3, y: 1, upgradeTo: 4, awakening: 'A' },
+      { idolId: 'V4', x: 3, y: 7, upgradeTo: 4, awakening: 'A' },
+      { idolId: 'V4', x: 14, y: 1, upgradeTo: 4, awakening: 'A' },
+      { idolId: 'V4', x: 14, y: 7, upgradeTo: 4, awakening: 'A' },
+    ],
+  },
+  // S23 陽炎の兵（飛行 + 手負い加速）。**ダンス抜き**で組み、
+  // 交差路の中央の島から両方のレーンを見る
+  S23: {
+    party: ['V1', 'V2', 'V3', 'Vi1', 'Vi3'],
+    center: 'V1',
+    investment: 'max',
+    placements: [
+      { idolId: 'V3', x: 7, y: 3, upgradeTo: 6, awakening: 'A' },
+      { idolId: 'V3', x: 9, y: 3, upgradeTo: 6, awakening: 'A' },
+      { idolId: 'V1', x: 7, y: 5, upgradeTo: 6, awakening: 'A' },
+      { idolId: 'V1', x: 9, y: 5, upgradeTo: 6, awakening: 'A' },
+      // 島の中央。上下のかぐやと隣り合うので「二人で歌う」が同時に立つ
+      { idolId: 'Vi1', x: 7, y: 4, upgradeTo: 4, awakening: 'B' },
+      { idolId: 'Vi1', x: 9, y: 4, upgradeTo: 4, awakening: 'B' },
+      { idolId: 'V2', x: 7, y: 6, upgradeTo: 4, awakening: 'A' },
+      { idolId: 'V2', x: 9, y: 6, upgradeTo: 4, awakening: 'A' },
+      { idolId: 'Vi3', x: 2, y: 4, upgradeTo: 4, awakening: 'B' },
+      { idolId: 'Vi3', x: 13, y: 4, upgradeTo: 4, awakening: 'B' },
+    ],
+  },
+  // S24 八千年の記憶（2 回蘇る）。レーンが沈んで戻るので、
+  // **その隙間の列（y=2 / y=5）に置けば同じ敵を 2 回撃てる**。蘇るぶんはここで削る
+  S24: {
+    party: ['V1', 'V3', 'V4', 'Vi1', 'Vi3'],
+    center: 'V1',
+    investment: 'max',
+    placements: [
+      { idolId: 'V3', x: 7, y: 2, upgradeTo: 6, awakening: 'A' },
+      { idolId: 'V3', x: 7, y: 5, upgradeTo: 6, awakening: 'A' },
+      { idolId: 'V1', x: 2, y: 2, upgradeTo: 6, awakening: 'A' },
+      { idolId: 'V1', x: 2, y: 5, upgradeTo: 6, awakening: 'A' },
+      { idolId: 'V1', x: 12, y: 2, upgradeTo: 6, awakening: 'A' },
+      { idolId: 'V1', x: 12, y: 5, upgradeTo: 6, awakening: 'A' },
+      // (2,0) はかぐや（V1）の真上。「二人で歌う」が両方に乗る
+      { idolId: 'Vi1', x: 2, y: 0, upgradeTo: 4, awakening: 'B' },
+      { idolId: 'Vi1', x: 2, y: 8, upgradeTo: 4, awakening: 'B' },
+      { idolId: 'Vi3', x: 8, y: 0, upgradeTo: 4, awakening: 'B' },
+      { idolId: 'Vi3', x: 8, y: 8, upgradeTo: 4, awakening: 'B' },
+      { idolId: 'V4', x: 13, y: 0, upgradeTo: 4, awakening: 'A' },
+      { idolId: 'V4', x: 13, y: 8, upgradeTo: 4, awakening: 'A' },
+    ],
+  },
+  // S25 虚ろの影（ダンスが 70% 通らない + 攻撃速度デバフ）。**ダンス抜き**。
+  // 二又なので中の島は両側に届くが、そのぶんデバフ圏内に立つことになる
+  S25: {
+    party: ['V1', 'V3', 'V4', 'Vi1', 'Vi3'],
+    center: 'V1',
+    investment: 'max',
+    placements: [
+      { idolId: 'V3', x: 6, y: 2, upgradeTo: 6, awakening: 'A' },
+      { idolId: 'V3', x: 6, y: 6, upgradeTo: 6, awakening: 'A' },
+      { idolId: 'V1', x: 8, y: 2, upgradeTo: 6, awakening: 'A' },
+      { idolId: 'V1', x: 8, y: 6, upgradeTo: 6, awakening: 'A' },
+      { idolId: 'V4', x: 6, y: 4, upgradeTo: 6, awakening: 'A' },
+      { idolId: 'V4', x: 8, y: 4, upgradeTo: 6, awakening: 'A' },
+      { idolId: 'Vi1', x: 13, y: 2, upgradeTo: 4, awakening: 'B' },
+      { idolId: 'Vi1', x: 13, y: 6, upgradeTo: 4, awakening: 'B' },
+      { idolId: 'Vi3', x: 1, y: 2, upgradeTo: 4, awakening: 'B' },
+      { idolId: 'Vi3', x: 1, y: 6, upgradeTo: 4, awakening: 'B' },
+    ],
+  },
+  // S26 月影の群れ（撃破すると 2 体に割れる）。並走 3 レーンで掃討力を問う。
+  // 彩葉（D1）と真実（V4）を隣り合わせて「食べに行く約束」を立てる
+  S26: {
+    party: ['V1', 'V2', 'V4', 'D1', 'Vi3'],
+    center: 'V1',
+    investment: 'max',
+    placements: [
+      { idolId: 'V1', x: 5, y: 3, upgradeTo: 6, awakening: 'A' },
+      { idolId: 'V1', x: 5, y: 5, upgradeTo: 6, awakening: 'A' },
+      { idolId: 'V2', x: 11, y: 3, upgradeTo: 6, awakening: 'A' },
+      { idolId: 'V2', x: 11, y: 5, upgradeTo: 6, awakening: 'A' },
+      { idolId: 'V4', x: 8, y: 3, upgradeTo: 6, awakening: 'A' },
+      { idolId: 'D1', x: 8, y: 5, upgradeTo: 6, awakening: 'A' },
+      { idolId: 'Vi3', x: 13, y: 3, upgradeTo: 4, awakening: 'B' },
+      { idolId: 'Vi3', x: 13, y: 5, upgradeTo: 4, awakening: 'B' },
+      { idolId: 'V1', x: 2, y: 3, upgradeTo: 4, awakening: 'A' },
+      { idolId: 'V1', x: 2, y: 5, upgradeTo: 4, awakening: 'A' },
+    ],
+  },
+  // S27 章のここまでが全部並ぶ。門番のバリア・織り手の回復・衛士の連携が
+  // ひとつの盤面に重なるので、**合流点に火力を積んで順番ごと押し流す**
+  S27: {
+    party: ['V1', 'V3', 'Vi1', 'Vi3', 'V4'],
+    center: 'V1',
+    investment: 'max',
+    placements: [
+      { idolId: 'V3', x: 9, y: 2, upgradeTo: 6, awakening: 'A' },
+      { idolId: 'V3', x: 9, y: 6, upgradeTo: 6, awakening: 'A' },
+      { idolId: 'V3', x: 12, y: 2, upgradeTo: 6, awakening: 'A' },
+      { idolId: 'V3', x: 12, y: 6, upgradeTo: 6, awakening: 'A' },
+      { idolId: 'V1', x: 6, y: 2, upgradeTo: 6, awakening: 'A' },
+      { idolId: 'V1', x: 6, y: 6, upgradeTo: 6, awakening: 'A' },
+      { idolId: 'Vi1', x: 6, y: 0, upgradeTo: 4, awakening: 'B' },
+      { idolId: 'Vi1', x: 6, y: 8, upgradeTo: 4, awakening: 'B' },
+      { idolId: 'Vi3', x: 2, y: 2, upgradeTo: 4, awakening: 'B' },
+      { idolId: 'Vi3', x: 2, y: 6, upgradeTo: 4, awakening: 'B' },
+      { idolId: 'V4', x: 10, y: 0, upgradeTo: 4, awakening: 'A' },
+      { idolId: 'V4', x: 10, y: 8, upgradeTo: 4, awakening: 'A' },
+    ],
+  },
+  // S28 5 レーン。置ける列はレーンとレーンのあいだにしかないので、
+  // **縦の列をそのまま火力の壁にする**。1 マスずれると 2 レーンぶん落ちる
+  S28: {
+    party: ['V1', 'V3', 'V4', 'Vi1', 'Vi3'],
+    center: 'V1',
+    investment: 'max',
+    placements: [
+      { idolId: 'V3', x: 8, y: 1, upgradeTo: 6, awakening: 'A' },
+      { idolId: 'V3', x: 8, y: 3, upgradeTo: 6, awakening: 'A' },
+      { idolId: 'V3', x: 8, y: 5, upgradeTo: 6, awakening: 'A' },
+      { idolId: 'V3', x: 8, y: 7, upgradeTo: 6, awakening: 'A' },
+      { idolId: 'V1', x: 5, y: 3, upgradeTo: 6, awakening: 'A' },
+      { idolId: 'V1', x: 5, y: 5, upgradeTo: 6, awakening: 'A' },
+      { idolId: 'V4', x: 11, y: 3, upgradeTo: 6, awakening: 'A' },
+      { idolId: 'V4', x: 11, y: 5, upgradeTo: 6, awakening: 'A' },
+      { idolId: 'V1', x: 5, y: 1, upgradeTo: 4, awakening: 'A' },
+      { idolId: 'V1', x: 5, y: 7, upgradeTo: 4, awakening: 'A' },
+      { idolId: 'V4', x: 11, y: 1, upgradeTo: 4, awakening: 'A' },
+      { idolId: 'V4', x: 11, y: 7, upgradeTo: 4, awakening: 'A' },
+      { idolId: 'Vi3', x: 14, y: 3, upgradeTo: 4, awakening: 'B' },
+      { idolId: 'Vi3', x: 14, y: 5, upgradeTo: 4, awakening: 'B' },
+      { idolId: 'Vi1', x: 2, y: 3, upgradeTo: 4, awakening: 'B' },
+      { idolId: 'Vi1', x: 2, y: 5, upgradeTo: 4, awakening: 'B' },
+    ],
+  },
+  // S29 不死の薬を焼く煙で射程 -15%。**合流点へ寄せて距離を稼ぐ**
+  S29: {
+    party: ['V1', 'V3', 'V4', 'D3', 'Vi3'],
+    center: 'V1',
+    investment: 'max',
+    placements: [
+      { idolId: 'V1', x: 5, y: 3, upgradeTo: 6, awakening: 'A' },
+      { idolId: 'V1', x: 5, y: 5, upgradeTo: 6, awakening: 'A' },
+      { idolId: 'V3', x: 9, y: 2, upgradeTo: 6, awakening: 'A' },
+      { idolId: 'V3', x: 9, y: 6, upgradeTo: 6, awakening: 'A' },
+      { idolId: 'V4', x: 11, y: 2, upgradeTo: 6, awakening: 'A' },
+      { idolId: 'V4', x: 11, y: 6, upgradeTo: 6, awakening: 'A' },
+      { idolId: 'D3', x: 4, y: 2, upgradeTo: 6, awakening: 'A' },
+      { idolId: 'D3', x: 4, y: 6, upgradeTo: 6, awakening: 'A' },
+      { idolId: 'Vi3', x: 13, y: 2, upgradeTo: 4, awakening: 'B' },
+      { idolId: 'Vi3', x: 13, y: 6, upgradeTo: 4, awakening: 'B' },
+    ],
+  },
+  // S30 総合。5 レーン + 射程 -10% + 声援 -15% + 敵の移動 +10%
+  S30: {
+    party: ['V1', 'V3', 'V4', 'Vi1', 'Vi3'],
+    center: 'V1',
+    investment: 'max',
+    placements: [
+      { idolId: 'V3', x: 8, y: 1, upgradeTo: 6, awakening: 'A' },
+      { idolId: 'V3', x: 8, y: 3, upgradeTo: 6, awakening: 'A' },
+      { idolId: 'V3', x: 8, y: 5, upgradeTo: 6, awakening: 'A' },
+      { idolId: 'V3', x: 8, y: 7, upgradeTo: 6, awakening: 'A' },
+      { idolId: 'V1', x: 5, y: 3, upgradeTo: 6, awakening: 'A' },
+      { idolId: 'V1', x: 5, y: 5, upgradeTo: 6, awakening: 'A' },
+      { idolId: 'V4', x: 11, y: 3, upgradeTo: 6, awakening: 'A' },
+      { idolId: 'V4', x: 11, y: 5, upgradeTo: 6, awakening: 'A' },
+      { idolId: 'V1', x: 5, y: 1, upgradeTo: 6, awakening: 'A' },
+      { idolId: 'V1', x: 5, y: 7, upgradeTo: 6, awakening: 'A' },
+      { idolId: 'V4', x: 11, y: 1, upgradeTo: 6, awakening: 'A' },
+      { idolId: 'V4', x: 11, y: 7, upgradeTo: 6, awakening: 'A' },
+      { idolId: 'Vi3', x: 14, y: 3, upgradeTo: 4, awakening: 'B' },
+      { idolId: 'Vi3', x: 14, y: 5, upgradeTo: 4, awakening: 'B' },
+      { idolId: 'Vi1', x: 2, y: 3, upgradeTo: 4, awakening: 'B' },
+      { idolId: 'Vi1', x: 2, y: 5, upgradeTo: 4, awakening: 'B' },
+    ],
+  },
+  // B4 天の羽衣。属性が一周し、レーンが沈黙し、蘇り、バリアまで張る。
+  // **3 系統を混ぜて 5 レーンへ散らす**。1 列に固めると沈黙で全部止まる
+  B4: {
+    party: ['V1', 'V3', 'V4', 'D3', 'Vi3'],
+    center: 'V1',
+    investment: 'max',
+    placements: [
+      { idolId: 'V1', x: 5, y: 1, upgradeTo: 6, awakening: 'A' },
+      { idolId: 'V1', x: 5, y: 5, upgradeTo: 6, awakening: 'A' },
+      { idolId: 'V3', x: 8, y: 3, upgradeTo: 6, awakening: 'A' },
+      { idolId: 'V3', x: 8, y: 7, upgradeTo: 6, awakening: 'A' },
+      { idolId: 'D3', x: 11, y: 1, upgradeTo: 6, awakening: 'A' },
+      { idolId: 'D3', x: 11, y: 5, upgradeTo: 6, awakening: 'A' },
+      { idolId: 'V4', x: 5, y: 3, upgradeTo: 6, awakening: 'A' },
+      { idolId: 'V4', x: 5, y: 7, upgradeTo: 6, awakening: 'A' },
+      { idolId: 'V3', x: 8, y: 1, upgradeTo: 6, awakening: 'A' },
+      { idolId: 'V3', x: 8, y: 5, upgradeTo: 6, awakening: 'A' },
+      { idolId: 'Vi3', x: 14, y: 3, upgradeTo: 4, awakening: 'B' },
+      { idolId: 'Vi3', x: 14, y: 5, upgradeTo: 4, awakening: 'B' },
     ],
   },
 };

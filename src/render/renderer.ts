@@ -666,6 +666,20 @@ export class Renderer {
         ctx.fillStyle = enemy.hpRatio > 0.4 ? '#7ee2a8' : '#ff7b7b';
         ctx.fillRect(bx, by, bw * enemy.hpRatio, bh);
       }
+
+      // バリア（月の都の門番）。HP バーの上に別枠で置く。
+      // HP と同じ帯にすると「削れているのに減らない」に見え、
+      // かといって出さないと「一気に割る」が効いているか読めない
+      if (enemy.barrierRatio > 0) {
+        const bw = r * 2.2;
+        const bh = 3;
+        const bx = x - bw / 2;
+        const by = y - r - 13;
+        ctx.fillStyle = 'rgba(0, 0, 0, 0.55)';
+        ctx.fillRect(bx, by, bw, bh);
+        ctx.fillStyle = '#9fd8ff';
+        ctx.fillRect(bx, by, bw * enemy.barrierRatio, bh);
+      }
       ctx.restore();
     }
   }
@@ -775,15 +789,24 @@ export class Renderer {
       const size =
         CELL_SIZE * (text.effectiveness === 'strong' ? 0.26 : text.effectiveness === 'weak' ? 0.17 : 0.21);
       ctx.globalAlpha = 1 - t;
-      ctx.fillStyle =
-        text.effectiveness === 'strong'
+      // バリアに吸われたぶんは HP に通っていない。バリアの帯と同じ色で
+      // 小さく出して、**削れてはいるが減ってはいない**を一目で分けさせる
+      ctx.fillStyle = text.absorbed
+        ? '#9fd8ff'
+        : text.effectiveness === 'strong'
           ? palette.visual
           : text.effectiveness === 'weak'
             ? palette.textDim
             : palette.text;
-      ctx.font = `${text.crit ? 'bold ' : ''}${Math.round(size)}px system-ui, sans-serif`;
+      const shown = text.absorbed ? size * 0.8 : size;
+      ctx.font = `${text.crit && !text.absorbed ? 'bold ' : ''}${Math.round(shown)}px system-ui, sans-serif`;
       this.upright(ctx, x, y, () => {
-        ctx.fillText(text.crit ? `${text.amount}!` : String(text.amount), x, y);
+        const label = text.absorbed
+          ? `◇${text.amount}`
+          : text.crit
+            ? `${text.amount}!`
+            : String(text.amount);
+        ctx.fillText(label, x, y);
       });
     }
     ctx.restore();

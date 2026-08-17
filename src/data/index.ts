@@ -167,6 +167,10 @@ export const idolUnlockStage: Record<string, string | null> = {
  * S11 以降は「月の都」の章（04-content.md）。S11〜S15 が竹取物語の
  * 五つの難題、S16〜S20 が月からの迎え、B3 が最後の相手。
  * **B2 の後ろに続ける**ので、前の章をひととおり終えてから入る形になる
+ *
+ * S21 以降は「羽衣」の章。月の王を退けても羽衣は織り上がっていて、
+ * 着せられれば全部忘れる。S21〜S27 が月の都の内側、S28〜S30 が忘却、
+ * B4 が羽衣そのもの
  */
 export const stageOrder = [
   'S1',
@@ -192,6 +196,17 @@ export const stageOrder = [
   'S19',
   'S20',
   'B3',
+  'S21',
+  'S22',
+  'S23',
+  'S24',
+  'S25',
+  'S26',
+  'S27',
+  'S28',
+  'S29',
+  'S30',
+  'B4',
 ] as const;
 
 /**
@@ -227,11 +242,36 @@ export const stageUnlock: Record<string, string | null> = {
   S19: 'S18',
   S20: 'S19',
   B3: 'S20',
+  // 羽衣の章。**S21 の鍵は S20**（本編の踏破）で、B3 ではない。
+  // 前の章と同じ扱いを最後まで通す
+  S21: 'S20',
+  S22: 'S21',
+  S23: 'S22',
+  S24: 'S23',
+  S25: 'S24',
+  S26: 'S25',
+  S27: 'S26',
+  S28: 'S27',
+  S29: 'S28',
+  S30: 'S29',
+  B4: 'S30',
 };
 
 export function requiredStage(stageId: string): string | null {
   return stageUnlock[stageId] ?? null;
 }
+
+/**
+ * 章の区切り（表示用）。
+ *
+ * 34 本を 1 列に並べると「今どのあたりか」が読めない。
+ * 区切りは `stageOrder` から**切り出す**ので、並びと二重管理にならない。
+ */
+export const chapters: readonly { name: string; lead: string; stages: readonly string[] }[] = [
+  { name: '第 1 章 ツクヨミ', lead: '麓の路地裏からヤチヨ城の天守まで', stages: stageOrder.slice(0, 12) },
+  { name: '第 2 章 月の都', lead: '竹取物語をなぞる迎えが来る', stages: stageOrder.slice(12, 23) },
+  { name: '第 3 章 羽衣', lead: '着せられれば、全部忘れる', stages: stageOrder.slice(23) },
+];
 
 /** 本編のステージだけ（ボスを除く）。バランス計測の対象 */
 export const mainStageIds = stageOrder.filter((id) => !getStage(id).boss);

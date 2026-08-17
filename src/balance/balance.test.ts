@@ -17,6 +17,7 @@ import {
   bossStageIds,
   canonIds,
   getIdol,
+  getStage,
   mainStageIds,
   rosterIds,
   SECRET_IDS,
@@ -69,6 +70,7 @@ const PREVIOUS: Record<Investment, Investment | null> = {
   bare: null,
   talents: 'bare',
   full: 'talents',
+  max: 'full',
 };
 
 describe('バランス', () => {
@@ -205,8 +207,8 @@ describe('バランス', () => {
 
   it('ボスは寄り道と最後に置かれ、本編の前提にはならない', () => {
     // B1 をクリアしないと S7 が開かない、という形にはしない
-    expect(bossStageIds).toEqual(['B1', 'B2', 'B3']);
-    expect(mainStageIds).toHaveLength(20);
+    expect(bossStageIds).toEqual(['B1', 'B2', 'B3', 'B4']);
+    expect(mainStageIds).toHaveLength(30);
   });
 });
 
@@ -228,7 +230,7 @@ describe('月の都の章', () => {
   ];
 
   it('11 本が並び順に入っている（S11〜S20 + B3）', () => {
-    expect(stageOrder.slice(12)).toEqual(moonStages);
+    expect(stageOrder.slice(12, 23)).toEqual(moonStages);
   });
 
   it('前半は才能と進化、後半は衣装まで前提にする', () => {
@@ -238,8 +240,8 @@ describe('月の都の章', () => {
     for (const id of ['S16', 'S17', 'S18', 'S19', 'S20', 'B3']) {
       expect(investmentOf(id)).toBe('full');
     }
-    // 前の章は素のまま。ここが崩れると S1〜B2 の難度表が意味を失う
-    for (const id of stageOrder.filter((s) => !moonStages.includes(s))) {
+    // 第 1 章は素のまま。ここが崩れると S1〜B2 の難度表が意味を失う
+    for (const id of stageOrder.slice(0, 12)) {
       expect(investmentOf(id), `${id} の前提が変わっている`).toBe('bare');
     }
   });
@@ -282,5 +284,80 @@ describe('月の都の章', () => {
     for (const id of STAGE_PLANS['S14']?.party ?? []) {
       expect(getIdol(id).type, `${id} はダンス`).not.toBe('dance');
     }
+  });
+});
+
+/**
+ * 羽衣の章（S21〜B4）。
+ *
+ * 月の都の章と同じく**恒久強化の段階**で測るが、前提はひとつ上の `max`
+ * （衣装 UR+15）。ここが**最後の段階**で、これより先の前提は置けない ——
+ * 置いたら「遊べば届く範囲」の外になる。
+ */
+describe('羽衣の章', () => {
+  const hagoromoStages = [
+    'S21', 'S22', 'S23', 'S24', 'S25', 'S26', 'S27', 'S28', 'S29', 'S30', 'B4',
+  ];
+
+  it('11 本が並び順の最後に入っている（S21〜S30 + B4）', () => {
+    expect(stageOrder.slice(23)).toEqual(hagoromoStages);
+  });
+
+  it('全部が積み切った段階を前提にする', () => {
+    for (const id of hagoromoStages) {
+      expect(investmentOf(id), `${id} の前提が違う`).toBe('max');
+    }
+    // 前の章まではここより手前の段階。ここが崩れると難度表が意味を失う
+    for (const id of stageOrder.slice(0, 23)) {
+      expect(investmentOf(id), `${id} が最終段階になっている`).not.toBe('max');
+    }
+  });
+
+  it(
+    'ひとつ手前の段階では届かない（衣装を積み切ったことが効いている証明）',
+    () => {
+      for (const stageId of hagoromoStages) {
+        const previous = PREVIOUS[investmentOf(stageId)];
+        if (!previous) throw new Error(`${stageId} に手前の段階が無い`);
+        expect(winsAt(stageId, previous), `${stageId} が ${previous} で勝ててしまう`).toBe(false);
+      }
+    },
+    TIMEOUT,
+  );
+
+  it(
+    '想定した段階なら届く',
+    () => {
+      for (const stageId of hagoromoStages) {
+        expect(winsAt(stageId, investmentOf(stageId)), `${stageId} が想定段階で勝てない`).toBe(
+          true,
+        );
+      }
+    },
+    TIMEOUT,
+  );
+
+  it('S23 と S25 の参照盤面にダンスはいない', () => {
+    // S23 は陽炎の兵（飛行）、S25 は虚ろの影（ダンスを 70% 軽減）。
+    // どちらも**その系統を外して成立する**ことが、敵を置いた理由そのもの
+    for (const stageId of ['S23', 'S25']) {
+      for (const id of STAGE_PLANS[stageId]?.party ?? []) {
+        expect(getIdol(id).type, `${stageId} の ${id} はダンス`).not.toBe('dance');
+      }
+    }
+  });
+
+  it('S24 の盤面は沈む区間と戻る区間の両方に届く', () => {
+    // 「同じ敵を 2 回撃てる」がこのステージの答え。配置マスが
+    // 片側にしか届かない位置へずれると、蘇る敵を落とし切れなくなる
+    const stage = getStage('S24');
+    const dipRows = stage.lanes.slice(0, 2).map((lane) => lane.waypoints);
+    for (const waypoints of dipRows) {
+      const ys = new Set(waypoints.map(([, y]) => y));
+      expect(ys.size, '沈まないレーンになっている').toBe(2);
+    }
+    // y=2 / y=5 の列が置ける
+    const keys = new Set(stage.placeable.map(([x, y]) => `${x},${y}`));
+    for (const key of ['7,2', '7,5']) expect(keys.has(key), `${key} が置けない`).toBe(true);
   });
 });
