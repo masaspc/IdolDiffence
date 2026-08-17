@@ -239,7 +239,7 @@ export function enhanceCostume(save: SaveData, costumeId: string): SaveData {
 export type SalvageBlock = null | 'not-enough' | 'equipped' | 'mixed-rarity';
 
 /**
- * 錬成できるか。**同じレアリティ 3 着**を 1 着に変える。
+ * 錬成できるか。**同じレアリティ 3 着**を 1 段上の 1 着に変える。
  * 装備中のものは選べない（外し忘れで消えると取り返しがつかない）。
  */
 export function salvageBlocker(save: SaveData, costumeIds: readonly string[]): SalvageBlock {
@@ -254,18 +254,36 @@ export function salvageBlocker(save: SaveData, costumeIds: readonly string[]): S
 }
 
 /**
- * 錬成。3 着を溶かして同じレアリティの 1 着にする（副次は引き直し）。
+ * 錬成で 1 段上がるレアリティ。最高位（UR）はそのまま。
+ *
+ * 当初は**上げない**設計だった（「周回で UR が確定してしまう」）。
+ * 実際に遊ぶと、増えすぎた R の使い道が「捨てる」しか無く、
+ * 錬成そのものが押す理由の無いボタンになっていた。上げる側へ倒している。
+ *
+ * 段数は掛け算で効く: UR 1 着 = SSR 3 着 = SR 9 着 = R 27 着。
+ * ドロップの重み（R55 / SR30 / SSR12 / UR3）と合わせると、
+ * 1 ドロップあたりの期待 UR は 0.03 → 0.124 で **約 4 倍**。
+ * 「いつかは届く」が「今日の 3 着が明日の 1 段になる」に変わる程度に収めてある。
+ */
+export function nextRarity(rarity: CostumeRarity): CostumeRarity {
+  const index = COSTUME_RARITIES.indexOf(rarity);
+  return COSTUME_RARITIES[index + 1] ?? rarity;
+}
+
+/**
+ * 錬成。3 着を溶かして**1 段上のレアリティ**の 1 着にする（副次は引き直し）。
  *
  * 「増えすぎた R を捨てる」だけでなく、**狙ったシリーズを引き直す**手段でもある。
- * レアリティは上がらない。上げられるようにすると、周回で UR が確定してしまう。
+ * UR は上が無いので同じ UR で引き直す —— 副次の出目を打ち直す用途は残る。
  */
 export function salvageCostumes(
   save: SaveData,
   costumeIds: readonly string[],
 ): { save: SaveData; created: CostumeInstance | null } {
   if (salvageBlocker(save, costumeIds) !== null) return { save, created: null };
-  const rarity = save.costumes.find((c) => c.id === costumeIds[0])?.rarity;
-  if (!rarity) return { save, created: null };
+  const source = save.costumes.find((c) => c.id === costumeIds[0])?.rarity;
+  if (!source) return { save, created: null };
+  const rarity = nextRarity(source);
 
   const seq = save.costumeSeq + 1;
   const result = withRng(save, (rng) => {

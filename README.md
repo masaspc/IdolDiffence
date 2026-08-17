@@ -66,6 +66,7 @@ npx tsx scripts/sweep-difficulty.ts S5   # 採用した hpMul の周辺を掃く
 | `src/render/sprites.ts` | 配置メンバーのドット絵をコードで生成（差し替え可能な `SpriteProvider`） |
 | `src/data/` | JSON + Zod スキーマ。ビルド時に検証 |
 | `src/meta/` | セーブ（マイグレーション付き）・育成・才能ボード・進化・衣装・ランク・楽曲レベル・隠し要素・実績・設定 |
+| `src/ui/idolText.ts` | 能力の説明を**数値から導く**。JSON に説明文を持たせない |
 | `src/sim/star.ts` | ★難度。HP・DEF・出現密度の 3 軸に分散させる |
 | `src/balance/` | 参照盤面とバランスの CI 検証 |
 

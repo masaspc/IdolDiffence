@@ -21,6 +21,7 @@ import {
   equippedCostume,
   isEquipped,
   mainValue,
+  nextRarity,
   resolveCostumes,
   salvageBlocker,
   subValue,
@@ -78,6 +79,18 @@ export function CostumeScreen({
   const candidates = save.costumes.filter((c) => c.slot === slot);
   const equipped = equippedCostume(save, idolId, slot);
   const salvageBlock = salvageBlocker(save, salvaging);
+  // 「何になるか」を選んでいる途中から見せる。押してからでは遅い
+  const salvageResult =
+    salvaging.length > 0
+      ? (() => {
+          const first = save.costumes.find((c) => c.id === salvaging[0]);
+          if (!first) return null;
+          const mixed = salvaging.some(
+            (id) => save.costumes.find((c) => c.id === id)?.rarity !== first.rarity,
+          );
+          return mixed ? null : nextRarity(first.rarity);
+        })()
+      : null;
 
   const toggleSalvage = (id: string): void => {
     setSalvaging((current) =>
@@ -218,11 +231,18 @@ export function CostumeScreen({
       <section className="party-summary">
         <h2>錬成</h2>
         <p className="costume-empty">
-          同じレアリティの衣装 {SALVAGE_COUNT} 着を、同じレアリティの 1 着に作り替えます
-          （シリーズとステータスは引き直し）。レアリティは上がりません。
+          同じレアリティの衣装 {SALVAGE_COUNT} 着を、<strong>1 段上のレアリティ</strong>の
+          1 着に作り替えます（シリーズとステータスは引き直し）。
+          R → SR → SSR → UR。UR は上が無いので UR のまま引き直します。
         </p>
         <p className="costume-total">
           選択中 {salvaging.length} / {SALVAGE_COUNT}
+          {salvageResult && (
+            <span className="salvage-result">
+              {' → '}
+              <strong>{salvageResult}</strong> が 1 着
+            </span>
+          )}
           {salvaging.length > 0 && (
             <button
               type="button"

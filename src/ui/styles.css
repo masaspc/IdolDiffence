@@ -2120,3 +2120,268 @@ kbd {
   animation: none !important;
   transition: none !important;
 }
+
+.salvage-result {
+  color: var(--visual);
+}
+
+/* --- 育成とキャラクター詳細（04-content.md 4.2） --- */
+
+.idol-layout {
+  display: grid;
+  /* 左に一覧、右に詳細。詳細が主役なので左は必要最小限の幅に固定する */
+  grid-template-columns: minmax(11rem, 14rem) 1fr;
+  gap: 1rem;
+  align-items: start;
+  margin-bottom: 2rem;
+}
+
+.idol-picker {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  position: sticky;
+  top: 1rem;
+}
+
+.idol-tab {
+  position: relative;
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.55rem 0.7rem;
+  border-radius: 10px;
+  border: 1px solid transparent;
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--text-dim);
+  font: inherit;
+  font-size: 0.85rem;
+  text-align: left;
+  cursor: pointer;
+}
+
+.idol-tab:hover {
+  background: rgba(255, 255, 255, 0.09);
+}
+
+.idol-tab.is-on {
+  color: var(--text);
+  background: rgba(255, 255, 255, 0.12);
+}
+
+.idol-tab.type-vocal.is-on {
+  border-color: var(--vocal);
+}
+.idol-tab.type-dance.is-on {
+  border-color: var(--dance);
+}
+.idol-tab.type-visual.is-on {
+  border-color: var(--visual);
+}
+
+.idol-tab-icon {
+  font-size: 1rem;
+}
+.type-vocal .idol-tab-icon {
+  color: var(--vocal);
+}
+.type-dance .idol-tab-icon {
+  color: var(--dance);
+}
+.type-visual .idol-tab-icon {
+  color: var(--visual);
+}
+
+.idol-tab-name {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.idol-tab-level {
+  font-size: 0.72rem;
+  color: var(--text-dim);
+  font-variant-numeric: tabular-nums;
+}
+
+.idol-tab .badge {
+  position: absolute;
+  top: -0.3rem;
+  right: -0.3rem;
+}
+
+.idol-detail {
+  padding: 1.1rem 1.3rem;
+  border-radius: 14px;
+  border: 1px solid var(--panel-edge);
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.idol-detail.type-vocal {
+  border-top: 3px solid var(--vocal);
+}
+.idol-detail.type-dance {
+  border-top: 3px solid var(--dance);
+}
+.idol-detail.type-visual {
+  border-top: 3px solid var(--visual);
+}
+
+.idol-detail-head {
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+  margin-bottom: 0.9rem;
+}
+
+.idol-detail-head h2 {
+  margin: 0;
+  font-size: 1.25rem;
+}
+
+.idol-detail-icon {
+  font-size: 1.7rem;
+}
+
+.idol-detail-sub {
+  margin: 0.15rem 0 0;
+  font-size: 0.8rem;
+  color: var(--text-dim);
+}
+
+.idol-flag {
+  margin-left: 0.5rem;
+  padding: 0.05rem 0.45rem;
+  border-radius: 999px;
+  border: 1px solid var(--panel-edge);
+  font-size: 0.7rem;
+}
+
+.idol-flag.is-center {
+  border-color: var(--visual);
+  color: var(--visual);
+}
+
+.idol-stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(13rem, 1fr));
+  gap: 0.5rem 1.5rem;
+  margin: 0 0 0.9rem;
+}
+
+.idol-stats > div {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.5rem;
+  padding-bottom: 0.3rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.idol-stats dt {
+  font-size: 0.78rem;
+  color: var(--text-dim);
+  /* 「クリティカル」が 2 行に割れると、右の値と縦位置がずれて表に見えない */
+  white-space: nowrap;
+}
+
+.idol-stats dd {
+  margin: 0;
+  font-size: 0.9rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.idol-note {
+  margin: 0 0 1rem;
+  padding: 0.6rem 0.8rem;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.04);
+  font-size: 0.78rem;
+  line-height: 1.7;
+  color: var(--text-dim);
+}
+
+.detail-block {
+  margin-bottom: 1.1rem;
+}
+
+.detail-block h3 {
+  margin: 0 0 0.4rem;
+  font-size: 0.92rem;
+  color: var(--visual);
+}
+
+.detail-block ul {
+  margin: 0;
+  padding-left: 1.1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.22rem;
+  font-size: 0.84rem;
+  line-height: 1.6;
+}
+
+.detail-lead {
+  margin: 0.3rem 0;
+  font-size: 0.78rem;
+  color: var(--text-dim);
+  line-height: 1.7;
+}
+
+.awaken-pair {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(14rem, 1fr));
+  gap: 0.6rem;
+}
+
+.awaken-card {
+  padding: 0.7rem 0.9rem;
+  border-radius: 10px;
+  border: 1px solid var(--panel-edge);
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.awaken-card strong {
+  font-size: 0.88rem;
+}
+
+.awaken-card p {
+  margin: 0.25rem 0 0.4rem;
+  font-size: 0.78rem;
+  color: var(--text-dim);
+}
+
+.detail-block.evolve {
+  padding: 0.8rem 1rem;
+  border-radius: 12px;
+  border: 1px solid var(--visual);
+  background: rgba(255, 213, 79, 0.07);
+}
+
+.detail-block.evolve.is-done {
+  border-color: var(--panel-edge);
+  background: rgba(255, 255, 255, 0.03);
+}
+
+@media (max-width: 760px) {
+  .idol-layout {
+    /* 縦画面では一覧を上に横並びで畳む。左右に割ると詳細が読めない幅になる */
+    grid-template-columns: 1fr;
+  }
+
+  .idol-picker {
+    position: static;
+    flex-direction: row;
+    flex-wrap: wrap;
+  }
+
+  .idol-tab {
+    flex: 0 0 auto;
+    grid-template-columns: auto auto;
+  }
+
+  .idol-tab-level {
+    display: none;
+  }
+}

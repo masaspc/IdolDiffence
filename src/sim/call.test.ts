@@ -209,9 +209,20 @@ describe('得の大きさ', () => {
     return runs.reduce((a, r) => a + r.audience, 0) / runs.length;
   }
 
-  /** 盤面ごとの「押した得」（観客の差） */
+  /**
+   * 盤面ごとの「押した得」（観客の差）。
+   *
+   * **1 回だけ回して使い回す。** 1 呼び出しで 32 戦ぶん回るので、
+   * 2 つの検証で別々に呼ぶと倍かかって時間切れになる。
+   * `expect` の第 2 引数（失敗時のメッセージ）も**先に評価される**ので、
+   * そこで呼び直すと成功した回まで余計に回る
+   */
+  let cached: number[] | null = null;
   function gains(): number[] {
-    return BOARDS.map(([stageId, level]) => average(stageId, level, true) - average(stageId, level, false));
+    cached ??= BOARDS.map(
+      ([stageId, level]) => average(stageId, level, true) - average(stageId, level, false),
+    );
+    return cached;
   }
 
   it(
@@ -221,24 +232,21 @@ describe('得の大きさ', () => {
       // 「月華が早く貯まって解放が 1 回増える」ぶんで、その 1 回が
       // 大波と噛み合うかどうかは盤面と運で決まるため。
       // 実測でも S10 だけは押したほうが観客が下がる回がある
-      const total = gains().reduce((a, g) => a + g, 0);
-      expect(total, `合計で損をしている: ${gains().map((g) => g.toFixed(1)).join(' / ')}`)
+      const each = gains();
+      const total = each.reduce((a, g) => a + g, 0);
+      expect(total, `合計で損をしている: ${each.map((g) => g.toFixed(1)).join(' / ')}`)
         .toBeGreaterThan(0);
     },
     TIMEOUT,
   );
 
-  it(
-    '得は観客 20 点ぶんまで（押さなくてもクリアできる）',
-    () => {
-      // ここが崩れると「リズムゲームが上手い人だけが勝つ TD」になり、
-      // 盤面を読む面白さが押し出される。
-      // **撃破数や与ダメージでは測れない** —— どちらも敵の総数・総 HP に
-      // 張り付くので、強くなっても数字が動かない
-      for (const gain of gains()) {
-        expect(gain, 'コールが強すぎる').toBeLessThan(20);
-      }
-    },
-    TIMEOUT,
-  );
+  it('得は観客 20 点ぶんまで（押さなくてもクリアできる）', () => {
+    // ここが崩れると「リズムゲームが上手い人だけが勝つ TD」になり、
+    // 盤面を読む面白さが押し出される。
+    // **撃破数や与ダメージでは測れない** —— どちらも敵の総数・総 HP に
+    // 張り付くので、強くなっても数字が動かない
+    for (const gain of gains()) {
+      expect(gain, 'コールが強すぎる').toBeLessThan(20);
+    }
+  });
 });
