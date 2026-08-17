@@ -28,7 +28,7 @@ import {
   unequipSlot,
 } from '../meta/costumes';
 import { soloPartForStage } from '../meta/rank';
-import { unlockSecret } from '../meta/secrets';
+import { markSecretSeen, unlockSecret } from '../meta/secrets';
 import { claimRewards } from '../meta/achievements';
 import { textScaleRatio, type Settings } from '../meta/settings';
 import { randomSeed } from '../core/rng';
@@ -71,6 +71,8 @@ export function App(): React.JSX.Element {
     return result.data;
   });
   const [screen, setScreen] = useState<Screen>('home');
+  /** 育成画面を開いたとき最初に見せる人。隠しキャラの登場からだけ入る */
+  const [idolFocus, setIdolFocus] = useState<string | null>(null);
   const [stageId, setStageId] = useState('S1');
   /**
    * 育成状態はバトル開始時に一度だけ解決して固定する。
@@ -198,6 +200,7 @@ export function App(): React.JSX.Element {
     return (
       <IdolScreen
         save={save}
+        focusId={idolFocus}
         onLevelUp={handleLevelUp}
         onEvolve={handleEvolve}
         onBack={() => setScreen('home')}
@@ -226,7 +229,16 @@ export function App(): React.JSX.Element {
       onOpenCostumes={() => setScreen('costumes')}
       onOpenSettings={() => setScreen('settings')}
       onOpenAchievements={() => setScreen('achievements')}
-      onOpenIdols={() => setScreen('idols')}
+      onOpenIdols={() => {
+        setIdolFocus(null);
+        setScreen('idols');
+      }}
+      onReveal={(idolId) => {
+        // 見せたので、以後は通知しない。開く先はその人の詳細
+        setSave((current) => markSecretSeen(current, idolId));
+        setIdolFocus(idolId);
+        setScreen('idols');
+      }}
       onStart={(id, star) => {
         setStageId(id);
         setLastResult(null);

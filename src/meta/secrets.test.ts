@@ -1,26 +1,40 @@
 /**
  * 隠しキャラ MASA（`meta/secrets.ts`）。
  *
- * 見るべきは 2 つ ——
- * **通常の進行では絶対に出てこない**ことと、**出たときは本当に最強**であること。
- * どちらが崩れても隠しキャラの意味が無い。
+ * 見るべきは 3 つ ——
+ * **ただ本編を進めただけでは出てこない**こと、**腕前が届けば出てくる**こと、
+ * そして**出たときは本当に最強**であること。どれが崩れても隠しキャラの意味が無い。
  */
 import { describe, expect, it } from 'vitest';
-import { createNewSave, type SaveData } from './save';
+import { createNewSave, migrate, type SaveData } from './save';
 import { isUnlocked, unlockedIds } from './progression';
-import { matchSecret, SECRET_CODES, unlockSecret } from './secrets';
-import { canonIds, getIdol, rosterIds, SECRET_IDS, stageOrder } from '../data';
+import {
+  markSecretSeen,
+  matchSecret,
+  SECRET_CODES,
+  SECRET_STAR_GATE,
+  unlockSecret,
+  unseenSecrets,
+} from './secrets';
+import { canonIds, getIdol, idolUnlockStage, rosterIds, SECRET_IDS, stageOrder } from '../data';
 
-function fullyCleared(): SaveData {
+/** 本編を全部クリアした状態。★は「挑んだ最低限」の 1 のまま */
+function fullyCleared(star = 1): SaveData {
   const save = createNewSave();
   return {
     ...save,
     stageProgress: Object.fromEntries(
       stageOrder.map((id) => [id, { cleared: true, bestAudience: 100, plays: 9 }]),
     ),
-    bestStar: Object.fromEntries(stageOrder.map((id) => [id, 10])),
+    bestStar: Object.fromEntries(stageOrder.map((id) => [id, star])),
     totalExp: 9_999_999,
   };
+}
+
+/** S5 だけを指定の★で勝った状態 */
+function s5At(star: number): SaveData {
+  const save = createNewSave();
+  return { ...save, bestStar: { S5: star } };
 }
 
 describe('隠しキャラは隠れている', () => {
@@ -28,15 +42,85 @@ describe('隠しキャラは隠れている', () => {
     for (const id of SECRET_IDS) expect(isUnlocked(createNewSave(), id)).toBe(false);
   });
 
-  it('全ステージを ★10 でクリアしても出てこない', () => {
-    for (const id of SECRET_IDS) expect(isUnlocked(fullyCleared(), id)).toBe(false);
+  it('本編を全部クリアしても、★を上げていなければ出てこない', () => {
+    // 「先に進んだ」ではなく「腕前が届いた」ことを条件にしている。
+    // S10 まで ★1 で通した人には、まだ出ない
+    for (const id of SECRET_IDS) expect(isUnlocked(fullyCleared(1), id)).toBe(false);
   });
 
   it('原作の 12 人とは別枠。ロスターの人数にも編成の候補にも混ざらない', () => {
     expect(canonIds).toHaveLength(12);
     expect(rosterIds).toHaveLength(13);
     for (const id of SECRET_IDS) expect(canonIds).not.toContain(id);
-    expect(unlockedIds(fullyCleared())).toEqual([...canonIds]);
+    expect(unlockedIds(fullyCleared(1))).toEqual([...canonIds]);
+  });
+
+  it('解放の条件は育成画面に先出しされない（`idolUnlockStage` に載せない）', () => {
+    // 載せると「S5 をクリアすると解放」と出てしまい、条件ごとネタバレになる
+    for (const id of SECRET_IDS) expect(idolUnlockStage[id]).toBeNull();
+  });
+});
+
+describe('腕前で登場する（S5 ★5）', () => {
+  const gate = SECRET_STAR_GATE['GM'];
+
+  it('条件が S5 の ★5 である', () => {
+    expect(gate).toEqual({ stage: 'S5', star: 5 });
+  });
+
+  it('★4 までは出ない。★5 で出る', () => {
+    expect(isUnlocked(s5At(4), 'GM')).toBe(false);
+    expect(isUnlocked(s5At(5), 'GM')).toBe(true);
+  });
+
+  it('★を超えても出たままになる', () => {
+    expect(isUnlocked(s5At(10), 'GM')).toBe(true);
+  });
+
+  it('他のステージを ★10 で勝っても、S5 が届いていなければ出ない', () => {
+    // 条件は「どこかで★を稼いだ」ではなく「S5 で ★5」。
+    // 易しいステージの周回で開いてしまうと、腕前の証明にならない
+    const elsewhere: SaveData = {
+      ...createNewSave(),
+      bestStar: Object.fromEntries(stageOrder.filter((id) => id !== 'S5').map((id) => [id, 10])),
+    };
+    expect(isUnlocked(elsewhere, 'GM')).toBe(false);
+  });
+
+  it('腕前で開いたぶんはセーブに書かない（条件を変えれば結果も変わる）', () => {
+    const save = s5At(5);
+    expect(save.secrets).toEqual([]);
+    // ★の記録を取り消せば、解放も消える
+    expect(isUnlocked({ ...save, bestStar: {} }, 'GM')).toBe(false);
+  });
+
+  it('編成の候補に入る', () => {
+    expect(unlockedIds(s5At(5))).toContain('GM');
+  });
+});
+
+describe('登場の知らせ', () => {
+  it('解放された時点で 1 件たまる', () => {
+    expect(unseenSecrets(createNewSave())).toEqual([]);
+    expect(unseenSecrets(s5At(5))).toEqual(['GM']);
+  });
+
+  it('見せたら二度と出ない', () => {
+    const seen = markSecretSeen(s5At(5), 'GM');
+    expect(unseenSecrets(seen)).toEqual([]);
+    // 二重に印を付けても同じ参照（無駄な保存を避ける）
+    expect(markSecretSeen(seen, 'GM')).toBe(seen);
+  });
+
+  it('合言葉で開いたときも知らせる', () => {
+    // 打った本人は知っているが、何も起きないと入力が通ったのか分からない
+    expect(unseenSecrets(unlockSecret(createNewSave(), 'GM'))).toEqual(['GM']);
+  });
+
+  it('移行してきたセーブでは、合言葉ぶんを知らせ済みにする', () => {
+    // 自分で打って呼び出した人に、いまさら「登場しました」と出すのはおかしい
+    const migrated = migrate({ ...createNewSave(), version: 8, secrets: ['GM'] });
+    expect(migrated.seenSecrets).toEqual(['GM']);
   });
 });
 

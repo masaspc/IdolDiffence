@@ -768,6 +768,61 @@ kbd {
   font-variant-numeric: tabular-nums;
 }
 
+/*
+ * 隠しキャラの登場（`meta/secrets.ts`）。
+ *
+ * ここだけホームの他のカードと色を変えてある。前回のライブや才能ポイントと
+ * 同じ見た目にすると、いちばん強い駒が増えたことが「お知らせ 1 件」に埋もれる。
+ * 演出「最小」では光り続けるのが止まる（下の data-effects の一括指定）
+ */
+.secret-reveal {
+  display: block;
+  width: 100%;
+  margin-top: 1rem;
+  padding: 0.9rem 1.1rem;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 213, 79, 0.55);
+  background: linear-gradient(120deg, rgba(255, 213, 79, 0.16), rgba(143, 107, 255, 0.16));
+  color: var(--text);
+  text-align: left;
+  cursor: pointer;
+  animation: secret-glow 2.4s ease-in-out infinite;
+}
+
+.secret-reveal:hover {
+  border-color: var(--visual);
+}
+
+.secret-reveal-tag {
+  display: block;
+  font-size: 0.72rem;
+  letter-spacing: 0.12em;
+  color: var(--visual);
+}
+
+.secret-reveal-name {
+  display: block;
+  margin-top: 0.25rem;
+  font-size: 1.05rem;
+}
+
+.secret-reveal-hint {
+  display: block;
+  margin-top: 0.2rem;
+  font-size: 0.78rem;
+  color: var(--text-dim);
+}
+
+@keyframes secret-glow {
+  0%,
+  100% {
+    box-shadow: 0 0 0 rgba(255, 213, 79, 0);
+  }
+  50% {
+    box-shadow: 0 0 18px rgba(255, 213, 79, 0.35);
+  }
+}
+
 .last-result {
   margin-top: 1rem;
   padding: 0.7rem 1rem;

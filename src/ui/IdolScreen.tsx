@@ -15,7 +15,7 @@
  * 数値を変えたときに文だけ古いまま残る。
  */
 import { useState } from 'react';
-import { getIdol, getStage, idolUnlockStage } from '../data';
+import { getIdol, getStage } from '../data';
 import { displayName, evolutionOf, evolveBlocker, isEvolved, type EvolveBlock } from '../meta/evolution';
 import {
   canLevelUp,
@@ -37,6 +37,7 @@ import {
   centerLines,
   evolutionLines,
   evolutionRequirement,
+  joinText,
   TYPE_LABEL,
   TYPE_STRONG_AGAINST,
 } from './idolText';
@@ -73,6 +74,8 @@ function evolveHint(block: EvolveBlock, stageName: string, level: number): strin
 
 interface IdolScreenProps {
   save: SaveData;
+  /** 最初に開いておく人。隠しキャラの登場から飛んできたときに使う */
+  focusId?: string | null;
   onLevelUp: (idolId: string) => void;
   onEvolve: (idolId: string) => void;
   onBack: () => void;
@@ -95,12 +98,13 @@ function Block({ title, lines }: { title: string; lines: string[] }): React.JSX.
 
 export function IdolScreen({
   save,
+  focusId = null,
   onLevelUp,
   onEvolve,
   onBack,
 }: IdolScreenProps): React.JSX.Element {
   const roster = unlockedIds(save);
-  const [selected, setSelected] = useState(roster[0] ?? 'V1');
+  const [selected, setSelected] = useState(focusId ?? roster[0] ?? 'V1');
   const id = roster.includes(selected) ? selected : (roster[0] ?? 'V1');
 
   const def = getIdol(id);
@@ -122,8 +126,6 @@ export function IdolScreen({
   const worn = (['stage', 'accessory', 'mic', 'makeup'] as const)
     .map((slot) => ({ slot, costume: equippedCostume(save, id, slot) }))
     .filter((entry) => entry.costume !== null);
-
-  const gate = idolUnlockStage[id];
 
   return (
     <div className="home idol-screen">
@@ -298,7 +300,7 @@ export function IdolScreen({
             <p className="detail-lead">
               資金でレベルを上げます。Lv{MAX_LEVEL} が上限で、攻撃力は 1 レベルごとに
               素の 6% ぶん増えます。
-              {gate ? `（${getStage(gate).name} をクリアして加入）` : '（最初から使えます）'}
+              （{joinText(save, id)}）
             </p>
             <button
               type="button"
