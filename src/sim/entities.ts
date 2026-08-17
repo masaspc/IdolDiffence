@@ -75,6 +75,41 @@ export interface Enemy {
    * 蘇らなくなる（定義は全個体で共有している）
    */
   revivesLeft: number;
+  /** 残りのバリア量（`traits.barrier`）。HP とは別枠 */
+  barrier: number;
+  /** 最後にバリアを削られてからの経過。満タンへ戻すまでの猶予を数える */
+  barrierIdleMs: number;
+}
+
+/** バリアの最大値。個体の最大 HP から決まる */
+export function maxBarrier(enemy: Enemy): number {
+  const barrier = enemy.traits.barrier;
+  return barrier ? enemy.maxHp * barrier.ratio : 0;
+}
+
+/**
+ * バリアの回復。**削るのをやめると満タンへ戻る**。
+ * 少しずつ削る盤面を罰し、「一点に集めて一気に割る」を答えにする
+ */
+export function tickBarrier(enemy: Enemy, dtMs: number): void {
+  const barrier = enemy.traits.barrier;
+  if (!barrier) return;
+  const max = maxBarrier(enemy);
+  if (enemy.barrier >= max) return;
+  enemy.barrierIdleMs += dtMs;
+  if (enemy.barrierIdleMs >= barrier.regenAfterMs) enemy.barrier = max;
+}
+
+/**
+ * バリアで受け止める。
+ * @returns HP へ通すぶんのダメージ
+ */
+export function absorbByBarrier(enemy: Enemy, amount: number): number {
+  if (enemy.barrier <= 0) return amount;
+  enemy.barrierIdleMs = 0;
+  const absorbed = Math.min(enemy.barrier, amount);
+  enemy.barrier -= absorbed;
+  return amount - absorbed;
 }
 
 /**
@@ -95,6 +130,27 @@ export function typeGuardFactor(enemy: Enemy, type: IdolType): number {
   const guard = enemy.traits.typeGuard;
   if (!guard || guard.type !== type) return 1;
   return 1 - guard.reduction;
+}
+
+/**
+ * 守り手による軽減（`traits.link`）。
+ *
+ * 守り手が**生きていて範囲内にいる**あいだだけ成立する。
+ * 守り手を先に落とせば軽減は消えるので、これは「順番を変えろ」という問いになる。
+ *
+ * @returns 直接攻撃のダメージに掛ける倍率
+ */
+export function linkFactor(enemy: Enemy, enemies: readonly Enemy[]): number {
+  const link = enemy.traits.link;
+  if (!link) return 1;
+  const r2 = link.radius * link.radius;
+  for (const other of enemies) {
+    if (other === enemy || !other.alive || other.defId !== link.guardian) continue;
+    const dx = other.pos.x - enemy.pos.x;
+    const dy = other.pos.y - enemy.pos.y;
+    if (dx * dx + dy * dy <= r2) return 1 - link.reduction;
+  }
+  return 1;
 }
 
 /** 攻撃の実効パラメータ。覚醒とカードを反映した後の姿 */

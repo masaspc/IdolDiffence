@@ -29,8 +29,10 @@ function filled(enemyId: string): number {
 }
 
 describe('敵のドット絵', () => {
-  it('全 23 体ぶんが描ける（丸へ落ちる敵がいない）', () => {
-    expect(enemyIds.length).toBe(23);
+  it('全員ぶんが描ける（丸へ落ちる敵がいない）', () => {
+    // 体数そのものは固定しない —— 敵を足すたびにここを書き直す羽目になる。
+    // 見たいのは「**足した敵に絵を付け忘れていない**」ことだけ
+    expect(enemyIds.length).toBeGreaterThan(20);
     for (const id of enemyIds) {
       expect(buildEnemySprite(id), `${id} に art が無い`).not.toBeNull();
     }

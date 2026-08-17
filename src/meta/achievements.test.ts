@@ -204,10 +204,10 @@ describe('数え方の境界', () => {
         ids.map((id) => [id, { cleared: true, bestAudience: 100, plays: 1 }]),
       ),
     });
-    // 本編 19 本 + ボス 3 本 = 22 ステージ。本編はまだ 1 本残っている
-    const almost = cleared([...mainStageIds.slice(0, 19), ...bossStageIds]);
-    expect(statValue(almost, 'clearedStages')).toBe(22);
-    expect(statValue(almost, 'clearedMainStages')).toBe(19);
+    // 本編をあと 1 本だけ残した状態。ボスは全部終えている
+    const almost = cleared([...mainStageIds.slice(0, -1), ...bossStageIds]);
+    expect(statValue(almost, 'clearedStages')).toBe(stageOrder.length - 1);
+    expect(statValue(almost, 'clearedMainStages')).toBe(mainStageIds.length - 1);
     expect(achievementView(almost, 'all_main').unlocked).toBe(false);
 
     // ボスを 1 本も終えていなくても、本編を全部やれば立つ（ボスは寄り道）

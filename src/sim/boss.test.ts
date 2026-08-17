@@ -1,5 +1,5 @@
 /**
- * ボス 2 種（04-content.md 4.3）。
+ * ボス 4 種（04-content.md 4.3）。
  *
  * どちらも「数値が大きい敵」ではなく**問いを出す敵**なので、
  * 見るのは HP ではなく挙動 —— 属性が一周すること、レーンが止まること。
@@ -33,8 +33,8 @@ function worldWithPlan(stageId: string, subscribe: (world: BattleWorld) => void)
 }
 
 describe('データ', () => {
-  it('ボスは 3 種で、どれもボスステージに出る', () => {
-    expect(bossStageIds).toEqual(['B1', 'B2', 'B3']);
+  it('ボスは 4 種で、どれもボスステージに出る', () => {
+    expect(bossStageIds).toEqual(['B1', 'B2', 'B3', 'B4']);
     for (const stageId of bossStageIds) {
       const used = new Set(
         getStage(stageId).waves.flatMap((wave) => wave.spawns.map((s) => s.enemy)),
@@ -45,7 +45,12 @@ describe('データ', () => {
 
   it('ボスを通すと観客が大きく減る（倒すのが目的になる）', () => {
     // leak が軽いと「素通しさせて完走」が成立してしまい、ボス戦にならない
-    for (const id of ['e_boss_utsushi', 'e_boss_hagoromo', 'e_boss_tsuki_no_o']) {
+    for (const id of [
+      'e_boss_utsushi',
+      'e_boss_hagoromo',
+      'e_boss_tsuki_no_o',
+      'e_boss_hagoromo_ten',
+    ]) {
       expect(getEnemy(id).leak).toBeGreaterThan(30);
     }
   });
@@ -116,13 +121,32 @@ describe('状態異常の耐性（02-core-battle.md 2.8）', () => {
       statuses: [],
       alive: true,
       revivesLeft: 0,
+      barrier: 0,
+      barrierIdleMs: 0,
     };
   }
 
-  it('ボスは 2 種とも耐性を持つ', () => {
+  it('ボスはどれも耐性を持つ（魅了は必ず無効）', () => {
     for (const id of ['e_boss_utsushi', 'e_boss_hagoromo']) {
       expect(getEnemy(id).traits.resist, id).toEqual({ stun: 0.7, charm: 1, slow: 0.3 });
     }
+    // 章が進むほど耐性も上がる。魅了だけは**どのボスでも 1**（永久停止を作らない）
+    for (const id of ['e_boss_tsuki_no_o', 'e_boss_hagoromo_ten']) {
+      expect(getEnemy(id).traits.resist?.charm, id).toBe(1);
+    }
+    expect(getEnemy('e_boss_hagoromo_ten').traits.resist?.stun).toBeGreaterThan(
+      getEnemy('e_boss_utsushi').traits.resist!.stun,
+    );
+  });
+
+  it('最後のボスは章の敵の特性を全部持つ', () => {
+    // 「数値が大きいだけの敵」にしないための確認。
+    // 属性一周・沈黙・蘇生・バリアが 1 体に入っていることが B4 の看板
+    const traits = getEnemy('e_boss_hagoromo_ten').traits;
+    expect(traits.phases?.length).toBeGreaterThan(1);
+    expect(traits.silence).toBeDefined();
+    expect(traits.revive).toBeDefined();
+    expect(traits.barrier).toBeDefined();
   });
 
   it('魅了が通らない（永久に足を止められない）', () => {

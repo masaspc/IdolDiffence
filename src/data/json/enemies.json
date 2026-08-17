@@ -405,6 +405,189 @@
       }
     }
   },
+  "e_monban": {
+    "name": "月の都の門番",
+    "attr": "glare",
+    "hp": 1200,
+    "def": 200,
+    "speed": 0.6,
+    "leak": 5,
+    "bounty": 55,
+    "flying": false,
+    "radius": 0.44,
+    "art": {
+      "form": "soldier",
+      "main": "#c8b8f0",
+      "sub": "#3a2f66",
+      "accent": "#ffe9a3"
+    },
+    "traits": {
+      "barrier": {
+        "ratio": 0.6,
+        "regenAfterMs": 2500
+      }
+    }
+  },
+  "e_orite": {
+    "name": "羽衣を織る者",
+    "attr": "silence",
+    "hp": 700,
+    "def": 120,
+    "speed": 0.8,
+    "leak": 4,
+    "bounty": 42,
+    "flying": false,
+    "radius": 0.36,
+    "art": {
+      "form": "lady",
+      "main": "#e8e0ff",
+      "sub": "#4a4270",
+      "accent": "#9fd8ff"
+    },
+    "traits": {
+      "healAura": {
+        "radius": 3.2,
+        "percentPerSec": 0.05
+      }
+    }
+  },
+  "e_mamorite": {
+    "name": "月の衛士",
+    "attr": "silence",
+    "hp": 900,
+    "def": 160,
+    "speed": 0.9,
+    "leak": 4,
+    "bounty": 48,
+    "flying": false,
+    "radius": 0.4,
+    "art": {
+      "form": "soldier",
+      "main": "#8fa7e8",
+      "sub": "#26305c",
+      "accent": "#cfe4ff"
+    },
+    "traits": {
+      "link": {
+        "guardian": "e_orite",
+        "radius": 3.5,
+        "reduction": 0.8
+      }
+    }
+  },
+  "e_kagerou": {
+    "name": "陽炎の兵",
+    "attr": "noise",
+    "hp": 420,
+    "def": 60,
+    "speed": 2.4,
+    "leak": 3,
+    "bounty": 30,
+    "flying": true,
+    "radius": 0.3,
+    "art": {
+      "form": "bird",
+      "main": "#ffc98f",
+      "sub": "#8a4f22",
+      "accent": "#fff0c4"
+    },
+    "traits": {
+      "enrage": {
+        "at": 0.5,
+        "speedMul": 1.8
+      }
+    }
+  },
+  "e_yasogami": {
+    "name": "八千年の記憶",
+    "attr": "noise",
+    "hp": 800,
+    "def": 100,
+    "speed": 0.95,
+    "leak": 4,
+    "bounty": 46,
+    "flying": false,
+    "radius": 0.38,
+    "art": {
+      "form": "jar",
+      "main": "#b8a0e8",
+      "sub": "#3a2a5c",
+      "accent": "#ffe9a3"
+    },
+    "traits": {
+      "revive": {
+        "hpRatio": 0.5,
+        "times": 2
+      }
+    }
+  },
+  "e_utsuro": {
+    "name": "虚ろの影",
+    "attr": "glare",
+    "hp": 1500,
+    "def": 240,
+    "speed": 0.5,
+    "leak": 6,
+    "bounty": 62,
+    "flying": false,
+    "radius": 0.48,
+    "art": {
+      "form": "shade",
+      "main": "#3a2f5c",
+      "sub": "#150f2c",
+      "accent": "#ffd45e"
+    },
+    "traits": {
+      "drainAura": {
+        "radius": 3.8,
+        "speedMul": 0.62
+      },
+      "typeGuard": {
+        "type": "dance",
+        "reduction": 0.7
+      }
+    }
+  },
+  "e_tsukikage": {
+    "name": "月影の群れ",
+    "attr": "silence",
+    "hp": 260,
+    "def": 40,
+    "speed": 1.6,
+    "leak": 2,
+    "bounty": 18,
+    "flying": false,
+    "radius": 0.24,
+    "art": {
+      "form": "moth",
+      "main": "#cfd8ff",
+      "sub": "#4a5490",
+      "accent": "#ffffff"
+    },
+    "traits": {
+      "onDeathSpawn": {
+        "enemy": "e_tsukikage_ko",
+        "count": 2
+      }
+    }
+  },
+  "e_tsukikage_ko": {
+    "name": "月影のかけら",
+    "attr": "silence",
+    "hp": 90,
+    "def": 10,
+    "speed": 2.0,
+    "leak": 1,
+    "bounty": 6,
+    "flying": false,
+    "radius": 0.18,
+    "art": {
+      "form": "moth",
+      "main": "#eef2ff",
+      "sub": "#6b74b0",
+      "accent": "#ffffff"
+    }
+  },
   "e_boss_utsushi": {
     "name": "偽アカウント",
     "attr": "glare",
@@ -506,6 +689,56 @@
       "revive": {
         "hpRatio": 0.45,
         "times": 1
+      }
+    }
+  },
+  "e_boss_hagoromo_ten": {
+    "name": "天の羽衣",
+    "attr": "silence",
+    "hp": 60000,
+    "def": 320,
+    "speed": 0.3,
+    "leak": 70,
+    "bounty": 300,
+    "radius": 0.82,
+    "art": {
+      "form": "tennin",
+      "main": "#ffffff",
+      "sub": "#8f7ad0",
+      "accent": "#ffe9a3"
+    },
+    "traits": {
+      "boss": true,
+      "resist": {
+        "stun": 0.85,
+        "charm": 1,
+        "slow": 0.6
+      },
+      "phases": [
+        {
+          "at": 0.75,
+          "attr": "noise"
+        },
+        {
+          "at": 0.5,
+          "attr": "glare"
+        },
+        {
+          "at": 0.25,
+          "attr": "noise"
+        }
+      ],
+      "silence": {
+        "everyMs": 7000,
+        "durationMs": 5000
+      },
+      "revive": {
+        "hpRatio": 0.4,
+        "times": 1
+      },
+      "barrier": {
+        "ratio": 0.25,
+        "regenAfterMs": 4000
       }
     }
   }

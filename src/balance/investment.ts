@@ -99,5 +99,8 @@ export function balanceMeta(
   if (investment === 'full') {
     meta.costumes = resolvePartyCostumes(dressed(party, 'SSR', 9), party);
   }
+  if (investment === 'max') {
+    meta.costumes = resolvePartyCostumes(dressed(party, 'UR', 15), party);
+  }
   return meta;
 }

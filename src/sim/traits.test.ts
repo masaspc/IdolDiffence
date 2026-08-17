@@ -10,9 +10,13 @@ import { createWorld, type BattleWorld } from './world';
 import { getEnemy, getIdol, rosterIds } from '../data';
 import { runHeadless } from '../core/loop';
 import {
+  absorbByBarrier,
   applyStatus,
   enrageFactor,
   isImmobilized,
+  linkFactor,
+  maxBarrier,
+  tickBarrier,
   typeGuardFactor,
   type Enemy,
 } from './entities';
@@ -433,6 +437,129 @@ describe('不死の薬（revive）', () => {
   });
 });
 
+describe('月の都の門番のバリア（barrier）', () => {
+  it('HP より先にバリアが削れる', () => {
+    const enemy = spawnDummy(richWorld('S6'), 'e_monban', 5, 4);
+    expect(enemy.barrier).toBeCloseTo(enemy.maxHp * 0.6, 5);
+
+    const through = absorbByBarrier(enemy, 100);
+    expect(through).toBe(0);
+    expect(enemy.barrier).toBeCloseTo(enemy.maxHp * 0.6 - 100, 5);
+    expect(enemy.hp).toBe(enemy.maxHp);
+  });
+
+  it('割り切ったぶんだけが HP へ通る', () => {
+    const enemy = spawnDummy(richWorld('S6'), 'e_monban', 5, 4);
+    const shield = enemy.barrier;
+    expect(absorbByBarrier(enemy, shield + 250)).toBeCloseTo(250, 5);
+    expect(enemy.barrier).toBe(0);
+  });
+
+  it('削るのをやめると満タンへ戻る（少しずつ削る盤面が通らない）', () => {
+    // ここが無いと「射程の端からちまちま当てる」だけでバリアが溶ける。
+    // **一点に集めて一気に割る**を答えにするための挙動
+    const enemy = spawnDummy(richWorld('S6'), 'e_monban', 5, 4);
+    absorbByBarrier(enemy, enemy.barrier * 0.5);
+    const halved = enemy.barrier;
+
+    tickBarrier(enemy, 2400);
+    expect(enemy.barrier).toBe(halved); // 猶予の内は戻らない
+    tickBarrier(enemy, 200);
+    expect(enemy.barrier).toBeCloseTo(maxBarrier(enemy), 5);
+  });
+
+  it('削り続けているあいだは戻らない', () => {
+    const enemy = spawnDummy(richWorld('S6'), 'e_monban', 5, 4);
+    for (let i = 0; i < 10; i++) {
+      absorbByBarrier(enemy, 10);
+      tickBarrier(enemy, 1000); // 猶予より短い間隔で当て続ける
+    }
+    expect(enemy.barrier).toBeLessThan(maxBarrier(enemy));
+  });
+
+  it('吸われたぶんは貢献度にも月華にも数えない', () => {
+    // 数えてしまうと、**割れないバリアを叩き続けるのが最も稼げる手**になり、
+    // 「守りを剥がしてから殴る」という問いが逆立ちする
+    const world = richWorld('S6');
+    const unit = world.placeUnit('V1', 5, 2);
+    if (typeof unit === 'string') throw new Error(unit);
+    const enemy = spawnDummy(world, 'e_monban', 5.5, 3.0);
+    enemy.barrier = 1e9; // 絶対に割れないバリア
+
+    runHeadless(3000, (dt) => world.update(dt));
+    expect(enemy.barrier).toBeLessThan(1e9); // 殴ってはいる
+    expect(enemy.hp).toBe(enemy.maxHp);
+    // 月華は時間でも溜まるので、ダメージ由来だけを見る貢献度で確かめる
+    expect(world.snapshot().contribution).toEqual([]);
+  });
+
+  it('バリアを持たない敵はそのまま通る', () => {
+    const enemy = spawnDummy(richWorld('S6'), 'e_walker', 5, 4);
+    expect(enemy.barrier).toBe(0);
+    expect(absorbByBarrier(enemy, 100)).toBe(100);
+  });
+});
+
+describe('月の衛士の連携（link）', () => {
+  /** 守り手を置くかどうかだけ変えて、衛士に通ったダメージを比べる */
+  function dealDamage(withGuardian: boolean): number {
+    const world = richWorld('S6');
+    const unit = world.placeUnit('V1', 5, 2);
+    if (typeof unit === 'string') throw new Error(unit);
+    const guard = spawnDummy(world, 'e_mamorite', 5.5, 3.0);
+    if (withGuardian) {
+      const orite = spawnDummy(world, 'e_orite', 5.6, 3.1);
+      // 織り手の回復オーラが混ざると軽減の効き目が読めない
+      orite.traits = { ...orite.traits, healAura: undefined };
+    }
+    runHeadless(3000, (dt) => world.update(dt));
+    return guard.maxHp - guard.hp;
+  }
+
+  it('守り手が近くにいるあいだは通らない', () => {
+    const guarded = dealDamage(true);
+    const alone = dealDamage(false);
+    expect(guarded).toBeGreaterThan(0);
+    expect(guarded).toBeLessThan(alone * 0.5);
+  });
+
+  it('守り手を落とせば軽減が消える（狙う順番への問い）', () => {
+    // 「先頭を狙う」「HP が高い方を狙う」という既定がそのまま裏目になる。
+    // 守り手が倒れたあとも軽減が残ると、そもそも答えが無い敵になる
+    const enemies: Enemy[] = [];
+    const world = richWorld('S6');
+    const guard = spawnDummy(world, 'e_mamorite', 5.5, 3.0);
+    const orite = spawnDummy(world, 'e_orite', 5.6, 3.1);
+    enemies.push(guard, orite);
+
+    expect(linkFactor(guard, enemies)).toBeCloseTo(0.2, 5);
+    orite.alive = false;
+    expect(linkFactor(guard, enemies)).toBe(1);
+  });
+
+  it('守り手が範囲の外にいれば効かない', () => {
+    const world = richWorld('S6');
+    const guard = spawnDummy(world, 'e_mamorite', 5.0, 4.0);
+    const far = spawnDummy(world, 'e_orite', 12.0, 4.0);
+    expect(linkFactor(guard, [guard, far])).toBe(1);
+    far.pos = { x: 7.0, y: 4.0 }; // 半径 3.5 のちょうど内側
+    expect(linkFactor(guard, [guard, far])).toBeCloseTo(0.2, 5);
+  });
+
+  it('守り手は自分自身では代われない', () => {
+    // 自分を守り手として数えると、1 体でも湧いた時点で常時 80% 軽減になる
+    const orite = spawnDummy(richWorld('S6'), 'e_orite', 5, 4);
+    expect(linkFactor(orite, [orite])).toBe(1);
+  });
+
+  it('連携を持たない敵はそのまま', () => {
+    const world = richWorld('S6');
+    const walker = spawnDummy(world, 'e_walker', 5, 4);
+    const orite = spawnDummy(world, 'e_orite', 5.2, 4);
+    expect(linkFactor(walker, [walker, orite])).toBe(1);
+  });
+});
+
 // --- ヘルパー ---
 
 /**
@@ -469,6 +596,8 @@ function spawnDummy(world: BattleWorld, enemyId: string, x: number, y: number): 
     alive: true,
     // 定義どおりに蘇らせる。0 で固定すると不死の薬が試せない
     revivesLeft: def.traits.revive?.times ?? 0,
+    barrier: (def.traits.barrier?.ratio ?? 0) * hp,
+    barrierIdleMs: 0,
   };
   internalEnemies(world).push(enemy);
   return enemy;
@@ -503,5 +632,7 @@ function makeEnemy(): Enemy {
     statuses: [],
     alive: true,
     revivesLeft: 0,
+    barrier: 0,
+    barrierIdleMs: 0,
   };
 }
