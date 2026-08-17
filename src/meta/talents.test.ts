@@ -71,11 +71,20 @@ describe('ボードの形', () => {
     }
   });
 
-  it('実績だけでは全ノードに届かない（序盤はどこに寄せるかを選ぶ）', () => {
+  it('第 1 章を全部クリアしても全ノードには届かない（どこに寄せるかを選ぶ）', () => {
     const everything = talentIds.reduce((sum, id) => sum + getTalent(id).cost, 0);
-    // ランク 1（周回ゼロ）で、全ステージをランク S でクリアした状態
-    const maxFromStages = totalTalentPoints(cleared(stageOrder.length, true));
-    expect(maxFromStages).toBeLessThan(everything);
+    // S1〜B2（12 本）を全部 ★満点で終えた状態。ボード全体より安くならないこと
+    expect(totalTalentPoints(cleared(12, true))).toBeLessThan(everything);
+  });
+
+  it('月の都の章まで進むとボードは埋まりきる', () => {
+    // **これは想定どおりで、同時に宿題でもある。** ステージが 12 → 23 本に
+    // 増えたぶんポイントの供給が倍近くになり、終盤ではボードを全部取れる。
+    // そこから先で「寄せる判断」を担っているのはキーストーンの排他だけ（次のテスト）。
+    // ボードを伸ばすなら、`fullBranch`（balance/investment.ts）が変わるので
+    // 月の都の章の hpMul をすべて測り直すことになる ―― だから今回は伸ばしていない
+    const everything = talentIds.reduce((sum, id) => sum + getTalent(id).cost, 0);
+    expect(totalTalentPoints(cleared(stageOrder.length, true))).toBeGreaterThan(everything);
   });
 
   it('ランクを上げてもキーストーンは片方しか取れない', () => {

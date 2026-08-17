@@ -9,13 +9,13 @@
  */
 import { createWorld, type BattleMeta } from '../src/sim/world';
 import { autoplay, type Placement } from '../src/sim/autoplay';
-import { getIdol, getTalent, rosterIds } from '../src/data';
-import { levelAtkMultiplier } from '../src/meta/progression';
-import { emptyTalentEffects, resolveTalents, type TalentEffects } from '../src/meta/talents';
+import { getTalent } from '../src/data';
+import { resolveTalents, type TalentEffects } from '../src/meta/talents';
 import { createNewSave, type CostumeInstance, type SaveData } from '../src/meta/save';
 import { equipCostume, resolvePartyCostumes } from '../src/meta/costumes';
 import { COSTUME_SLOTS, SLOT_MAIN_STATS } from '../src/data/schema/costume';
-import { minimalPlan, PLAN_STAGES, STAGE_PLANS } from '../src/balance/plans';
+import { minimalPlan, PLAN_STAGES, STAGE_PLANS, type Investment } from '../src/balance/plans';
+import { balanceMeta, investmentOf } from '../src/balance/investment';
 
 const SEED = 20260816;
 
@@ -65,22 +65,34 @@ function fullCostumes(party: readonly string[], seriesId: string, enhance: numbe
   return save;
 }
 
-/** 育成段階を再現する。レベルだけを変えて他は同条件にする */
+/**
+ * 育成段階を再現する。
+ *
+ * ## 土台をどこに置くか
+ *
+ * 行ごとに**土台の段階を明示して受け取る**。以前は暗黙に
+ * 「そのステージの既定値」を敷いていたが、それだと月の都の章（S11 以降）で
+ * 表の意味が壊れる ―― 既定の土台に才能が入っているので
+ * 「Lv20・フル強化」と「Lv20・才能フル(歌)」が同じ行になり、
+ * S16 以降は衣装の行も既定の才能を引きずって**単独の効き目が読めない**。
+ *
+ * レベルの並び（Lv1〜Lv30）は既定の段階を土台にする ―― あの章は素の値では
+ * 全行が「負け」で埋まり、レベルの効き目が何も読み取れない。
+ * 単独の効き目を見る行（才能だけ・衣装だけ）は `bare` から組む。
+ */
 function metaAt(
   stageId: string,
   level: number,
+  investment: Investment,
   talents?: TalentEffects,
   costumeSeries?: string,
 ): BattleMeta {
   const plan = STAGE_PLANS[stageId];
   const party = plan?.party ?? [];
+  const base = balanceMeta(stageId, level, investment);
   return {
-    atkByIdol: Object.fromEntries(
-      rosterIds.map((id) => [id, getIdol(id).base.atk * levelAtkMultiplier(level)]),
-    ),
-    party,
-    center: plan?.center ?? null,
-    talents: talents ?? emptyTalentEffects(),
+    ...base,
+    ...(talents ? { talents } : {}),
     ...(costumeSeries
       ? { costumes: resolvePartyCostumes(fullCostumes(party, costumeSeries, 15), party) }
       : {}),
@@ -106,6 +118,8 @@ function run(
   options: {
     useSpecial?: boolean;
     worstCard?: boolean;
+    /** 土台の段階。省略するとステージの既定値 */
+    investment?: Investment;
     talents?: TalentEffects;
     costumeSeries?: string;
   } = {},
@@ -113,7 +127,13 @@ function run(
   const world = createWorld(
     stageId,
     SEED,
-    metaAt(stageId, level, options.talents, options.costumeSeries),
+    metaAt(
+      stageId,
+      level,
+      options.investment ?? investmentOf(stageId),
+      options.talents,
+      options.costumeSeries,
+    ),
   );
   const result = autoplay(world, {
     plan,
@@ -140,29 +160,44 @@ const targets = requested.length > 0 ? requested : PLAN_STAGES;
 const rows: Row[] = [];
 for (const stageId of targets) {
   const full = STAGE_PLANS[stageId]?.placements ?? [];
-  rows.push(run(`${stageId} 無配置`, stageId, 1, []));
-  rows.push(run(`${stageId} Lv1・3枚のみ`, stageId, 1, minimalPlan(stageId)));
-  rows.push(run(`${stageId} Lv1・フル強化`, stageId, 1, full, { useSpecial: true }));
-  rows.push(run(`${stageId} Lv10・フル強化`, stageId, 10, full, { useSpecial: true }));
-  rows.push(run(`${stageId} Lv20・フル強化`, stageId, 20, full, { useSpecial: true }));
-  rows.push(run(`${stageId} Lv30・フル強化`, stageId, 30, full, { useSpecial: true }));
+  const tier = investmentOf(stageId);
+  // レベルの並びが乗っている土台。S1〜B2 は素のまま、月の都の章は既定の段階
+  const base = tier === 'bare' ? '' : `[${tier}] `;
+  rows.push(run(`${stageId} ${base}無配置`, stageId, 1, []));
+  rows.push(run(`${stageId} ${base}Lv1・3枚のみ`, stageId, 1, minimalPlan(stageId)));
+  rows.push(run(`${stageId} ${base}Lv1・フル強化`, stageId, 1, full, { useSpecial: true }));
+  rows.push(run(`${stageId} ${base}Lv10・フル強化`, stageId, 10, full, { useSpecial: true }));
+  rows.push(run(`${stageId} ${base}Lv20・フル強化`, stageId, 20, full, { useSpecial: true }));
+  rows.push(run(`${stageId} ${base}Lv30・フル強化`, stageId, 30, full, { useSpecial: true }));
   rows.push(
-    run(`${stageId} Lv20・別のカード選択`, stageId, 20, full, { useSpecial: true, worstCard: true }),
-  );
-  // 才能ボードに投資した状態。参照盤面は才能なしで測っているので、
-  // ここが「投資したぶん楽になっている」ことの確認になる
-  rows.push(
-    run(`${stageId} Lv20・才能フル(歌)`, stageId, 20, full, {
+    run(`${stageId} ${base}Lv20・別のカード選択`, stageId, 20, full, {
       useSpecial: true,
+      worstCard: true,
+    }),
+  );
+  // 以下 2 行は**素（bare）から**組む。既定の段階を土台にすると、
+  // 月の都の章では才能が二重に入って「才能だけの効き目」が読めなくなる
+  rows.push(
+    run(`${stageId} [bare] Lv20・才能フル(歌)`, stageId, 20, full, {
+      useSpecial: true,
+      investment: 'bare',
       talents: fullBranchTalents('vo'),
     }),
   );
   // 衣装に振り切った状態。恒久強化の到達点（03 E-2 の 2.9 倍）が
   // 効きすぎていないかを見る
   rows.push(
-    run(`${stageId} Lv20・衣装UR+15(玉の枝)`, stageId, 20, full, {
+    run(`${stageId} [bare] Lv20・衣装UR+15(玉の枝)`, stageId, 20, full, {
       useSpecial: true,
+      investment: 'bare',
       costumeSeries: 'tama',
+    }),
+  );
+  // 比較の基準。上の 2 行と同じ土台（素）で、強化を何も足さないもの
+  rows.push(
+    run(`${stageId} [bare] Lv20・強化なし`, stageId, 20, full, {
+      useSpecial: true,
+      investment: 'bare',
     }),
   );
 }
@@ -171,10 +206,10 @@ const width = (text: string): number =>
   [...text].reduce((n, c) => n + (c.charCodeAt(0) > 0xff ? 2 : 1), 0);
 const pad = (text: string, w: number): string => text + ' '.repeat(Math.max(0, w - width(text)));
 
-console.log(pad('条件', 28), '結果   観客  撃破 漏れ 残声援 カード 必殺');
+console.log(pad('条件', 34), '結果   観客  撃破 漏れ 残声援 カード 必殺');
 for (const row of rows) {
   console.log(
-    pad(row.label, 28),
+    pad(row.label, 34),
     row.won ? '完走  ' : '中断  ',
     String(row.audience).padStart(4),
     String(row.killed).padStart(5),

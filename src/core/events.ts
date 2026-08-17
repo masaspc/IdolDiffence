@@ -57,6 +57,8 @@ export interface BattleEvents {
   enemySpawned: { id: number; defId: string };
   enemyKilled: { id: number; defId: string; bounty: number };
   enemyLeaked: { id: number; leak: number };
+  /** 倒したはずが蘇った（不死の薬）。撃破としては数えていない */
+  enemyRevived: { id: number; defId: string };
   cheerChanged: { value: number; delta: number };
   voltageChanged: { value: number };
   specialStarted: Record<string, never>;

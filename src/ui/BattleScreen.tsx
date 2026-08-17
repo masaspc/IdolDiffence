@@ -84,7 +84,14 @@ export function BattleScreen({
 
     // seed はここで 1 回だけ引く。以降の乱数はすべて world.rng 経由
     const world = createWorld(stageId, randomSeed(), meta);
-    const renderer = new Renderer(canvas, world, undefined, effectsRef.current, glyphsRef.current);
+    const renderer = new Renderer(
+      canvas,
+      world,
+      undefined,
+      undefined,
+      effectsRef.current,
+      glyphsRef.current,
+    );
     worldRef.current = world;
     rendererRef.current = renderer;
 

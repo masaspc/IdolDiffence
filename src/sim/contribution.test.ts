@@ -39,6 +39,7 @@ function makeEnemy(): Enemy {
     prevPos: vec(0, 0),
     statuses: [],
     alive: true,
+    revivesLeft: 0,
   };
 }
 

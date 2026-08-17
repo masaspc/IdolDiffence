@@ -46,6 +46,21 @@ export const stageSchema = z.object({
     .object({
       /** 全メンバーの射程倍率。S9「雨のアリーナ」は 0.9（視界が悪い） */
       rangeMul: z.number().positive().optional(),
+      /**
+       * 自然に溜まる声援の倍率。S17「夜の館」は 0.8（まだ客が入っていない）。
+       *
+       * **撃破報酬（bounty）には掛からない。** 掛けると「置けないうえに
+       * 置いても取り返せない」になり、開幕で詰む。減らすのは
+       * 「待っていれば増えるぶん」だけにして、攻めれば取り返せる形にする
+       */
+      cheerGainMul: z.number().positive().optional(),
+      /**
+       * 敵の移動速度の倍率。S18「雲上」は 1.15（月の重力）。
+       *
+       * 射程を削るのと似ているが、**効き方が逆**。射程は置く場所の問題、
+       * 速度は削り切る時間の問題で、答えになる強化がそれぞれ違う
+       */
+      enemySpeedMul: z.number().positive().optional(),
       /** UI に出す説明。プレイヤーが理由を知らないまま弱くならないように */
       note: z.string().optional(),
     })

@@ -11,6 +11,7 @@
 import type { BattleWorld, EnemyView, UnitView, WorldSnapshot } from '../sim/world';
 import { attrColor, attrGlyph, cellStyle, palette, typeColor } from './palette';
 import { GeneratedSprites, SPRITE_DRAW_SIZE, type SpriteProvider } from './sprites';
+import { enemyDrawSize, GeneratedEnemySprites } from './enemySprites';
 import { allowsFloatingText, flashAmount, type EffectLevel } from '../meta/settings';
 
 /** 論理解像度。1 マス = 64px、16×9 マスで 1024×576 */
@@ -63,6 +64,8 @@ export class Renderer {
      * 手描きの PNG アトラスに移るときも Renderer 側は触らずに済む
      */
     private readonly sprites: SpriteProvider = new GeneratedSprites(),
+    /** 敵の絵。アイドルと分けてあるのは、組み立て方も大きさの決め方も違うから */
+    private readonly enemySprites: SpriteProvider = new GeneratedEnemySprites(),
     /**
      * 演出の強さ（06-ui-ux.md 6.7）。点滅と浮遊ダメージ表示を段階的に落とす。
      * **盤面の情報は落とさない** —— 敵・射程・配置マスは強度に関わらず同じに描く
@@ -588,14 +591,37 @@ export class Renderer {
       const color = attrColor(enemy.attr);
 
       ctx.save();
-      ctx.fillStyle = color;
-      ctx.beginPath();
-      ctx.arc(x, y, r, 0, Math.PI * 2);
-      ctx.fill();
 
-      ctx.strokeStyle = 'rgba(255, 255, 255, 0.65)';
-      ctx.lineWidth = 1.5;
-      ctx.stroke();
+      const sprite = this.enemySprites.get(enemy.spriteId);
+      if (sprite) {
+        // 足元に属性の色を敷く。絵は形で役割を伝え、**属性は色で**伝える ——
+        // 絵の色を属性に合わせると、五人の貴公子が塗り分けられなくなる
+        const glow = ctx.createRadialGradient(x, y + r * 0.5, 1, x, y + r * 0.5, r * 1.5);
+        glow.addColorStop(0, `${color}88`);
+        glow.addColorStop(1, `${color}00`);
+        ctx.fillStyle = glow;
+        ctx.beginPath();
+        ctx.ellipse(x, y + r * 0.5, r * 1.5, r * 0.8, 0, 0, Math.PI * 2);
+        ctx.fill();
+
+        const size = enemyDrawSize(enemy.radius, CELL_SIZE);
+        const smoothing = ctx.imageSmoothingEnabled;
+        ctx.imageSmoothingEnabled = false;
+        this.upright(ctx, x, y, () => {
+          ctx.drawImage(sprite, x - size / 2, y - size / 2, size, size);
+        });
+        ctx.imageSmoothingEnabled = smoothing;
+      } else {
+        // 絵の指定が無い敵。丸へ戻す
+        ctx.fillStyle = color;
+        ctx.beginPath();
+        ctx.arc(x, y, r, 0, Math.PI * 2);
+        ctx.fill();
+
+        ctx.strokeStyle = 'rgba(255, 255, 255, 0.65)';
+        ctx.lineWidth = 1.5;
+        ctx.stroke();
+      }
 
       // 属性の記号。色だけで見分けさせないための選択肢（06-ui-ux.md 6.7）。
       // 敵の中央へ黒で置く —— 縁へ出すと減速・停止の輪と混ざる

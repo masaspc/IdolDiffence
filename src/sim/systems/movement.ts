@@ -3,7 +3,7 @@
  * 減速などの状態異常は速度係数として掛かる。
  */
 import type { Enemy } from '../entities';
-import { isImmobilized, slowFactor } from '../entities';
+import { enrageFactor, isImmobilized, slowFactor } from '../entities';
 import type { Path } from '../path';
 
 /** @returns ゴールに到達したら true */
@@ -14,7 +14,9 @@ export function advanceEnemy(enemy: Enemy, path: Path, dtMs: number): boolean {
   // 魅了・スタン中は足が止まる。減速と違い、完全に 0 になる
   if (isImmobilized(enemy.statuses)) return false;
 
-  const speed = enemy.baseSpeed * slowFactor(enemy.statuses);
+  // 手負いの加速（石上麻呂）は減速と**掛け算**にする。足し算にすると
+  // 減速を撒いた側が加速を打ち消しきれてしまい、「1 体ずつ落とす」という問いが消える
+  const speed = enemy.baseSpeed * slowFactor(enemy.statuses) * enrageFactor(enemy);
   const step = (speed * dtMs) / 1000;
 
   // 飛行敵は経路を辿らず、ゴールへ直線で向かう（04-content.md 対空のルール）。

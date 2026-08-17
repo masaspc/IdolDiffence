@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { attributeSchema } from './common';
+import { attributeSchema, idolTypeSchema } from './common';
 
 /**
  * 敵の特性（04-content.md 4.3「敵の設計意図」）。
@@ -67,6 +67,53 @@ export const enemyTraitsSchema = z.object({
     })
     .optional(),
   /**
+   * 特定の系統からの**直接攻撃**を軽減する。阿倍御主人「火鼠の裘」。
+   *
+   * 3 すくみ（`damage.ts`）は 1.2 / 0.9 と控えめで、
+   * 「相性の悪い系統でも数を積めば通る」ようにしてある。ここはその逆で、
+   * **その系統では通らない**を作るための枠。数を積んでも答えにならない。
+   *
+   * **Echo（継続ダメージ）は通る。** Echo は付けた瞬間に毎秒ダメージが確定し、
+   * 敵に焼き付くので、系統を持たない。「焼けないなら燻す」が答えになっている ——
+   * 軽減を全経路に掛けると、その系統を編成から外す以外の答えが無くなる
+   */
+  typeGuard: z
+    .object({
+      type: idolTypeSchema,
+      /** 軽減率（0.8 = ダメージ 20% になる）。1 は完全無効 */
+      reduction: z.number().min(0).max(1),
+    })
+    .optional(),
+  /**
+   * HP が減ると速くなる。石上麻呂（燕の子安貝を取ろうとして落ちる）。
+   *
+   * 「削りかけの敵を放置する」を罰する。硬い敵を全員で削るのではなく、
+   * **1 体ずつ確実に落とす**順番が要る相手になる
+   */
+  enrage: z
+    .object({
+      /** この残 HP 割合を下回ると発動する */
+      at: z.number().min(0).max(1),
+      /** 移動速度の倍率 */
+      speedMul: z.number().positive(),
+    })
+    .optional(),
+  /**
+   * 倒しても蘇る。不死の薬。
+   *
+   * **瞬間火力への問い。** 必殺や 1 回のバーストで溶かしても戻ってくるので、
+   * 「盤面が敵を出し続ける時間ぶん削り続けられるか」を聞く。
+   * 蘇った回は撃破に数えず、声援も分裂も起きない（倒せていないので）
+   */
+  revive: z
+    .object({
+      /** 蘇ったときの HP（最大 HP に対する割合） */
+      hpRatio: z.number().positive().max(1),
+      /** 蘇れる回数 */
+      times: z.number().int().positive().default(1),
+    })
+    .optional(),
+  /**
    * 状態異常の耐性（02-core-battle.md 2.8）。効果時間に `1 - resist` を掛ける。
    * `1` は完全無効。
    *
@@ -85,6 +132,46 @@ export const enemyTraitsSchema = z.object({
   boss: z.boolean().default(false),
 });
 
+/**
+ * 敵の見た目（`render/enemySprites.ts`）。
+ *
+ * 元は全員が「属性の色の丸」だった。丸は**役割の違いが見えない** ——
+ * 回復役も飛行も分裂も同じ形なので、盤面を見て「何が来ているか」が読めず、
+ * 名前を覚えるとっかかりも無かった。
+ *
+ * 画像は持たず、`form` と色の指定からコードで組み立てる（アイドルと同じ方針）。
+ * 指定が無ければ丸へ戻るので、絵を欠いても盤面は成立する
+ */
+export const enemyArtSchema = z.object({
+  /** 組み立て方。ノイズは抽象的な形、竹取物語の登場人物は人型 */
+  form: z.enum([
+    'drop',
+    'moondrop',
+    'gale',
+    'moth',
+    'rock',
+    'bird',
+    'mirror',
+    'cloud',
+    'shade',
+    'noble',
+    'lady',
+    'tennin',
+    'soldier',
+    'cart',
+    'jar',
+    'king',
+  ]),
+  /** 主色。省略すると属性の色を使う */
+  main: z.string().optional(),
+  /** 副色（衣・内側） */
+  sub: z.string().optional(),
+  /** 差し色（冠・持ち物） */
+  accent: z.string().optional(),
+});
+
+export type EnemyArt = z.infer<typeof enemyArtSchema>;
+
 export const enemySchema = z.object({
   name: z.string().min(1),
   attr: attributeSchema,
@@ -98,8 +185,9 @@ export const enemySchema = z.object({
   bounty: z.number().nonnegative(),
   /** 飛行。経路を無視して直線でゴールへ向かう */
   flying: z.boolean().default(false),
-  /** 描画半径（マス単位） */
+  /** 描画半径（マス単位）。ドット絵の大きさもここから決まる */
   radius: z.number().positive().default(0.3),
+  art: enemyArtSchema.optional(),
   traits: enemyTraitsSchema.default({}),
 });
 

@@ -4,9 +4,9 @@
  */
 import { createWorld } from '../src/sim/world';
 import { autoplay } from '../src/sim/autoplay';
-import { getIdol, rosterIds, stages } from '../src/data';
-import { levelAtkMultiplier } from '../src/meta/progression';
+import { stages } from '../src/data';
 import { STAGE_PLANS } from '../src/balance/plans';
+import { balanceMeta } from '../src/balance/investment';
 
 const SEED = 20260816;
 
@@ -14,13 +14,9 @@ const stageId = process.argv[2] ?? 'S3';
 const stagePlan = STAGE_PLANS[stageId];
 const plan = stagePlan?.placements ?? [];
 
-const meta = (level: number) => ({
-  atkByIdol: Object.fromEntries(
-    rosterIds.map((id) => [id, getIdol(id).base.atk * levelAtkMultiplier(level)]),
-  ),
-  party: stagePlan?.party ?? [],
-  center: stagePlan?.center ?? null,
-});
+// そのステージが前提とする恒久強化を込みで測る。素の値で振ると、
+// 月の都の章（S11 以降）は全行が「負け」になって境界が見えない
+const meta = (level: number) => balanceMeta(stageId, level);
 
 const target = stages[stageId];
 if (!target) throw new Error(`unknown stage: ${stageId}`);
