@@ -2037,6 +2037,31 @@ kbd {
   min-width: 0;
 }
 
+/* 音量。数字を横に出す —— つまみの位置だけだと 0 と 1 の違いが読めない */
+.setting-row + .setting-row {
+  margin-top: 0.6rem;
+}
+
+.volume-control {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  margin-left: auto;
+  flex-shrink: 0;
+}
+
+.volume-control input[type='range'] {
+  width: 9rem;
+  max-width: 40vw;
+}
+
+.volume-value {
+  font-variant-numeric: tabular-nums;
+  min-width: 1.4rem;
+  text-align: right;
+  color: var(--text-dim);
+}
+
 .setting-toggle {
   margin-left: auto;
   flex: 0 0 auto;

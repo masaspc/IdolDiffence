@@ -7,10 +7,13 @@
 import type { SaveData } from '../meta/save';
 import {
   EFFECT_LABEL,
+  volumeRatio,
   type EffectLevel,
   type Settings,
   type TextScale,
 } from '../meta/settings';
+import { resumeAudio } from '../audio/context';
+import { playSe, setSeVolume } from '../audio/se';
 
 interface SettingsScreenProps {
   save: SaveData;
@@ -64,6 +67,61 @@ export function SettingsScreen({
           >
             {settings.call ? 'オン' : 'オフ'}
           </button>
+        </div>
+      </section>
+
+      {/*
+        音量。**試聴のボタンを付けない。** 動かした瞬間に SE が鳴るので、
+        スライダーそのものが試聴になっている（BGM はバトル中に反映される）
+      */}
+      <section className="party-summary">
+        <h2>音量</h2>
+        <p className="party-hint">
+          流れる音は<strong>本作が合成したオリジナル</strong>です。BPM と構成だけを
+          原作の劇中歌に合わせています（原作の音源は使っていません）
+        </p>
+        <div className="setting-row">
+          <div className="setting-text">
+            <strong>BGM</strong>
+            <span className="party-hint">
+              和楽器の音でステージの曲を組み立てます。0 にすると合成そのものを止めます
+            </span>
+          </div>
+          <div className="volume-control">
+            <input
+              type="range"
+              min={0}
+              max={10}
+              value={settings.bgmVolume}
+              onChange={(event) => onChange({ bgmVolume: Number(event.target.value) })}
+              aria-label="BGM の音量"
+            />
+            <span className="volume-value">{settings.bgmVolume}</span>
+          </div>
+        </div>
+        <div className="setting-row">
+          <div className="setting-text">
+            <strong>効果音</strong>
+            <span className="party-hint">配置・撃破・月華の解放など。動かすと試しに鳴ります</span>
+          </div>
+          <div className="volume-control">
+            <input
+              type="range"
+              min={0}
+              max={10}
+              value={settings.seVolume}
+              onChange={(event) => {
+                const next = Number(event.target.value);
+                onChange({ seVolume: next });
+                // その場で聞こえないと、下げ過ぎたのか切れているのかが分からない
+                resumeAudio();
+                setSeVolume(volumeRatio(next));
+                playSe('place');
+              }}
+              aria-label="効果音の音量"
+            />
+            <span className="volume-value">{settings.seVolume}</span>
+          </div>
         </div>
       </section>
 
@@ -145,9 +203,10 @@ export function SettingsScreen({
         </p>
         <p className="settings-note">
           ステージの楽曲名は<strong>原作の劇中歌</strong>で、作曲者と歌唱もそのクレジットです。
-          <strong>このゲームに音声はまだありません。</strong>
-          今後 BGM を鳴らす場合も本作が合成したオリジナルで、
-          <strong>原作の音源は使いません</strong>。原作の曲は Netflix と各配信サービスでお聴きください。
+          ただし<strong>流れている音は本作が合成したオリジナル</strong>で、
+          クレジットの人が作った音ではありません。合わせているのは BPM と構成だけです。
+          <strong>原作の音源は使っていません</strong> —— 原作の曲は Netflix と
+          各配信サービスでお聴きください。
         </p>
         <p className="settings-note">
           ステージ・敵・数値・ドット絵は本作が作ったものです。

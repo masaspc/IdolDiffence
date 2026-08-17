@@ -5,7 +5,12 @@
     "beatsPerBar": 4,
     "tempoBase": 132,
     "writer": "kz (livetune)",
-    "singer": "かぐや"
+    "singer": "かぐや",
+    "music": {
+      "root": 52,
+      "scale": "ritsu",
+      "groove": "straight"
+    }
   },
   "ray_cpk": {
     "name": "ray 超かぐや姫！Version",
@@ -13,7 +18,12 @@
     "beatsPerBar": 4,
     "tempoBase": 132,
     "writer": "BUMP OF CHICKEN",
-    "singer": "かぐや & ヤチヨ"
+    "singer": "かぐや & ヤチヨ",
+    "music": {
+      "root": 50,
+      "scale": "ritsu",
+      "groove": "driving"
+    }
   },
   "hoshifuru_umi": {
     "name": "星降る海",
@@ -21,7 +31,12 @@
     "beatsPerBar": 4,
     "tempoBase": 132,
     "writer": "Aqu3ra",
-    "singer": "ヤチヨ"
+    "singer": "ヤチヨ",
+    "music": {
+      "root": 47,
+      "scale": "miyakobushi",
+      "groove": "sparse"
+    }
   },
   "shunkan": {
     "name": "瞬間、シンフォニー。",
@@ -29,7 +44,12 @@
     "beatsPerBar": 4,
     "tempoBase": 132,
     "writer": "40mP",
-    "singer": "かぐや"
+    "singer": "かぐや",
+    "music": {
+      "root": 53,
+      "scale": "insen",
+      "groove": "driving"
+    }
   },
   "watashi_wa": {
     "name": "私は、わたしの事が好き。",
@@ -37,7 +57,12 @@
     "beatsPerBar": 4,
     "tempoBase": 132,
     "writer": "HoneyWorks",
-    "singer": "かぐや"
+    "singer": "かぐや",
+    "music": {
+      "root": 55,
+      "scale": "ritsu",
+      "groove": "straight"
+    }
   },
   "remember": {
     "name": "Remember",
@@ -45,7 +70,12 @@
     "beatsPerBar": 4,
     "tempoBase": 132,
     "writer": "yuigot",
-    "singer": "ヤチヨ"
+    "singer": "ヤチヨ",
+    "music": {
+      "root": 50,
+      "scale": "miyakobushi",
+      "groove": "driving"
+    }
   },
   "ex_otogibanashi": {
     "name": "Ex-Otogibanashi",
@@ -53,6 +83,11 @@
     "beatsPerBar": 4,
     "tempoBase": 132,
     "writer": "ryo (supercell)",
-    "singer": "かぐや & ヤチヨ"
+    "singer": "かぐや & ヤチヨ",
+    "music": {
+      "root": 48,
+      "scale": "miyakobushi",
+      "groove": "straight"
+    }
   }
 }

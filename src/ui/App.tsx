@@ -139,6 +139,8 @@ export function App(): React.JSX.Element {
         meta={battleMeta}
         effects={save.settings.effects}
         attributeGlyphs={save.settings.attributeGlyphs}
+        bgmVolume={save.settings.bgmVolume}
+        seVolume={save.settings.seVolume}
         onFinish={handleFinish}
         onExit={() => setScreen('home')}
       />
