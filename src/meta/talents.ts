@@ -54,6 +54,7 @@ export type TalentBlock =
   | 'no-points'
   | 'requires'
   | 'keystone-taken'
+  | 'capstone-taken'
   | 'unknown';
 
 /** @returns 取れない理由。取れるなら null */
@@ -64,9 +65,17 @@ export function talentBlocker(save: SaveData, id: string): TalentBlock {
   // キーストーンの排他は**前提より先に**見る。後ろに置くと、もう取れないほうの
   // 枝へ 8 pt 注ぎ込んでから「取れません」と分かることになる
   if (node.tier === 'keystone' && hasKeystone(save, node.branch)) return 'keystone-taken';
+  // 最終才能は**ボード全体で 1 つだけ**。ポイントは終盤どうしても余るので、
+  // 「どこに寄せるか」をポイントで作ることはできない。ここだけは排他で残す
+  if (node.tier === 'capstone' && hasCapstone(save)) return 'capstone-taken';
   if (!node.requires.every((req) => save.talents.includes(req))) return 'requires';
   if (remainingTalentPoints(save) < node.cost) return 'no-points';
   return null;
+}
+
+/** 最終才能を 1 つ取っているか。取っていたら他の 5 つは永久に閉じる */
+export function hasCapstone(save: SaveData): boolean {
+  return save.talents.some((id) => talents[id]?.tier === 'capstone');
 }
 
 export function hasKeystone(save: SaveData, branch: IdolType): boolean {
@@ -166,6 +175,53 @@ export function resolveTalents(save: SaveData): TalentEffects {
     }
   }
   return out;
+}
+
+/**
+ * UI 用。ブランチを「共通の根」と「キーストーンごとの道」に割る。
+ *
+ * 18 ノードを 1 列に並べると、**どこで道が分かれるのかが読めない**。
+ * 分岐はデータ（`requires`）にしか書いていないので、ここで復元して見せる。
+ * 表に持たないのは、ノードを足すたびに 2 箇所直す羽目になるため。
+ */
+export interface TalentPath {
+  /** この道の末端にあるキーストーン */
+  keystoneId: string;
+  ids: string[];
+}
+
+export interface BranchLayout {
+  /** どちらの道へ進んでも通る根の部分 */
+  shared: string[];
+  paths: TalentPath[];
+}
+
+/** そのノードへ至るまでに要るノード（自分を含む） */
+function ancestors(id: string, out = new Set<string>()): Set<string> {
+  if (out.has(id)) return out;
+  out.add(id);
+  for (const req of talents[id]?.requires ?? []) ancestors(req, out);
+  return out;
+}
+
+export function branchLayout(branch: IdolType): BranchLayout {
+  const inBranch = talentIds.filter((id) => talents[id]?.branch === branch);
+  const keystones = inBranch.filter((id) => talents[id]?.tier === 'keystone');
+  const roots = keystones.map((id) => ancestors(id));
+
+  // どのキーストーンへ行くにも通るノードが「共通」
+  const shared = inBranch.filter((id) => roots.every((set) => set.has(id)));
+  const sharedSet = new Set(shared);
+
+  const paths: TalentPath[] = keystones.map((keystoneId) => ({ keystoneId, ids: [] }));
+  for (const id of inBranch) {
+    if (sharedSet.has(id)) continue;
+    const reach = ancestors(id);
+    // その道のキーストーンを通るか（キーストーン自身と、その先の深奥もここに入る）
+    const index = keystones.findIndex((k) => reach.has(k) || ancestors(k).has(id));
+    paths[index === -1 ? 0 : index]?.ids.push(id);
+  }
+  return { shared, paths };
 }
 
 /** UI 用。ブランチごとの取得数 */

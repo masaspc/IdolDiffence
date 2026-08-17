@@ -42,6 +42,19 @@ export const settingsSchema = z.object({
    * 盤面の敵にも属性の記号を出すかどうかの指定
    */
   attributeGlyphs: z.boolean(),
+  /**
+   * BGM / 効果音の音量。0〜10 の段階で持つ。
+   *
+   * **0..1 の小数ではなく段階を保存する。** 曲線（対数にするなど）を
+   * あとで変えたときに、保存済みの小数だけが古い解釈のまま残るのを避ける
+   * —— 文字サイズ・ランクと同じ考え方。
+   *
+   * 既定は BGM 6 / SE 6。**0 ではない** —— 音のあるゲームとして作っている以上、
+   * 設定画面を開かない人にも鳴っているのが既定であるべき。
+   * うるさければ 1 画面で下げられる
+   */
+  bgmVolume: z.number().int().min(0).max(10),
+  seVolume: z.number().int().min(0).max(10),
 });
 
 export type Settings = z.infer<typeof settingsSchema>;
@@ -51,7 +64,16 @@ export const DEFAULT_SETTINGS: Settings = {
   effects: 'full',
   textScale: 100,
   attributeGlyphs: false,
+  bgmVolume: 6,
+  seVolume: 6,
 };
+
+/** 音量の段階 → 実効倍率。人の耳は対数なので、段階をそのまま線形には使わない */
+export function volumeRatio(step: number): number {
+  const clamped = Math.max(0, Math.min(10, step));
+  if (clamped === 0) return 0;
+  return Math.pow(clamped / 10, 1.8);
+}
 
 /** 文字サイズの実効倍率。`html` の font-size に掛ける */
 export function textScaleRatio(scale: TextScale): number {

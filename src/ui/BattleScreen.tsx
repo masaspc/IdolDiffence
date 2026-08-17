@@ -10,10 +10,14 @@ import { GameLoop } from '../core/loop';
 import { Renderer, type HoverState } from '../render/renderer';
 import { createWorld, type BattleMeta, type BattleWorld, type WorldSnapshot } from '../sim/world';
 import { randomSeed } from '../core/rng';
-import { getIdol } from '../data';
+import { getEnemy, getIdol, getSong, getStage } from '../data';
 import type { AwakeningKey } from '../data/schema/idol';
 import type { BattleOutcome } from '../meta/progression';
-import type { EffectLevel } from '../meta/settings';
+import { volumeRatio, type EffectLevel } from '../meta/settings';
+import { BgmPlayer, styleOf } from '../audio/bgm';
+import { audioContext, resumeAudio } from '../audio/context';
+import { playSe, setSeVolume } from '../audio/se';
+import { ATTR_LABEL } from './idolText';
 import { Hud } from './Hud';
 
 /**
@@ -32,6 +36,9 @@ interface BattleScreenProps {
   effects: EffectLevel;
   /** 敵に属性の記号を重ねる（同 6.7 色覚） */
   attributeGlyphs: boolean;
+  /** BGM / 効果音の音量（0〜10 の段階） */
+  bgmVolume: number;
+  seVolume: number;
   onFinish: (outcome: BattleOutcome) => void;
   onExit: () => void;
 }
@@ -41,6 +48,8 @@ export function BattleScreen({
   meta,
   effects,
   attributeGlyphs,
+  bgmVolume,
+  seVolume,
   onFinish,
   onExit,
 }: BattleScreenProps): React.JSX.Element {
@@ -66,11 +75,24 @@ export function BattleScreen({
   const glyphsRef = useRef(attributeGlyphs);
   glyphsRef.current = attributeGlyphs;
   const rendererRef = useRef<Renderer | null>(null);
+  const bgmRef = useRef<BgmPlayer | null>(null);
+  // 音量も world の effect の依存には入れない。入れるとスライダーを動かすたびに
+  // ライブが作り直される。ref 経由で現在値を読ませる
+  const bgmVolumeRef = useRef(bgmVolume);
+  bgmVolumeRef.current = bgmVolume;
 
   useEffect(() => {
     rendererRef.current?.setEffects(effects);
     rendererRef.current?.setAttributeGlyphs(attributeGlyphs);
   }, [effects, attributeGlyphs]);
+
+  useEffect(() => {
+    bgmRef.current?.setVolume(volumeRatio(bgmVolume));
+  }, [bgmVolume]);
+
+  useEffect(() => {
+    setSeVolume(volumeRatio(seVolume));
+  }, [seVolume]);
 
   const [snapshot, setSnapshot] = useState<WorldSnapshot | null>(null);
   const [fps, setFps] = useState(0);
@@ -98,8 +120,85 @@ export function BattleScreen({
     // 演出は sim ではなく描画側で数える。sim 時刻に紐付けると、
     // 一時停止で止まり、倍速で早送りされてしまう
     const offSpecial = world.events.on('specialStarted', () => {
-      renderer.startSpecialEffect(world.snapshot().centerName);
+      const latest = world.snapshot();
+      renderer.startSpecialEffect();
+      renderer.pushCutIn({
+        kind: 'special',
+        title: 'スペシャルライブ！',
+        ...(latest.centerName ? { subtitle: `センター ${latest.centerName}` } : {}),
+        ...(latest.centerIdolId ? { idolId: latest.centerIdolId } : {}),
+      });
+      playSe('special');
     });
+
+    // --- 音 ---
+    // 出撃ボタン（クリック）から来ているので、ここで作れば自動再生の制限に当たらない
+    resumeAudio();
+    const audio = audioContext();
+    const stage = getStage(stageId);
+    const song = getSong(stage.song);
+    const bgm = audio
+      ? new BgmPlayer(audio, {
+          song,
+          songId: stage.song,
+          style: styleOf(song),
+          waves: stage.waves,
+        })
+      : null;
+    bgmRef.current = bgm;
+    bgm?.setVolume(volumeRatio(bgmVolumeRef.current));
+
+    // 観客の危機は 1 回だけ出す。境目を行き来するたびに出すと、
+    // いちばん忙しい場面でカットインが連発することになる
+    let warnedDanger = false;
+
+    // sim からは鳴らさない。ヘッドレス計測とテストに音の都合を持ち込まないため
+    const offSe = [
+      world.events.on('enemyKilled', () => playSe('kill')),
+      world.events.on('enemyLeaked', () => playSe('leak')),
+      world.events.on('bossPhase', (e) => {
+        playSe('phase');
+        // 何が変わったのかを名指しする。「フェーズ 2」では
+        // 編成のどこを変えればいいのか分からない
+        renderer.pushCutIn({
+          kind: 'phase',
+          title: '属性が変わった',
+          subtitle: `${ATTR_LABEL[e.attr] ?? e.attr} になった`,
+        });
+      }),
+      world.events.on('enemySpawned', (e) => {
+        if (!getEnemy(e.defId).traits.boss) return;
+        playSe('boss');
+        renderer.pushCutIn({
+          kind: 'boss',
+          title: getEnemy(e.defId).name,
+          subtitle: '通すと観客が大きく減ります',
+          enemyId: e.defId,
+        });
+      }),
+      // ソロパートは 1 人を選んで撃つ操作なので、誰に入ったのかを顔で返す
+      world.events.on('soloStarted', (e) => {
+        const unit = world.snapshot().units.find((u) => u.id === e.id);
+        if (!unit) return;
+        renderer.pushCutIn({
+          kind: 'solo',
+          title: 'ソロパート',
+          subtitle: unit.shortName,
+          idolId: unit.spriteId,
+        });
+      }),
+      world.events.on('audienceChanged', (e) => {
+        if (warnedDanger || e.value > 25 || e.value <= 0) return;
+        warnedDanger = true;
+        renderer.pushCutIn({ kind: 'danger', title: '客席が空きはじめた', subtitle: '観客 25 以下' });
+      }),
+      world.events.on('called', (e) => {
+        // 自動ぶん（コールを切っている人へ配る Good）では鳴らさない。
+        // 押していないのに手応えの音だけ返るのはおかしい
+        if (!e.auto && e.judge === 'perfect') playSe('callPerfect');
+      }),
+      world.events.on('battleEnded', (e) => playSe(e.won ? 'win' : 'lose')),
+    ];
 
     // HUD が覆う高さを測って渡す。canvas は全面のままにして背景を端まで見せ、
     // 盤面だけを HUD の内側へ収める（renderer.setSafeArea）。
@@ -133,6 +232,9 @@ export function BattleScreen({
       },
       render: (alpha, frameMs) => {
         renderer.advanceEffects(frameMs);
+        // 音は sim 時刻に追従する（05-architecture.md 5.4）。
+        // 一時停止でも倍速でも、曲とウェーブがずれない
+        bgm?.sync(world.clock.now, world.clock.currentState, world.clock.playbackSpeed);
         // HUD の高さは中身（覚醒の選択肢、取得カードの一覧）で変わるが、
         // .battle 自体の大きさは変わらないので ResizeObserver では拾えない。
         // 毎秒 2 回測り直す。同じ寸法なら renderer 側で弾かれる
@@ -225,6 +327,7 @@ export function BattleScreen({
         if (typeof result !== 'string') {
           // 置いたら選択を解除する。残したままだと同じマスに
           // 「配置不可」のプレビューが出続けて紛らわしい
+          playSe('place');
           setPendingIdolId(null);
           setSnapshot(world.snapshot());
         }
@@ -240,6 +343,9 @@ export function BattleScreen({
     return () => {
       loop.stop();
       offSpecial();
+      for (const off of offSe) off();
+      bgm?.dispose();
+      bgmRef.current = null;
       observer.disconnect();
       canvas.removeEventListener('pointermove', updateHoverFromPointer);
       canvas.removeEventListener('pointerleave', clearHover);
@@ -294,7 +400,8 @@ export function BattleScreen({
   const upgradeSelected = useCallback(() => {
     const world = worldRef.current;
     if (!world || selectedUnitId === null) return;
-    world.upgradeUnit(selectedUnitId);
+    // `upgradeUnit` は**失敗の理由**を返す（成功は null）
+    if (world.upgradeUnit(selectedUnitId) === null) playSe('upgrade');
     sync();
   }, [selectedUnitId, sync]);
 
@@ -347,6 +454,7 @@ export function BattleScreen({
       const world = worldRef.current;
       if (!world) return;
       world.chooseCard(cardId);
+      playSe('card');
       sync();
     },
     [sync],

@@ -13,7 +13,7 @@ import { seedFromString } from '../core/rng';
 import { DEFAULT_SETTINGS, settingsSchema } from './settings';
 
 export const SAVE_KEY = 'idoldiffence.save';
-export const CURRENT_VERSION = 10;
+export const CURRENT_VERSION = 11;
 
 /**
  * 生成された衣装 1 着（03-progression.md ⑨）。
@@ -262,6 +262,19 @@ const migrations: Record<number, Migration> = {
     ...old,
     version: 10,
     songExp: renameSongExp((old.songExp ?? {}) as Record<string, number>),
+  }),
+  // v10 -> v11: 音が付いた（M5-4）。**既存プレイヤーにも鳴る状態で入る** ——
+  // 既定を 0 にすると、設定画面を開かない人には音が付いたこと自体が伝わらない。
+  // うるさければ 1 画面で下げられる
+  10: (old) => ({
+    ...old,
+    version: 11,
+    settings: {
+      ...DEFAULT_SETTINGS,
+      ...((old.settings ?? {}) as Record<string, unknown>),
+      bgmVolume: DEFAULT_SETTINGS.bgmVolume,
+      seVolume: DEFAULT_SETTINGS.seVolume,
+    },
   }),
 };
 

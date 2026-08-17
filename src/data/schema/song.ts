@@ -31,6 +31,24 @@ export const songSchema = z.object({
    * （docs/design/02-core-battle.md 2.4 テンポ正規化）。
    */
   tempoBase: z.number().positive().default(132),
+  /**
+   * 合成の設定（`src/audio/`）。
+   *
+   * **原作の曲の解析結果ではない。** 原作の音源は入れられないので
+   * （上の注記）、本作は BPM と構成だけを合わせて別の音を組み立てている。
+   * ここはその合成side の指定 —— どの調で、どの音階で、どう打つか。
+   * 曲ごとに変えているのは、7 曲が全部同じ響きにならないようにするため
+   */
+  music: z
+    .object({
+      /** 主音の MIDI ノート番号。48 = C3 */
+      root: z.number().int(),
+      /** 使う 5 音音階。`scale.ts` を参照 */
+      scale: z.enum(['miyakobushi', 'ritsu', 'insen']),
+      /** 打ち方の性格 */
+      groove: z.enum(['straight', 'driving', 'sparse']),
+    })
+    .default({ root: 50, scale: 'miyakobushi', groove: 'straight' }),
 });
 
 export const songsSchema = z.record(z.string(), songSchema);

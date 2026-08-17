@@ -467,5 +467,256 @@
     "mods": {
       "statusDurationPct": 0.5
     }
+  },
+  "vo_d1": {
+    "branch": "vocal",
+    "tier": "mid",
+    "name": "客席の底まで",
+    "desc": "範囲 +18%、射程 +6%。後ろの席まで声を届ける",
+    "cost": 3,
+    "requires": [
+      "vo_k1"
+    ],
+    "mods": {
+      "aoeRadiusPct": 0.18,
+      "rangePct": 0.06
+    }
+  },
+  "vo_d2": {
+    "branch": "vocal",
+    "tier": "mid",
+    "name": "うねり",
+    "desc": "歌の攻撃力 +15%、範囲 +12%",
+    "cost": 4,
+    "requires": [
+      "vo_d1"
+    ],
+    "mods": {
+      "typeAtkPct": 0.15,
+      "aoeRadiusPct": 0.12
+    }
+  },
+  "vo_c1": {
+    "branch": "vocal",
+    "tier": "capstone",
+    "name": "万雷の合唱",
+    "desc": "範囲 +50%、攻撃力 +18%。ただし攻撃速度 -28% —— 広く、重く、遅く",
+    "cost": 10,
+    "requires": [
+      "vo_d2"
+    ],
+    "mods": {
+      "aoeRadiusPct": 0.5,
+      "atkPct": 0.18,
+      "attackSpeedPct": -0.28
+    }
+  },
+  "vo_d3": {
+    "branch": "vocal",
+    "tier": "mid",
+    "name": "尾を引く",
+    "desc": "Echo の 1 スタックあたりのダメージ +30%",
+    "cost": 3,
+    "requires": [
+      "vo_k2"
+    ],
+    "mods": {
+      "echoPowerPct": 0.3
+    }
+  },
+  "vo_d4": {
+    "branch": "vocal",
+    "tier": "mid",
+    "name": "重なる残響",
+    "desc": "Echo のダメージ +35%、最大スタック +2",
+    "cost": 4,
+    "requires": [
+      "vo_d3"
+    ],
+    "mods": {
+      "echoPowerPct": 0.35,
+      "echoMaxStacksAdd": 2
+    }
+  },
+  "vo_c2": {
+    "branch": "vocal",
+    "tier": "capstone",
+    "name": "消えない残響",
+    "desc": "Echo のダメージ +90%、最大スタック +4。ただし歌の攻撃力 -35% —— 直接の火力を捨てて燻す",
+    "cost": 10,
+    "requires": [
+      "vo_d4"
+    ],
+    "mods": {
+      "echoPowerPct": 0.9,
+      "echoMaxStacksAdd": 4,
+      "typeAtkPct": -0.35
+    }
+  },
+  "da_d1": {
+    "branch": "dance",
+    "tier": "mid",
+    "name": "息が上がらない",
+    "desc": "攻撃速度 +12%",
+    "cost": 3,
+    "requires": [
+      "da_k1"
+    ],
+    "mods": {
+      "attackSpeedPct": 0.12
+    }
+  },
+  "da_d2": {
+    "branch": "dance",
+    "tier": "mid",
+    "name": "畳みかけ",
+    "desc": "攻撃速度 +14%、ダンスの攻撃力 +12%",
+    "cost": 4,
+    "requires": [
+      "da_d1"
+    ],
+    "mods": {
+      "attackSpeedPct": 0.14,
+      "typeAtkPct": 0.12
+    }
+  },
+  "da_c1": {
+    "branch": "dance",
+    "tier": "capstone",
+    "name": "止まらない足",
+    "desc": "攻撃速度 +45%。ただし声援の自然増 -30% —— 手数で押し切る",
+    "cost": 10,
+    "requires": [
+      "da_d2"
+    ],
+    "mods": {
+      "attackSpeedPct": 0.45,
+      "cheerGainPct": -0.3
+    }
+  },
+  "da_d3": {
+    "branch": "dance",
+    "tier": "mid",
+    "name": "見極め",
+    "desc": "クリティカル率 +10%",
+    "cost": 3,
+    "requires": [
+      "da_k2"
+    ],
+    "mods": {
+      "critRateAdd": 0.1
+    }
+  },
+  "da_d4": {
+    "branch": "dance",
+    "tier": "mid",
+    "name": "静かな構え",
+    "desc": "クリティカルダメージ +50%",
+    "cost": 4,
+    "requires": [
+      "da_d3"
+    ],
+    "mods": {
+      "critDmgAdd": 0.5
+    }
+  },
+  "da_c2": {
+    "branch": "dance",
+    "tier": "capstone",
+    "name": "一閃",
+    "desc": "クリティカルダメージ +160%、率 +12%。ただし攻撃速度 -30% —— 一発に賭ける",
+    "cost": 10,
+    "requires": [
+      "da_d4"
+    ],
+    "mods": {
+      "critDmgAdd": 1.6,
+      "critRateAdd": 0.12,
+      "attackSpeedPct": -0.3
+    }
+  },
+  "vi_d1": {
+    "branch": "visual",
+    "tier": "mid",
+    "name": "射すくめる",
+    "desc": "状態異常の効果量 +20%",
+    "cost": 3,
+    "requires": [
+      "vi_k1"
+    ],
+    "mods": {
+      "statusPowerPct": 0.2
+    }
+  },
+  "vi_d2": {
+    "branch": "visual",
+    "tier": "mid",
+    "name": "呑まれる",
+    "desc": "状態異常の効果量 +22%、継続時間 +15%",
+    "cost": 4,
+    "requires": [
+      "vi_d1"
+    ],
+    "mods": {
+      "statusPowerPct": 0.22,
+      "statusDurationPct": 0.15
+    }
+  },
+  "vi_c1": {
+    "branch": "visual",
+    "tier": "capstone",
+    "name": "呪縛",
+    "desc": "状態異常の効果量 +70%、継続時間 +35%。ただし攻撃力 -35% —— 倒さずに止める",
+    "cost": 10,
+    "requires": [
+      "vi_d2"
+    ],
+    "mods": {
+      "statusPowerPct": 0.7,
+      "statusDurationPct": 0.35,
+      "atkPct": -0.35
+    }
+  },
+  "vi_d3": {
+    "branch": "visual",
+    "tier": "mid",
+    "name": "口コミ",
+    "desc": "声援の自然増 +18%",
+    "cost": 3,
+    "requires": [
+      "vi_k2"
+    ],
+    "mods": {
+      "cheerGainPct": 0.18
+    }
+  },
+  "vi_d4": {
+    "branch": "visual",
+    "tier": "mid",
+    "name": "切り抜き",
+    "desc": "声援の自然増 +15%、月華の蓄積 +15%",
+    "cost": 4,
+    "requires": [
+      "vi_d3"
+    ],
+    "mods": {
+      "cheerGainPct": 0.15,
+      "voltageGainPct": 0.15
+    }
+  },
+  "vi_c2": {
+    "branch": "visual",
+    "tier": "capstone",
+    "name": "終わらない拍手",
+    "desc": "声援の自然増 +50%、月華の蓄積 +35%。ただしヴィジュアルの攻撃力 -28% —— 盤面の数で押す",
+    "cost": 10,
+    "requires": [
+      "vi_d4"
+    ],
+    "mods": {
+      "cheerGainPct": 0.5,
+      "voltageGainPct": 0.35,
+      "typeAtkPct": -0.28
+    }
   }
 }

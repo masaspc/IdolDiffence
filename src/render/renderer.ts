@@ -13,6 +13,7 @@ import { attrColor, attrGlyph, cellStyle, palette, typeColor } from './palette';
 import { GeneratedSprites, SPRITE_DRAW_SIZE, type SpriteProvider } from './sprites';
 import { enemyDrawSize, GeneratedEnemySprites } from './enemySprites';
 import { allowsFloatingText, flashAmount, type EffectLevel } from '../meta/settings';
+import { CUTIN_STYLES, CutInQueue, type CutIn } from './cutin';
 
 /** 論理解像度。1 マス = 64px、16×9 マスで 1024×576 */
 export const CELL_SIZE = 64;
@@ -54,7 +55,8 @@ export class Renderer {
   private insetBottom = 0;
   /** スペシャルライブの演出。発動から数えた経過時間（ms）。null なら演出中でない */
   private specialAgeMs: number | null = null;
-  private specialCenterName = '';
+  /** カットイン（月華・ソロ・ボス・フェーズ・危機）。閃光とは別枠で数える */
+  private readonly cutIns = new CutInQueue();
 
   constructor(
     private readonly canvas: HTMLCanvasElement,
@@ -138,14 +140,25 @@ export class Renderer {
    *              フレームレートが揺れても動きが滑らかに見える
    */
   /**
-   * スペシャルライブの演出を始める（03-progression.md / 07 M3-2）。
+   * スペシャルライブの閃光を始める（03-progression.md / 07 M3-2）。
    *
    * 演出の時間は **sim ではなく描画側**で数える。sim 時刻に紐付けると、
    * 一時停止やカード選択で演出が固まり、倍速では早送りされてしまう。
+   *
+   * 文字と顔は `pushCutIn` の側。帯を 2 系統で描くと重なる
    */
-  startSpecialEffect(centerName: string | null): void {
+  startSpecialEffect(): void {
     this.specialAgeMs = 0;
-    this.specialCenterName = centerName ?? '';
+  }
+
+  /**
+   * カットインを積む（`cutin.ts`）。
+   *
+   * **盤面から目を離させる価値がある場面にだけ呼ぶこと。**
+   * 撃破や配置のように毎秒起きるものは音のほうで返す
+   */
+  pushCutIn(cutIn: CutIn): void {
+    this.cutIns.push(cutIn);
   }
 
   /** 設定画面での変更を、バトルを作り直さずに反映する */
@@ -189,6 +202,7 @@ export class Renderer {
 
     // 演出は盤面の変換の外。画面いっぱいに出したいので、倒しても正立させる
     this.drawSpecialEffect(ctx, snapshot);
+    this.drawCutIn(ctx);
   }
 
   /** 実時間の経過を演出へ流し込む。呼び出しは描画ループから */
@@ -197,6 +211,83 @@ export class Renderer {
       this.specialAgeMs += deltaMs;
       if (this.specialAgeMs > SPECIAL_EFFECT_MS) this.specialAgeMs = null;
     }
+    this.cutIns.advance(deltaMs, this.effects);
+  }
+
+  /**
+   * カットイン。斜めの帯 + 顔 + 見出し。
+   *
+   * **最小設定でも消さない。** これは点滅ではなく情報で、消すと
+   * 「ボスが湧いたことに気づかない」が起きる。短くして刺激だけ減らす
+   * （`cutInSpeed`）。閃光の側は `flashAmount` で別に落ちる。
+   */
+  private drawCutIn(ctx: CanvasRenderingContext2D): void {
+    const active = this.cutIns.active(this.effects);
+    if (!active) return;
+    const { cutIn, t } = active;
+    const style = CUTIN_STYLES[cutIn.kind];
+
+    // 入りは速く、出は速く、真ん中で止める。ずっと動いていると文字が読めない
+    const enter = clamp01(t / 0.18);
+    const exit = 1 - clamp01((t - 0.78) / 0.22);
+    const slide = ease(enter) - (1 - exit) * 0.25;
+    const alpha = Math.min(enter, exit);
+    if (alpha <= 0) return;
+
+    const cx = this.widthCss / 2;
+    const height = Math.min(this.heightCss * 0.2, this.widthCss * 0.17);
+    const top = this.heightCss * 0.5 - height / 2;
+
+    ctx.save();
+    ctx.globalAlpha = alpha;
+    ctx.translate((slide - 1) * this.widthCss * 0.35, top);
+
+    // 斜めに切った帯。真横の長方形より「差し込まれた」感じが出る
+    const skew = height * 0.35;
+    ctx.beginPath();
+    ctx.moveTo(-this.widthCss * 0.2 + skew, 0);
+    ctx.lineTo(this.widthCss * 1.4, 0);
+    ctx.lineTo(this.widthCss * 1.4 - skew, height);
+    ctx.lineTo(-this.widthCss * 0.2, height);
+    ctx.closePath();
+
+    const gradient = ctx.createLinearGradient(0, 0, this.widthCss, 0);
+    gradient.addColorStop(0, `${style.from}00`);
+    gradient.addColorStop(0.18, style.from);
+    gradient.addColorStop(0.82, style.to);
+    gradient.addColorStop(1, `${style.to}00`);
+    ctx.fillStyle = gradient;
+    ctx.fill();
+
+    // 顔。持っている絵をそのまま大きく出す。無ければ文字だけで成立させる
+    const sprite = cutIn.idolId
+      ? this.sprites.get(cutIn.idolId)
+      : cutIn.enemyId
+        ? this.enemySprites.get(cutIn.enemyId)
+        : null;
+    let textLeft = cx;
+    if (sprite) {
+      const size = height * 1.35;
+      const x = this.widthCss * 0.16;
+      ctx.save();
+      // 帯からはみ出させる。収めると小さくなりすぎて誰だか分からない
+      ctx.imageSmoothingEnabled = false;
+      ctx.drawImage(sprite, x - size / 2, height / 2 - size / 2, size, size);
+      ctx.restore();
+      textLeft = cx + this.widthCss * 0.06;
+    }
+
+    ctx.fillStyle = style.ink;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    const title = Math.round(Math.min(height * 0.4, this.widthCss * 0.075));
+    ctx.font = `bold ${title}px system-ui, sans-serif`;
+    ctx.fillText(cutIn.title, textLeft, cutIn.subtitle ? height * 0.38 : height * 0.5);
+    if (cutIn.subtitle) {
+      ctx.font = `${Math.round(title * 0.55)}px system-ui, sans-serif`;
+      ctx.fillText(cutIn.subtitle, textLeft, height * 0.73);
+    }
+    ctx.restore();
   }
 
   /**
@@ -243,40 +334,8 @@ export class Renderer {
       ctx.stroke();
     }
 
-    // カットインの帯。左から入って右へ抜ける
-    const bandT = clamp01((t - 0.05) / 0.55);
-    if (bandT > 0 && bandT < 1) {
-      const height = this.heightCss * 0.18;
-      const slide = ease(bandT);
-      // 帯は文字を読ませるためのものなので、薄くしすぎない。
-      // 閃光ほど刺激が強くないぶん、落とし方を緩くする
-      const alpha = bandT < 0.75 ? 1 : 1 - (bandT - 0.75) / 0.25;
-      ctx.globalAlpha = alpha * (0.55 + 0.45 * flash);
-      ctx.translate(0, cy - height / 2);
-
-      const gradient = ctx.createLinearGradient(0, 0, this.widthCss, 0);
-      gradient.addColorStop(0, 'rgba(255, 107, 168, 0.0)');
-      gradient.addColorStop(0.25, 'rgba(255, 107, 168, 0.85)');
-      gradient.addColorStop(0.75, 'rgba(255, 213, 79, 0.85)');
-      gradient.addColorStop(1, 'rgba(255, 213, 79, 0.0)');
-      ctx.fillStyle = gradient;
-      ctx.fillRect((slide - 1) * this.widthCss * 0.4, 0, this.widthCss * 1.4, height);
-
-      ctx.fillStyle = '#1a1430';
-      ctx.textAlign = 'center';
-      ctx.textBaseline = 'middle';
-      // 帯の高さだけで字を決めると、縦持ちでは画面外へはみ出す。
-      // 幅からも上限を掛けて、必ず収まるようにする
-      const title = Math.round(Math.min(height * 0.42, this.widthCss * 0.095));
-      ctx.font = `bold ${title}px system-ui, sans-serif`;
-      ctx.fillText('スペシャルライブ！', cx, height * 0.38);
-      if (this.specialCenterName) {
-        ctx.font = `${Math.round(title * 0.58)}px system-ui, sans-serif`;
-        ctx.fillText(`センター ${this.specialCenterName}`, cx, height * 0.72);
-      }
-      ctx.globalAlpha = 1;
-    }
-
+    // 文字と顔はカットイン（`drawCutIn`）が出す。ここは閃光と輪だけ ——
+    // 帯を 2 系統が別々に描くと、月華のときだけ 2 枚重なる
     ctx.restore();
   }
 
