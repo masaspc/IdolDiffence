@@ -36,11 +36,18 @@ export const TYPE_LABEL: Record<string, string> = {
   visual: 'ヴィジュアル',
 };
 
+/** 敵の属性の表示名。データ側は英語 ID で持つ */
+export const ATTR_LABEL: Record<string, string> = {
+  silence: '静寂',
+  noise: '喧噪',
+  glare: '虚飾',
+};
+
 /** 3 すくみ（02-core-battle.md 2.5）。系統ごとに「有利な相手」が違う */
 export const TYPE_STRONG_AGAINST: Record<string, string> = {
-  vocal: '静寂',
-  dance: '喧噪',
-  visual: '虚飾',
+  vocal: ATTR_LABEL['silence']!,
+  dance: ATTR_LABEL['noise']!,
+  visual: ATTR_LABEL['glare']!,
 };
 
 export const ATTACK_KIND_LABEL: Record<string, string> = {

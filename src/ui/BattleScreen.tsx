@@ -17,6 +17,7 @@ import { volumeRatio, type EffectLevel } from '../meta/settings';
 import { BgmPlayer, styleOf } from '../audio/bgm';
 import { audioContext, resumeAudio } from '../audio/context';
 import { playSe, setSeVolume } from '../audio/se';
+import { ATTR_LABEL } from './idolText';
 import { Hud } from './Hud';
 
 /**
@@ -119,7 +120,14 @@ export function BattleScreen({
     // 演出は sim ではなく描画側で数える。sim 時刻に紐付けると、
     // 一時停止で止まり、倍速で早送りされてしまう
     const offSpecial = world.events.on('specialStarted', () => {
-      renderer.startSpecialEffect(world.snapshot().centerName);
+      const latest = world.snapshot();
+      renderer.startSpecialEffect();
+      renderer.pushCutIn({
+        kind: 'special',
+        title: 'スペシャルライブ！',
+        ...(latest.centerName ? { subtitle: `センター ${latest.centerName}` } : {}),
+        ...(latest.centerIdolId ? { idolId: latest.centerIdolId } : {}),
+      });
       playSe('special');
     });
 
@@ -140,13 +148,49 @@ export function BattleScreen({
     bgmRef.current = bgm;
     bgm?.setVolume(volumeRatio(bgmVolumeRef.current));
 
+    // 観客の危機は 1 回だけ出す。境目を行き来するたびに出すと、
+    // いちばん忙しい場面でカットインが連発することになる
+    let warnedDanger = false;
+
     // sim からは鳴らさない。ヘッドレス計測とテストに音の都合を持ち込まないため
     const offSe = [
       world.events.on('enemyKilled', () => playSe('kill')),
       world.events.on('enemyLeaked', () => playSe('leak')),
-      world.events.on('bossPhase', () => playSe('phase')),
+      world.events.on('bossPhase', (e) => {
+        playSe('phase');
+        // 何が変わったのかを名指しする。「フェーズ 2」では
+        // 編成のどこを変えればいいのか分からない
+        renderer.pushCutIn({
+          kind: 'phase',
+          title: '属性が変わった',
+          subtitle: `${ATTR_LABEL[e.attr] ?? e.attr} になった`,
+        });
+      }),
       world.events.on('enemySpawned', (e) => {
-        if (getEnemy(e.defId).traits.boss) playSe('boss');
+        if (!getEnemy(e.defId).traits.boss) return;
+        playSe('boss');
+        renderer.pushCutIn({
+          kind: 'boss',
+          title: getEnemy(e.defId).name,
+          subtitle: '通すと観客が大きく減ります',
+          enemyId: e.defId,
+        });
+      }),
+      // ソロパートは 1 人を選んで撃つ操作なので、誰に入ったのかを顔で返す
+      world.events.on('soloStarted', (e) => {
+        const unit = world.snapshot().units.find((u) => u.id === e.id);
+        if (!unit) return;
+        renderer.pushCutIn({
+          kind: 'solo',
+          title: 'ソロパート',
+          subtitle: unit.shortName,
+          idolId: unit.spriteId,
+        });
+      }),
+      world.events.on('audienceChanged', (e) => {
+        if (warnedDanger || e.value > 25 || e.value <= 0) return;
+        warnedDanger = true;
+        renderer.pushCutIn({ kind: 'danger', title: '客席が空きはじめた', subtitle: '観客 25 以下' });
       }),
       world.events.on('called', (e) => {
         // 自動ぶん（コールを切っている人へ配る Good）では鳴らさない。

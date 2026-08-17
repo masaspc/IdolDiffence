@@ -320,6 +320,8 @@ export interface WorldSnapshot {
   palette: PaletteEntry[];
   /** センターの**アイドル名**。HUD は誰がセンターかを出したいのでパッシブ名ではない */
   centerName: string | null;
+  /** センターのアイドル ID。カットインで顔を出すのに使う */
+  centerIdolId: string | null;
   songName: string;
   bpm: number;
   bar: number;
@@ -1676,6 +1678,7 @@ export class BattleWorld {
         .sort((a, b) => b.damage - a.damage),
       palette: this.palette,
       centerName: this.centerName,
+      centerIdolId: this.center ? this.centerIdolId : null,
       songName: this.song.name,
       bpm: this.song.bpm,
       bar: this.clock.bar,
