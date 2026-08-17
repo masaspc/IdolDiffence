@@ -45,10 +45,25 @@ function takeChain(save: SaveData, id: string): SaveData {
 }
 
 describe('ボードの形', () => {
-  it('3 ブランチ × 12 ノード', () => {
-    expect(talentIds).toHaveLength(36);
+  it('3 ブランチ × 18 ノード', () => {
+    expect(talentIds).toHaveLength(54);
     for (const branch of ['vocal', 'dance', 'visual'] as const) {
-      expect(talentIds.filter((id) => getTalent(id).branch === branch)).toHaveLength(12);
+      expect(talentIds.filter((id) => getTalent(id).branch === branch)).toHaveLength(18);
+    }
+  });
+
+  it('最終才能は各キーストーンの先に 1 つずつ（全部で 6 つ）', () => {
+    const caps = talentIds.filter((id) => getTalent(id).tier === 'capstone');
+    expect(caps).toHaveLength(6);
+    for (const branch of ['vocal', 'dance', 'visual'] as const) {
+      expect(caps.filter((id) => getTalent(id).branch === branch)).toHaveLength(2);
+    }
+    // どれも代償を持つ。**見返りだけの最終才能を作らない** ——
+    // 代償が無いと「いちばん強い 1 つ」に収束して、選ぶ意味が消える
+    for (const id of caps) {
+      const mods = getTalent(id).mods;
+      const values = Object.values(mods).filter((v) => typeof v === 'number');
+      expect(values.some((v) => v < 0), `${id} に代償が無い`).toBe(true);
     }
   });
 
@@ -71,26 +86,41 @@ describe('ボードの形', () => {
     }
   });
 
-  it('第 1 章を全部クリアしても全ノードには届かない（どこに寄せるかを選ぶ）', () => {
+  it('全ステージを ★満点で終えてもボード全体には届かない', () => {
     const everything = talentIds.reduce((sum, id) => sum + getTalent(id).cost, 0);
-    // S1〜B2（12 本）を全部 ★満点で終えた状態。ボード全体より安くならないこと
-    expect(totalTalentPoints(cleared(12, true))).toBeLessThan(everything);
+    expect(totalTalentPoints(cleared(stageOrder.length, true))).toBeLessThan(everything);
   });
 
-  it('月の都の章まで進むとボードは埋まりきる', () => {
-    // **これは想定どおりで、同時に宿題でもある。** ステージが 12 → 23 本に
-    // 増えたぶんポイントの供給が倍近くになり、終盤ではボードを全部取れる。
-    // そこから先で「寄せる判断」を担っているのはキーストーンの排他だけ（次のテスト）。
-    // ボードを伸ばすなら、`fullBranch`（balance/investment.ts）が変わるので
-    // 月の都の章の hpMul をすべて測り直すことになる ―― だから今回は伸ばしていない
+  /**
+   * **ポイントでは終盤の選択を作れない。**
+   *
+   * ポイントの供給はステージだけでなくプロデューサーランク（+2/Lv、上限 50）からも
+   * 来るので、遊び込めば必ず余る。ボードをどれだけ広げても追いつかない。
+   * だから終盤の「どこに寄せるか」は**排他**が担う ——
+   * キーストーンはブランチごとに 1 つ、最終才能はボード全体で 1 つ。
+   */
+  it('ポイントが無限にあっても、取れる量は排他で頭打ちになる', () => {
+    const rich: SaveData = { ...cleared(stageOrder.length, true), totalExp: 10_000_000 };
+    // 取れるだけ取る。前提が開いた順に上から舐めるだけで十分（枝が浅い）
+    let save = rich;
+    for (let pass = 0; pass < talentIds.length; pass++) {
+      for (const id of talentIds) {
+        if (talentBlocker(save, id) === null) save = takeTalent(save, id);
+      }
+    }
     const everything = talentIds.reduce((sum, id) => sum + getTalent(id).cost, 0);
-    expect(totalTalentPoints(cleared(stageOrder.length, true))).toBeGreaterThan(everything);
+    const spent = everything - talentIds
+      .filter((id) => !save.talents.includes(id))
+      .reduce((sum, id) => sum + getTalent(id).cost, 0);
+
+    expect(remainingTalentPoints(save), 'ポイントが尽きて止まっている').toBeGreaterThan(0);
+    expect(spent, 'ボードを全部取れてしまう').toBeLessThan(everything);
+    // 半分は取れる（何も選べないほど狭くはない）が、全部には届かない
+    expect(spent).toBeGreaterThan(everything * 0.4);
+    expect(spent).toBeLessThan(everything * 0.7);
   });
 
   it('ランクを上げてもキーストーンは片方しか取れない', () => {
-    // プロデューサーランク（+2/Lv）でポイントの制約はいずれ外れる。
-    // そこから先の「選ばせる」を担うのは**キーストーンの排他**なので、
-    // ポイントが余っても両取りできないことを固定しておく
     const rich: SaveData = { ...cleared(stageOrder.length, true), totalExp: 10_000_000 };
     expect(remainingTalentPoints(rich)).toBeGreaterThan(60);
 
@@ -98,6 +128,32 @@ describe('ボードの形', () => {
     expect(talentBlocker(save, 'vo_k2')).toBe('keystone-taken');
     save = takeChain(save, 'da_k1');
     expect(talentBlocker(save, 'da_k2')).toBe('keystone-taken');
+  });
+
+  it('最終才能はボード全体で 1 つだけ', () => {
+    // ブランチごとではなく**全体で 1 つ**。ここを緩めると、
+    // 3 系統ぶんの「大きな代償つきの効果」を全部背負えてしまい、
+    // 代償が相殺されて選ぶ意味が消える
+    const rich: SaveData = { ...cleared(stageOrder.length, true), totalExp: 10_000_000 };
+    const save = takeChain(rich, 'vo_c1');
+    expect(save.talents).toContain('vo_c1');
+    expect(talentBlocker(save, 'vo_c2')).toBe('capstone-taken');
+    expect(talentBlocker(save, 'da_c1')).toBe('capstone-taken');
+    expect(talentBlocker(save, 'vi_c2')).toBe('capstone-taken');
+  });
+
+  it('最終才能はキーストーンの先にしか無い（近道が無い）', () => {
+    for (const id of talentIds.filter((t) => getTalent(t).tier === 'capstone')) {
+      // 前提を辿るとキーストーンに必ず当たる
+      const seen = new Set<string>();
+      const walk = (node: string): void => {
+        if (seen.has(node)) return;
+        seen.add(node);
+        for (const req of getTalent(node).requires) walk(req);
+      };
+      walk(id);
+      expect([...seen].some((t) => getTalent(t).tier === 'keystone'), id).toBe(true);
+    }
   });
 });
 
