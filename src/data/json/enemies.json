@@ -8,7 +8,13 @@
     "leak": 1,
     "bounty": 6,
     "flying": false,
-    "radius": 0.3
+    "radius": 0.3,
+    "art": {
+      "form": "drop",
+      "main": "#8fb6ff",
+      "sub": "#4a6fd0",
+      "accent": "#dcecff"
+    }
   },
   "e_runner": {
     "name": "ハヤテ",
@@ -19,7 +25,13 @@
     "leak": 1,
     "bounty": 8,
     "flying": false,
-    "radius": 0.24
+    "radius": 0.24,
+    "art": {
+      "form": "gale",
+      "main": "#ff9b6b",
+      "sub": "#c2542c",
+      "accent": "#ffe0a8"
+    }
   },
   "e_swarm": {
     "name": "ホタル",
@@ -30,7 +42,13 @@
     "leak": 1,
     "bounty": 4,
     "flying": false,
-    "radius": 0.18
+    "radius": 0.18,
+    "art": {
+      "form": "moth",
+      "main": "#ffe07a",
+      "sub": "#c9a13a",
+      "accent": "#fff6cf"
+    }
   },
   "e_armor": {
     "name": "イワクラ",
@@ -41,7 +59,13 @@
     "leak": 2,
     "bounty": 14,
     "flying": false,
-    "radius": 0.38
+    "radius": 0.38,
+    "art": {
+      "form": "rock",
+      "main": "#9a8bb5",
+      "sub": "#5c4f78",
+      "accent": "#d6cbe8"
+    }
   },
   "e_flyer": {
     "name": "アマツバメ",
@@ -52,7 +76,13 @@
     "leak": 2,
     "bounty": 12,
     "flying": true,
-    "radius": 0.26
+    "radius": 0.26,
+    "art": {
+      "form": "bird",
+      "main": "#7ee0e8",
+      "sub": "#3a8f9c",
+      "accent": "#ffd45e"
+    }
   },
   "e_healer": {
     "name": "ツキシズク",
@@ -64,6 +94,12 @@
     "bounty": 16,
     "flying": false,
     "radius": 0.32,
+    "art": {
+      "form": "moondrop",
+      "main": "#a7f0c8",
+      "sub": "#4c9e77",
+      "accent": "#fff3b0"
+    },
     "traits": {
       "healAura": {
         "radius": 2.4,
@@ -81,6 +117,12 @@
     "bounty": 15,
     "flying": false,
     "radius": 0.34,
+    "art": {
+      "form": "mirror",
+      "main": "#cfd8ff",
+      "sub": "#6f79b8",
+      "accent": "#ffffff"
+    },
     "traits": {
       "frontShield": 0.6
     }
@@ -95,6 +137,12 @@
     "bounty": 18,
     "flying": false,
     "radius": 0.34,
+    "art": {
+      "form": "cloud",
+      "main": "#c9a2ff",
+      "sub": "#6b4aa8",
+      "accent": "#f2e2ff"
+    },
     "traits": {
       "onDeathSpawn": {
         "enemy": "e_swarm",
@@ -112,10 +160,248 @@
     "bounty": 25,
     "flying": false,
     "radius": 0.4,
+    "art": {
+      "form": "shade",
+      "main": "#4a3b6e",
+      "sub": "#241a3d",
+      "accent": "#ff6ba8"
+    },
     "traits": {
       "drainAura": {
         "radius": 3.0,
         "speedMul": 0.75
+      }
+    }
+  },
+  "e_tsukibito": {
+    "name": "月人の兵",
+    "attr": "silence",
+    "hp": 260,
+    "def": 40,
+    "speed": 1.0,
+    "leak": 2,
+    "bounty": 12,
+    "flying": false,
+    "radius": 0.3,
+    "art": {
+      "form": "soldier",
+      "main": "#8ea7d8",
+      "sub": "#3f4f7a",
+      "accent": "#e6ecff"
+    }
+  },
+  "e_ishitsukuri": {
+    "name": "石作皇子",
+    "attr": "noise",
+    "hp": 380,
+    "def": 60,
+    "speed": 0.9,
+    "leak": 3,
+    "bounty": 22,
+    "flying": false,
+    "radius": 0.36,
+    "art": {
+      "form": "noble",
+      "main": "#c8b48a",
+      "sub": "#4a3d2a",
+      "accent": "#efe3c4"
+    },
+    "traits": {
+      "onDeathSpawn": {
+        "enemy": "e_swarm",
+        "count": 4
+      }
+    }
+  },
+  "e_takumi": {
+    "name": "玉の枝の工匠",
+    "attr": "noise",
+    "hp": 70,
+    "def": 10,
+    "speed": 1.5,
+    "leak": 1,
+    "bounty": 5,
+    "flying": false,
+    "radius": 0.24,
+    "art": {
+      "form": "noble",
+      "main": "#8fc95e",
+      "sub": "#31481f",
+      "accent": "#e8ffc4"
+    }
+  },
+  "e_kuramochi": {
+    "name": "車持皇子",
+    "attr": "glare",
+    "hp": 420,
+    "def": 90,
+    "speed": 0.85,
+    "leak": 3,
+    "bounty": 24,
+    "flying": false,
+    "radius": 0.38,
+    "art": {
+      "form": "noble",
+      "main": "#7fd4b0",
+      "sub": "#25453a",
+      "accent": "#d8fff0"
+    },
+    "traits": {
+      "onDeathSpawn": {
+        "enemy": "e_takumi",
+        "count": 3
+      }
+    }
+  },
+  "e_abe": {
+    "name": "阿倍御主人",
+    "attr": "glare",
+    "hp": 500,
+    "def": 80,
+    "speed": 0.8,
+    "leak": 3,
+    "bounty": 30,
+    "flying": false,
+    "radius": 0.4,
+    "art": {
+      "form": "noble",
+      "main": "#e8734f",
+      "sub": "#4a1f14",
+      "accent": "#ffd8a0"
+    },
+    "traits": {
+      "typeGuard": {
+        "type": "visual",
+        "reduction": 0.75
+      }
+    }
+  },
+  "e_otomo": {
+    "name": "大伴御行",
+    "attr": "silence",
+    "hp": 340,
+    "def": 50,
+    "speed": 2.0,
+    "leak": 3,
+    "bounty": 26,
+    "flying": true,
+    "radius": 0.3,
+    "art": {
+      "form": "noble",
+      "main": "#6fa8ff",
+      "sub": "#1e2f5c",
+      "accent": "#cfe4ff"
+    }
+  },
+  "e_isonokami": {
+    "name": "石上麻呂",
+    "attr": "glare",
+    "hp": 460,
+    "def": 70,
+    "speed": 0.75,
+    "leak": 3,
+    "bounty": 28,
+    "flying": false,
+    "radius": 0.36,
+    "art": {
+      "form": "noble",
+      "main": "#d9a0d8",
+      "sub": "#4a2450",
+      "accent": "#ffe6fb"
+    },
+    "traits": {
+      "enrage": {
+        "at": 0.4,
+        "speedMul": 2.6
+      }
+    }
+  },
+  "e_nakatomi": {
+    "name": "中臣 房子",
+    "attr": "glare",
+    "hp": 320,
+    "def": 70,
+    "speed": 1.1,
+    "leak": 2,
+    "bounty": 18,
+    "flying": false,
+    "radius": 0.32,
+    "art": {
+      "form": "lady",
+      "main": "#ff9ec4",
+      "sub": "#3a2038",
+      "accent": "#ffe9a3"
+    },
+    "traits": {
+      "frontShield": 0.5
+    }
+  },
+  "e_tennin": {
+    "name": "天人",
+    "attr": "silence",
+    "hp": 380,
+    "def": 60,
+    "speed": 1.2,
+    "leak": 3,
+    "bounty": 26,
+    "flying": true,
+    "radius": 0.32,
+    "art": {
+      "form": "tennin",
+      "main": "#f2f2ff",
+      "sub": "#b39ce8",
+      "accent": "#9fd8ff"
+    },
+    "traits": {
+      "healAura": {
+        "radius": 2.8,
+        "percentPerSec": 0.045
+      }
+    }
+  },
+  "e_tobukuruma": {
+    "name": "飛ぶ車",
+    "attr": "glare",
+    "hp": 900,
+    "def": 150,
+    "speed": 0.55,
+    "leak": 5,
+    "bounty": 45,
+    "flying": false,
+    "radius": 0.46,
+    "art": {
+      "form": "cart",
+      "main": "#a08a5e",
+      "sub": "#4a3a22",
+      "accent": "#ffd45e"
+    },
+    "traits": {
+      "drainAura": {
+        "radius": 3.4,
+        "speedMul": 0.7
+      }
+    }
+  },
+  "e_kusuri": {
+    "name": "不死の薬",
+    "attr": "noise",
+    "hp": 300,
+    "def": 40,
+    "speed": 1.0,
+    "leak": 3,
+    "bounty": 24,
+    "flying": false,
+    "radius": 0.3,
+    "art": {
+      "form": "jar",
+      "main": "#8fe0c8",
+      "sub": "#2f6b5a",
+      "accent": "#fff6cf"
+    },
+    "traits": {
+      "revive": {
+        "hpRatio": 0.6,
+        "times": 1
       }
     }
   },
@@ -128,6 +414,12 @@
     "leak": 45,
     "bounty": 120,
     "radius": 0.62,
+    "art": {
+      "form": "mirror",
+      "main": "#ff7bb0",
+      "sub": "#5c1f43",
+      "accent": "#ffffff"
+    },
     "traits": {
       "boss": true,
       "resist": {
@@ -156,6 +448,12 @@
     "leak": 40,
     "bounty": 150,
     "radius": 0.7,
+    "art": {
+      "form": "shade",
+      "main": "#2f2a52",
+      "sub": "#141028",
+      "accent": "#7ee0e8"
+    },
     "traits": {
       "boss": true,
       "resist": {
@@ -166,6 +464,48 @@
       "silence": {
         "everyMs": 9000,
         "durationMs": 4000
+      }
+    }
+  },
+  "e_boss_tsuki_no_o": {
+    "name": "月の王",
+    "attr": "glare",
+    "hp": 30000,
+    "def": 260,
+    "speed": 0.35,
+    "leak": 60,
+    "bounty": 220,
+    "radius": 0.78,
+    "art": {
+      "form": "king",
+      "main": "#efe6ff",
+      "sub": "#5b4a94",
+      "accent": "#ffd45e"
+    },
+    "traits": {
+      "boss": true,
+      "resist": {
+        "stun": 0.8,
+        "charm": 1,
+        "slow": 0.5
+      },
+      "phases": [
+        {
+          "at": 0.66,
+          "attr": "noise"
+        },
+        {
+          "at": 0.33,
+          "attr": "silence"
+        }
+      ],
+      "silence": {
+        "everyMs": 8000,
+        "durationMs": 4500
+      },
+      "revive": {
+        "hpRatio": 0.45,
+        "times": 1
       }
     }
   }

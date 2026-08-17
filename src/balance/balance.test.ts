@@ -22,8 +22,9 @@ import {
   SECRET_IDS,
   stageOrder,
 } from '../data';
-import { levelAtkMultiplier } from '../meta/progression';
-import { PLAN_STAGES, STAGE_PLANS } from './plans';
+import { levelAtkMultiplier, MAX_LEVEL } from '../meta/progression';
+import { PLAN_STAGES, STAGE_PLANS, type Investment } from './plans';
+import { balanceMeta, investmentOf } from './investment';
 
 const SEED = 20260816;
 /** 1 ステージあたり 0.2〜0.6 秒かかる。既定の 5 秒では足りない */
@@ -42,7 +43,9 @@ function metaAt(stageId: string, level: number): BattleMeta {
 
 function play(stageId: string, level: number, placements = true) {
   const plan = STAGE_PLANS[stageId];
-  const world = createWorld(stageId, SEED, metaAt(stageId, level));
+  // ステージが仮定する恒久強化を込みで測る。S11 以降はレベルが上限なので、
+  // 素の値だけで見ると「上限まで育てても勝てない壁」に見えてしまう
+  const world = createWorld(stageId, SEED, balanceMeta(stageId, level));
   const { snapshot } = autoplay(world, {
     plan: placements ? (plan?.placements ?? []) : [],
     useSpecial: true,
@@ -53,6 +56,20 @@ function play(stageId: string, level: number, placements = true) {
 function wins(stageId: string, level: number, placements = true): boolean {
   return play(stageId, level, placements).won;
 }
+
+/** 恒久強化の段階を明示して回す。段階の効き目そのものを見るとき用 */
+function winsAt(stageId: string, investment: Investment): boolean {
+  const plan = STAGE_PLANS[stageId];
+  const world = createWorld(stageId, SEED, balanceMeta(stageId, MAX_LEVEL, investment));
+  return autoplay(world, { plan: plan?.placements ?? [], useSpecial: true }).snapshot.won;
+}
+
+/** その段階のひとつ手前 */
+const PREVIOUS: Record<Investment, Investment | null> = {
+  bare: null,
+  talents: 'bare',
+  full: 'talents',
+};
 
 describe('バランス', () => {
   it('参照盤面は原作の 12 人だけで組む', () => {
@@ -188,7 +205,82 @@ describe('バランス', () => {
 
   it('ボスは寄り道と最後に置かれ、本編の前提にはならない', () => {
     // B1 をクリアしないと S7 が開かない、という形にはしない
-    expect(bossStageIds).toEqual(['B1', 'B2']);
-    expect(mainStageIds).toHaveLength(10);
+    expect(bossStageIds).toEqual(['B1', 'B2', 'B3']);
+    expect(mainStageIds).toHaveLength(20);
+  });
+});
+
+/**
+ * 月の都の章（S11〜B3）。
+ *
+ * ここは**レベルでは測れない**。S10 の時点でレベルは上限（30）に届いているので、
+ * 難度を上げると「上限まで育てても勝てない壁」になる。この章が要求するのは
+ * 才能ボード・進化・衣装 —— 恒久強化（03-progression.md E-2）のほう。
+ *
+ * だから見るのは「Lv いくつで届くか」ではなく
+ * **「その段階なら届き、ひとつ手前では届かない」**。
+ */
+describe('月の都の章', () => {
+  // ID から導かない。`B3` は数字が 3 なので「10 より後」では拾えず、
+  // 賢い式にすると章の境目が黙ってずれる
+  const moonStages = [
+    'S11', 'S12', 'S13', 'S14', 'S15', 'S16', 'S17', 'S18', 'S19', 'S20', 'B3',
+  ];
+
+  it('11 本が並び順に入っている（S11〜S20 + B3）', () => {
+    expect(stageOrder.slice(12)).toEqual(moonStages);
+  });
+
+  it('前半は才能と進化、後半は衣装まで前提にする', () => {
+    // 段階を明示しないと、才能も衣装も無い盤面で 20 ステージぶんの
+    // 難度を作ることになり、実際のプレイとかけ離れる
+    for (const id of ['S11', 'S12', 'S13', 'S14', 'S15']) expect(investmentOf(id)).toBe('talents');
+    for (const id of ['S16', 'S17', 'S18', 'S19', 'S20', 'B3']) {
+      expect(investmentOf(id)).toBe('full');
+    }
+    // 前の章は素のまま。ここが崩れると S1〜B2 の難度表が意味を失う
+    for (const id of stageOrder.filter((s) => !moonStages.includes(s))) {
+      expect(investmentOf(id), `${id} の前提が変わっている`).toBe('bare');
+    }
+  });
+
+  it(
+    'ひとつ手前の段階では届かない（恒久強化が効いていることの証明）',
+    () => {
+      for (const stageId of moonStages) {
+        const previous = PREVIOUS[investmentOf(stageId)];
+        if (!previous) throw new Error(`${stageId} に手前の段階が無い`);
+        expect(winsAt(stageId, previous), `${stageId} が ${previous} で勝ててしまう`).toBe(false);
+      }
+    },
+    TIMEOUT,
+  );
+
+  it(
+    '想定した段階なら届く',
+    () => {
+      for (const stageId of moonStages) {
+        expect(winsAt(stageId, investmentOf(stageId)), `${stageId} が想定段階で勝てない`).toBe(
+          true,
+        );
+      }
+    },
+    TIMEOUT,
+  );
+
+  it('S13 の参照盤面にヴィジュアルはいない', () => {
+    // 阿倍御主人「火鼠の裘」はヴィジュアルを 75% 軽減する。
+    // **その系統を外して成立する**ことが、この敵を置いた理由そのもの
+    for (const id of STAGE_PLANS['S13']?.party ?? []) {
+      expect(getIdol(id).type, `${id} はヴィジュアル`).not.toBe('visual');
+    }
+  });
+
+  it('S14 の参照盤面にダンスはいない', () => {
+    // 大伴御行は飛行。ダンスは原則対空できない（04-content.md）ので、
+    // 対空を持つ系統だけで組めることを盤面の側でも示す
+    for (const id of STAGE_PLANS['S14']?.party ?? []) {
+      expect(getIdol(id).type, `${id} はダンス`).not.toBe('dance');
+    }
   });
 });

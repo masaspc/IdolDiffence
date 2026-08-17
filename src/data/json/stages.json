@@ -1990,6 +1990,265 @@
       }
     ]
   },
+  "B1": {
+    "name": "偽アカウント",
+    "grid": {
+      "w": 16,
+      "h": 9
+    },
+    "lanes": [
+      {
+        "waypoints": [
+          [
+            0,
+            2
+          ],
+          [
+            5,
+            2
+          ],
+          [
+            5,
+            6
+          ],
+          [
+            15,
+            6
+          ]
+        ]
+      },
+      {
+        "waypoints": [
+          [
+            0,
+            8
+          ],
+          [
+            11,
+            8
+          ],
+          [
+            11,
+            6
+          ],
+          [
+            15,
+            6
+          ]
+        ]
+      }
+    ],
+    "placeable": [
+      [
+        2,
+        4
+      ],
+      [
+        4,
+        4
+      ],
+      [
+        7,
+        2
+      ],
+      [
+        9,
+        2
+      ],
+      [
+        11,
+        2
+      ],
+      [
+        13,
+        2
+      ],
+      [
+        7,
+        4
+      ],
+      [
+        9,
+        4
+      ],
+      [
+        13,
+        4
+      ],
+      [
+        2,
+        6
+      ],
+      [
+        4,
+        6
+      ],
+      [
+        11,
+        4
+      ]
+    ],
+    "cellTypes": {
+      "9,2": "runway",
+      "11,2": "runway",
+      "2,4": "audience",
+      "4,4": "audience",
+      "7,4": "monitor",
+      "9,4": "monitor"
+    },
+    "song": "neon_horai",
+    "hpMul": 1.5,
+    "boss": true,
+    "waves": [
+      {
+        "section": "intro",
+        "bars": 8,
+        "spawns": [],
+        "cardPick": true
+      },
+      {
+        "section": "verse",
+        "bars": 16,
+        "spawns": [
+          {
+            "bar": 1,
+            "enemy": "e_walker",
+            "count": 12,
+            "intervalBars": 1.0,
+            "lane": 0
+          },
+          {
+            "bar": 1,
+            "enemy": "e_walker",
+            "count": 12,
+            "intervalBars": 1.0,
+            "lane": 1
+          }
+        ]
+      },
+      {
+        "section": "bridge",
+        "bars": 8,
+        "spawns": [
+          {
+            "bar": 0.5,
+            "enemy": "e_runner",
+            "count": 10,
+            "intervalBars": 0.6,
+            "lane": 0
+          },
+          {
+            "bar": 0.5,
+            "enemy": "e_runner",
+            "count": 10,
+            "intervalBars": 0.6,
+            "lane": 1
+          }
+        ],
+        "cardPick": true
+      },
+      {
+        "section": "chorus",
+        "bars": 16,
+        "spawns": [
+          {
+            "bar": 1,
+            "enemy": "e_boss_utsushi",
+            "count": 1,
+            "intervalBars": 1.0,
+            "lane": 0
+          },
+          {
+            "bar": 0.5,
+            "enemy": "e_walker",
+            "count": 12,
+            "intervalBars": 1.0,
+            "lane": 1
+          }
+        ]
+      },
+      {
+        "section": "verse",
+        "bars": 16,
+        "spawns": [
+          {
+            "bar": 0.5,
+            "enemy": "e_swarm",
+            "count": 16,
+            "intervalBars": 0.5,
+            "lane": 0
+          },
+          {
+            "bar": 0.5,
+            "enemy": "e_swarm",
+            "count": 16,
+            "intervalBars": 0.5,
+            "lane": 1
+          }
+        ]
+      },
+      {
+        "section": "interlude",
+        "bars": 8,
+        "spawns": [],
+        "cardPick": true
+      },
+      {
+        "section": "chorus",
+        "bars": 16,
+        "spawns": [
+          {
+            "bar": 1,
+            "enemy": "e_boss_utsushi",
+            "count": 1,
+            "intervalBars": 1.0,
+            "lane": 1
+          },
+          {
+            "bar": 0.5,
+            "enemy": "e_runner",
+            "count": 12,
+            "intervalBars": 1.0,
+            "lane": 0
+          }
+        ]
+      },
+      {
+        "section": "finale",
+        "bars": 16,
+        "spawns": [
+          {
+            "bar": 0.5,
+            "enemy": "e_walker",
+            "count": 16,
+            "intervalBars": 0.85,
+            "lane": 0
+          },
+          {
+            "bar": 0.5,
+            "enemy": "e_walker",
+            "count": 16,
+            "intervalBars": 0.85,
+            "lane": 1
+          },
+          {
+            "bar": 1,
+            "enemy": "e_armor",
+            "count": 5,
+            "intervalBars": 2.6,
+            "lane": 0
+          },
+          {
+            "bar": 1,
+            "enemy": "e_shield",
+            "count": 5,
+            "intervalBars": 2.6,
+            "lane": 1
+          }
+        ]
+      }
+    ]
+  },
   "S7": {
     "name": "テレビ局スタジオ",
     "grid": {
@@ -4455,265 +4714,6 @@
       }
     ]
   },
-  "B1": {
-    "name": "偽アカウント",
-    "grid": {
-      "w": 16,
-      "h": 9
-    },
-    "lanes": [
-      {
-        "waypoints": [
-          [
-            0,
-            2
-          ],
-          [
-            5,
-            2
-          ],
-          [
-            5,
-            6
-          ],
-          [
-            15,
-            6
-          ]
-        ]
-      },
-      {
-        "waypoints": [
-          [
-            0,
-            8
-          ],
-          [
-            11,
-            8
-          ],
-          [
-            11,
-            6
-          ],
-          [
-            15,
-            6
-          ]
-        ]
-      }
-    ],
-    "placeable": [
-      [
-        2,
-        4
-      ],
-      [
-        4,
-        4
-      ],
-      [
-        7,
-        2
-      ],
-      [
-        9,
-        2
-      ],
-      [
-        11,
-        2
-      ],
-      [
-        13,
-        2
-      ],
-      [
-        7,
-        4
-      ],
-      [
-        9,
-        4
-      ],
-      [
-        13,
-        4
-      ],
-      [
-        2,
-        6
-      ],
-      [
-        4,
-        6
-      ],
-      [
-        11,
-        4
-      ]
-    ],
-    "cellTypes": {
-      "9,2": "runway",
-      "11,2": "runway",
-      "2,4": "audience",
-      "4,4": "audience",
-      "7,4": "monitor",
-      "9,4": "monitor"
-    },
-    "song": "neon_horai",
-    "hpMul": 1.5,
-    "boss": true,
-    "waves": [
-      {
-        "section": "intro",
-        "bars": 8,
-        "spawns": [],
-        "cardPick": true
-      },
-      {
-        "section": "verse",
-        "bars": 16,
-        "spawns": [
-          {
-            "bar": 1,
-            "enemy": "e_walker",
-            "count": 12,
-            "intervalBars": 1.0,
-            "lane": 0
-          },
-          {
-            "bar": 1,
-            "enemy": "e_walker",
-            "count": 12,
-            "intervalBars": 1.0,
-            "lane": 1
-          }
-        ]
-      },
-      {
-        "section": "bridge",
-        "bars": 8,
-        "spawns": [
-          {
-            "bar": 0.5,
-            "enemy": "e_runner",
-            "count": 10,
-            "intervalBars": 0.6,
-            "lane": 0
-          },
-          {
-            "bar": 0.5,
-            "enemy": "e_runner",
-            "count": 10,
-            "intervalBars": 0.6,
-            "lane": 1
-          }
-        ],
-        "cardPick": true
-      },
-      {
-        "section": "chorus",
-        "bars": 16,
-        "spawns": [
-          {
-            "bar": 1,
-            "enemy": "e_boss_utsushi",
-            "count": 1,
-            "intervalBars": 1.0,
-            "lane": 0
-          },
-          {
-            "bar": 0.5,
-            "enemy": "e_walker",
-            "count": 12,
-            "intervalBars": 1.0,
-            "lane": 1
-          }
-        ]
-      },
-      {
-        "section": "verse",
-        "bars": 16,
-        "spawns": [
-          {
-            "bar": 0.5,
-            "enemy": "e_swarm",
-            "count": 16,
-            "intervalBars": 0.5,
-            "lane": 0
-          },
-          {
-            "bar": 0.5,
-            "enemy": "e_swarm",
-            "count": 16,
-            "intervalBars": 0.5,
-            "lane": 1
-          }
-        ]
-      },
-      {
-        "section": "interlude",
-        "bars": 8,
-        "spawns": [],
-        "cardPick": true
-      },
-      {
-        "section": "chorus",
-        "bars": 16,
-        "spawns": [
-          {
-            "bar": 1,
-            "enemy": "e_boss_utsushi",
-            "count": 1,
-            "intervalBars": 1.0,
-            "lane": 1
-          },
-          {
-            "bar": 0.5,
-            "enemy": "e_runner",
-            "count": 12,
-            "intervalBars": 1.0,
-            "lane": 0
-          }
-        ]
-      },
-      {
-        "section": "finale",
-        "bars": 16,
-        "spawns": [
-          {
-            "bar": 0.5,
-            "enemy": "e_walker",
-            "count": 16,
-            "intervalBars": 0.85,
-            "lane": 0
-          },
-          {
-            "bar": 0.5,
-            "enemy": "e_walker",
-            "count": 16,
-            "intervalBars": 0.85,
-            "lane": 1
-          },
-          {
-            "bar": 1,
-            "enemy": "e_armor",
-            "count": 5,
-            "intervalBars": 2.6,
-            "lane": 0
-          },
-          {
-            "bar": 1,
-            "enemy": "e_shield",
-            "count": 5,
-            "intervalBars": 2.6,
-            "lane": 1
-          }
-        ]
-      }
-    ]
-  },
   "B2": {
     "name": "強制ログアウト",
     "grid": {
@@ -5042,6 +5042,4408 @@
             "count": 10,
             "intervalBars": 1.5,
             "lane": 1
+          }
+        ]
+      }
+    ]
+  },
+  "S11": {
+    "name": "天竺の大寺院ステージ",
+    "grid": {
+      "w": 16,
+      "h": 9
+    },
+    "lanes": [
+      {
+        "waypoints": [
+          [
+            0,
+            1
+          ],
+          [
+            7,
+            1
+          ],
+          [
+            7,
+            4
+          ],
+          [
+            15,
+            4
+          ]
+        ]
+      },
+      {
+        "waypoints": [
+          [
+            0,
+            4
+          ],
+          [
+            15,
+            4
+          ]
+        ]
+      },
+      {
+        "waypoints": [
+          [
+            0,
+            7
+          ],
+          [
+            7,
+            7
+          ],
+          [
+            7,
+            4
+          ],
+          [
+            15,
+            4
+          ]
+        ]
+      }
+    ],
+    "placeable": [
+      [
+        2,
+        2
+      ],
+      [
+        4,
+        2
+      ],
+      [
+        9,
+        2
+      ],
+      [
+        11,
+        2
+      ],
+      [
+        13,
+        2
+      ],
+      [
+        2,
+        6
+      ],
+      [
+        4,
+        6
+      ],
+      [
+        9,
+        6
+      ],
+      [
+        11,
+        6
+      ],
+      [
+        13,
+        6
+      ],
+      [
+        5,
+        3
+      ],
+      [
+        5,
+        5
+      ]
+    ],
+    "cellTypes": {
+      "9,2": "runway",
+      "13,2": "runway",
+      "9,6": "runway",
+      "13,6": "runway",
+      "11,2": "monitor",
+      "11,6": "monitor",
+      "5,3": "monitor",
+      "5,5": "monitor",
+      "2,2": "audience",
+      "2,6": "audience"
+    },
+    "song": "gonan_five",
+    "hpMul": 95,
+    "waves": [
+      {
+        "section": "intro",
+        "bars": 8,
+        "spawns": [],
+        "cardPick": true
+      },
+      {
+        "section": "verse",
+        "bars": 16,
+        "spawns": [
+          {
+            "bar": 1,
+            "enemy": "e_tsukibito",
+            "count": 12,
+            "intervalBars": 1.1,
+            "lane": 0
+          },
+          {
+            "bar": 1,
+            "enemy": "e_tsukibito",
+            "count": 12,
+            "intervalBars": 1.1,
+            "lane": 1
+          },
+          {
+            "bar": 1,
+            "enemy": "e_tsukibito",
+            "count": 12,
+            "intervalBars": 1.1,
+            "lane": 2
+          }
+        ]
+      },
+      {
+        "section": "verse",
+        "bars": 16,
+        "spawns": [
+          {
+            "bar": 1,
+            "enemy": "e_ishitsukuri",
+            "count": 4,
+            "intervalBars": 3.2,
+            "lane": 0
+          },
+          {
+            "bar": 1,
+            "enemy": "e_ishitsukuri",
+            "count": 4,
+            "intervalBars": 3.2,
+            "lane": 2
+          },
+          {
+            "bar": 0.5,
+            "enemy": "e_walker",
+            "count": 14,
+            "intervalBars": 0.95,
+            "lane": 1
+          }
+        ]
+      },
+      {
+        "section": "bridge",
+        "bars": 8,
+        "spawns": [
+          {
+            "bar": 0.5,
+            "enemy": "e_runner",
+            "count": 12,
+            "intervalBars": 0.55,
+            "lane": 0
+          },
+          {
+            "bar": 0.5,
+            "enemy": "e_runner",
+            "count": 12,
+            "intervalBars": 0.55,
+            "lane": 1
+          },
+          {
+            "bar": 0.5,
+            "enemy": "e_runner",
+            "count": 12,
+            "intervalBars": 0.55,
+            "lane": 2
+          }
+        ],
+        "cardPick": true
+      },
+      {
+        "section": "chorus",
+        "bars": 16,
+        "spawns": [
+          {
+            "bar": 1,
+            "enemy": "e_ishitsukuri",
+            "count": 6,
+            "intervalBars": 2.2,
+            "lane": 1
+          },
+          {
+            "bar": 1,
+            "enemy": "e_shield",
+            "count": 5,
+            "intervalBars": 2.6,
+            "lane": 0
+          },
+          {
+            "bar": 1,
+            "enemy": "e_shield",
+            "count": 5,
+            "intervalBars": 2.6,
+            "lane": 2
+          },
+          {
+            "bar": 0.5,
+            "enemy": "e_tsukibito",
+            "count": 14,
+            "intervalBars": 0.95,
+            "lane": 0
+          },
+          {
+            "bar": 0.5,
+            "enemy": "e_tsukibito",
+            "count": 14,
+            "intervalBars": 0.95,
+            "lane": 1
+          },
+          {
+            "bar": 0.5,
+            "enemy": "e_tsukibito",
+            "count": 14,
+            "intervalBars": 0.95,
+            "lane": 2
+          }
+        ]
+      },
+      {
+        "section": "verse",
+        "bars": 16,
+        "spawns": [
+          {
+            "bar": 1,
+            "enemy": "e_healer",
+            "count": 4,
+            "intervalBars": 3.2,
+            "lane": 1
+          },
+          {
+            "bar": 0.5,
+            "enemy": "e_swarm",
+            "count": 18,
+            "intervalBars": 0.75,
+            "lane": 0
+          },
+          {
+            "bar": 0.5,
+            "enemy": "e_swarm",
+            "count": 18,
+            "intervalBars": 0.75,
+            "lane": 1
+          },
+          {
+            "bar": 0.5,
+            "enemy": "e_swarm",
+            "count": 18,
+            "intervalBars": 0.75,
+            "lane": 2
+          }
+        ]
+      },
+      {
+        "section": "interlude",
+        "bars": 8,
+        "spawns": [],
+        "cardPick": true
+      },
+      {
+        "section": "chorus",
+        "bars": 16,
+        "spawns": [
+          {
+            "bar": 1,
+            "enemy": "e_ishitsukuri",
+            "count": 7,
+            "intervalBars": 1.9,
+            "lane": 0
+          },
+          {
+            "bar": 1,
+            "enemy": "e_ishitsukuri",
+            "count": 7,
+            "intervalBars": 1.9,
+            "lane": 2
+          },
+          {
+            "bar": 1,
+            "enemy": "e_armor",
+            "count": 6,
+            "intervalBars": 2.2,
+            "lane": 1
+          },
+          {
+            "bar": 0.5,
+            "enemy": "e_tsukibito",
+            "count": 16,
+            "intervalBars": 0.85,
+            "lane": 0
+          },
+          {
+            "bar": 0.5,
+            "enemy": "e_tsukibito",
+            "count": 16,
+            "intervalBars": 0.85,
+            "lane": 2
+          }
+        ]
+      },
+      {
+        "section": "finale",
+        "bars": 18,
+        "spawns": [
+          {
+            "bar": 1,
+            "enemy": "e_ishitsukuri",
+            "count": 8,
+            "intervalBars": 1.9,
+            "lane": 1
+          },
+          {
+            "bar": 1,
+            "enemy": "e_drainer",
+            "count": 5,
+            "intervalBars": 2.8,
+            "lane": 0
+          },
+          {
+            "bar": 1,
+            "enemy": "e_drainer",
+            "count": 5,
+            "intervalBars": 2.8,
+            "lane": 2
+          },
+          {
+            "bar": 0.5,
+            "enemy": "e_walker",
+            "count": 20,
+            "intervalBars": 0.75,
+            "lane": 0
+          },
+          {
+            "bar": 0.5,
+            "enemy": "e_walker",
+            "count": 20,
+            "intervalBars": 0.75,
+            "lane": 1
+          },
+          {
+            "bar": 0.5,
+            "enemy": "e_walker",
+            "count": 20,
+            "intervalBars": 0.75,
+            "lane": 2
+          }
+        ]
+      }
+    ]
+  },
+  "S12": {
+    "name": "玉の枝の庭園ステージ",
+    "grid": {
+      "w": 16,
+      "h": 9
+    },
+    "lanes": [
+      {
+        "waypoints": [
+          [
+            0,
+            2
+          ],
+          [
+            15,
+            2
+          ]
+        ]
+      },
+      {
+        "waypoints": [
+          [
+            0,
+            4
+          ],
+          [
+            15,
+            4
+          ]
+        ]
+      },
+      {
+        "waypoints": [
+          [
+            0,
+            6
+          ],
+          [
+            15,
+            6
+          ]
+        ]
+      }
+    ],
+    "placeable": [
+      [
+        2,
+        3
+      ],
+      [
+        5,
+        3
+      ],
+      [
+        8,
+        3
+      ],
+      [
+        11,
+        3
+      ],
+      [
+        13,
+        3
+      ],
+      [
+        2,
+        5
+      ],
+      [
+        5,
+        5
+      ],
+      [
+        8,
+        5
+      ],
+      [
+        11,
+        5
+      ],
+      [
+        13,
+        5
+      ],
+      [
+        4,
+        0
+      ],
+      [
+        10,
+        0
+      ],
+      [
+        4,
+        8
+      ],
+      [
+        10,
+        8
+      ]
+    ],
+    "cellTypes": {
+      "8,3": "runway",
+      "11,3": "runway",
+      "8,5": "runway",
+      "11,5": "runway",
+      "10,8": "runway",
+      "5,3": "monitor",
+      "5,5": "monitor",
+      "13,3": "monitor",
+      "13,5": "monitor",
+      "4,0": "audience",
+      "10,0": "audience",
+      "4,8": "audience"
+    },
+    "song": "gonan_five",
+    "hpMul": 65,
+    "waves": [
+      {
+        "section": "intro",
+        "bars": 8,
+        "spawns": [],
+        "cardPick": true
+      },
+      {
+        "section": "verse",
+        "bars": 16,
+        "spawns": [
+          {
+            "bar": 1,
+            "enemy": "e_tsukibito",
+            "count": 12,
+            "intervalBars": 1.1,
+            "lane": 0
+          },
+          {
+            "bar": 1,
+            "enemy": "e_tsukibito",
+            "count": 12,
+            "intervalBars": 1.1,
+            "lane": 1
+          },
+          {
+            "bar": 1,
+            "enemy": "e_tsukibito",
+            "count": 12,
+            "intervalBars": 1.1,
+            "lane": 2
+          }
+        ]
+      },
+      {
+        "section": "verse",
+        "bars": 16,
+        "spawns": [
+          {
+            "bar": 1,
+            "enemy": "e_kuramochi",
+            "count": 4,
+            "intervalBars": 3.2,
+            "lane": 0
+          },
+          {
+            "bar": 1,
+            "enemy": "e_kuramochi",
+            "count": 4,
+            "intervalBars": 3.2,
+            "lane": 2
+          },
+          {
+            "bar": 0.5,
+            "enemy": "e_takumi",
+            "count": 16,
+            "intervalBars": 0.85,
+            "lane": 1
+          }
+        ]
+      },
+      {
+        "section": "bridge",
+        "bars": 8,
+        "spawns": [
+          {
+            "bar": 0.5,
+            "enemy": "e_takumi",
+            "count": 16,
+            "intervalBars": 0.4,
+            "lane": 0
+          },
+          {
+            "bar": 0.5,
+            "enemy": "e_takumi",
+            "count": 16,
+            "intervalBars": 0.4,
+            "lane": 1
+          },
+          {
+            "bar": 0.5,
+            "enemy": "e_takumi",
+            "count": 16,
+            "intervalBars": 0.4,
+            "lane": 2
+          }
+        ],
+        "cardPick": true
+      },
+      {
+        "section": "chorus",
+        "bars": 16,
+        "spawns": [
+          {
+            "bar": 1,
+            "enemy": "e_kuramochi",
+            "count": 6,
+            "intervalBars": 2.2,
+            "lane": 1
+          },
+          {
+            "bar": 1,
+            "enemy": "e_flyer",
+            "count": 8,
+            "intervalBars": 1.7,
+            "lane": 0
+          },
+          {
+            "bar": 1,
+            "enemy": "e_flyer",
+            "count": 8,
+            "intervalBars": 1.7,
+            "lane": 2
+          },
+          {
+            "bar": 0.5,
+            "enemy": "e_walker",
+            "count": 14,
+            "intervalBars": 0.95,
+            "lane": 0
+          },
+          {
+            "bar": 0.5,
+            "enemy": "e_walker",
+            "count": 14,
+            "intervalBars": 0.95,
+            "lane": 1
+          },
+          {
+            "bar": 0.5,
+            "enemy": "e_walker",
+            "count": 14,
+            "intervalBars": 0.95,
+            "lane": 2
+          }
+        ]
+      },
+      {
+        "section": "verse",
+        "bars": 16,
+        "spawns": [
+          {
+            "bar": 1,
+            "enemy": "e_kuramochi",
+            "count": 5,
+            "intervalBars": 2.6,
+            "lane": 0
+          },
+          {
+            "bar": 1,
+            "enemy": "e_kuramochi",
+            "count": 5,
+            "intervalBars": 2.6,
+            "lane": 2
+          },
+          {
+            "bar": 1,
+            "enemy": "e_healer",
+            "count": 4,
+            "intervalBars": 3.2,
+            "lane": 1
+          },
+          {
+            "bar": 0.5,
+            "enemy": "e_tsukibito",
+            "count": 14,
+            "intervalBars": 0.95,
+            "lane": 1
+          }
+        ]
+      },
+      {
+        "section": "interlude",
+        "bars": 8,
+        "spawns": [],
+        "cardPick": true
+      },
+      {
+        "section": "chorus",
+        "bars": 16,
+        "spawns": [
+          {
+            "bar": 1,
+            "enemy": "e_splitter",
+            "count": 6,
+            "intervalBars": 2.2,
+            "lane": 0
+          },
+          {
+            "bar": 1,
+            "enemy": "e_splitter",
+            "count": 6,
+            "intervalBars": 2.2,
+            "lane": 2
+          },
+          {
+            "bar": 1,
+            "enemy": "e_kuramochi",
+            "count": 6,
+            "intervalBars": 2.2,
+            "lane": 1
+          },
+          {
+            "bar": 0.5,
+            "enemy": "e_takumi",
+            "count": 18,
+            "intervalBars": 0.75,
+            "lane": 0
+          },
+          {
+            "bar": 0.5,
+            "enemy": "e_takumi",
+            "count": 18,
+            "intervalBars": 0.75,
+            "lane": 1
+          },
+          {
+            "bar": 0.5,
+            "enemy": "e_takumi",
+            "count": 18,
+            "intervalBars": 0.75,
+            "lane": 2
+          }
+        ]
+      },
+      {
+        "section": "finale",
+        "bars": 18,
+        "spawns": [
+          {
+            "bar": 1,
+            "enemy": "e_kuramochi",
+            "count": 8,
+            "intervalBars": 1.9,
+            "lane": 1
+          },
+          {
+            "bar": 1,
+            "enemy": "e_armor",
+            "count": 6,
+            "intervalBars": 2.4,
+            "lane": 0
+          },
+          {
+            "bar": 1,
+            "enemy": "e_shield",
+            "count": 6,
+            "intervalBars": 2.4,
+            "lane": 2
+          },
+          {
+            "bar": 0.5,
+            "enemy": "e_takumi",
+            "count": 22,
+            "intervalBars": 0.7,
+            "lane": 0
+          },
+          {
+            "bar": 0.5,
+            "enemy": "e_takumi",
+            "count": 22,
+            "intervalBars": 0.7,
+            "lane": 1
+          },
+          {
+            "bar": 0.5,
+            "enemy": "e_takumi",
+            "count": 22,
+            "intervalBars": 0.7,
+            "lane": 2
+          }
+        ]
+      }
+    ]
+  },
+  "S13": {
+    "name": "火鼠の炉ステージ",
+    "grid": {
+      "w": 16,
+      "h": 9
+    },
+    "lanes": [
+      {
+        "waypoints": [
+          [
+            0,
+            1
+          ],
+          [
+            7,
+            1
+          ],
+          [
+            7,
+            4
+          ],
+          [
+            15,
+            4
+          ]
+        ]
+      },
+      {
+        "waypoints": [
+          [
+            0,
+            4
+          ],
+          [
+            15,
+            4
+          ]
+        ]
+      },
+      {
+        "waypoints": [
+          [
+            0,
+            7
+          ],
+          [
+            7,
+            7
+          ],
+          [
+            7,
+            4
+          ],
+          [
+            15,
+            4
+          ]
+        ]
+      }
+    ],
+    "placeable": [
+      [
+        2,
+        2
+      ],
+      [
+        4,
+        2
+      ],
+      [
+        9,
+        2
+      ],
+      [
+        11,
+        2
+      ],
+      [
+        13,
+        2
+      ],
+      [
+        2,
+        6
+      ],
+      [
+        4,
+        6
+      ],
+      [
+        9,
+        6
+      ],
+      [
+        11,
+        6
+      ],
+      [
+        13,
+        6
+      ],
+      [
+        5,
+        3
+      ],
+      [
+        5,
+        5
+      ]
+    ],
+    "cellTypes": {
+      "9,2": "runway",
+      "13,2": "runway",
+      "9,6": "runway",
+      "13,6": "runway",
+      "11,2": "monitor",
+      "11,6": "monitor",
+      "5,3": "monitor",
+      "5,5": "monitor",
+      "2,2": "audience",
+      "2,6": "audience"
+    },
+    "song": "hinezumi_overdrive",
+    "hpMul": 95,
+    "waves": [
+      {
+        "section": "intro",
+        "bars": 8,
+        "spawns": [],
+        "cardPick": true
+      },
+      {
+        "section": "verse",
+        "bars": 16,
+        "spawns": [
+          {
+            "bar": 1,
+            "enemy": "e_tsukibito",
+            "count": 12,
+            "intervalBars": 1.1,
+            "lane": 0
+          },
+          {
+            "bar": 1,
+            "enemy": "e_tsukibito",
+            "count": 12,
+            "intervalBars": 1.1,
+            "lane": 1
+          },
+          {
+            "bar": 1,
+            "enemy": "e_tsukibito",
+            "count": 12,
+            "intervalBars": 1.1,
+            "lane": 2
+          }
+        ]
+      },
+      {
+        "section": "verse",
+        "bars": 16,
+        "spawns": [
+          {
+            "bar": 1,
+            "enemy": "e_abe",
+            "count": 3,
+            "intervalBars": 4.0,
+            "lane": 1
+          },
+          {
+            "bar": 0.5,
+            "enemy": "e_runner",
+            "count": 14,
+            "intervalBars": 0.95,
+            "lane": 0
+          },
+          {
+            "bar": 0.5,
+            "enemy": "e_runner",
+            "count": 14,
+            "intervalBars": 0.95,
+            "lane": 2
+          }
+        ]
+      },
+      {
+        "section": "bridge",
+        "bars": 8,
+        "spawns": [
+          {
+            "bar": 0.5,
+            "enemy": "e_swarm",
+            "count": 16,
+            "intervalBars": 0.45,
+            "lane": 0
+          },
+          {
+            "bar": 0.5,
+            "enemy": "e_swarm",
+            "count": 16,
+            "intervalBars": 0.45,
+            "lane": 1
+          },
+          {
+            "bar": 0.5,
+            "enemy": "e_swarm",
+            "count": 16,
+            "intervalBars": 0.45,
+            "lane": 2
+          }
+        ],
+        "cardPick": true
+      },
+      {
+        "section": "chorus",
+        "bars": 16,
+        "spawns": [
+          {
+            "bar": 1,
+            "enemy": "e_abe",
+            "count": 5,
+            "intervalBars": 2.6,
+            "lane": 0
+          },
+          {
+            "bar": 1,
+            "enemy": "e_abe",
+            "count": 5,
+            "intervalBars": 2.6,
+            "lane": 2
+          },
+          {
+            "bar": 0.5,
+            "enemy": "e_walker",
+            "count": 16,
+            "intervalBars": 0.85,
+            "lane": 0
+          },
+          {
+            "bar": 0.5,
+            "enemy": "e_walker",
+            "count": 16,
+            "intervalBars": 0.85,
+            "lane": 1
+          },
+          {
+            "bar": 0.5,
+            "enemy": "e_walker",
+            "count": 16,
+            "intervalBars": 0.85,
+            "lane": 2
+          }
+        ]
+      },
+      {
+        "section": "verse",
+        "bars": 16,
+        "spawns": [
+          {
+            "bar": 1,
+            "enemy": "e_abe",
+            "count": 5,
+            "intervalBars": 2.6,
+            "lane": 1
+          },
+          {
+            "bar": 1,
+            "enemy": "e_healer",
+            "count": 4,
+            "intervalBars": 3.2,
+            "lane": 0
+          },
+          {
+            "bar": 1,
+            "enemy": "e_healer",
+            "count": 4,
+            "intervalBars": 3.2,
+            "lane": 2
+          },
+          {
+            "bar": 0.5,
+            "enemy": "e_tsukibito",
+            "count": 14,
+            "intervalBars": 0.95,
+            "lane": 0
+          },
+          {
+            "bar": 0.5,
+            "enemy": "e_tsukibito",
+            "count": 14,
+            "intervalBars": 0.95,
+            "lane": 1
+          },
+          {
+            "bar": 0.5,
+            "enemy": "e_tsukibito",
+            "count": 14,
+            "intervalBars": 0.95,
+            "lane": 2
+          }
+        ]
+      },
+      {
+        "section": "interlude",
+        "bars": 8,
+        "spawns": [],
+        "cardPick": true
+      },
+      {
+        "section": "chorus",
+        "bars": 16,
+        "spawns": [
+          {
+            "bar": 1,
+            "enemy": "e_abe",
+            "count": 6,
+            "intervalBars": 2.2,
+            "lane": 0
+          },
+          {
+            "bar": 1,
+            "enemy": "e_abe",
+            "count": 6,
+            "intervalBars": 2.2,
+            "lane": 2
+          },
+          {
+            "bar": 1,
+            "enemy": "e_drainer",
+            "count": 4,
+            "intervalBars": 3.2,
+            "lane": 1
+          },
+          {
+            "bar": 0.5,
+            "enemy": "e_runner",
+            "count": 16,
+            "intervalBars": 0.85,
+            "lane": 0
+          },
+          {
+            "bar": 0.5,
+            "enemy": "e_runner",
+            "count": 16,
+            "intervalBars": 0.85,
+            "lane": 1
+          },
+          {
+            "bar": 0.5,
+            "enemy": "e_runner",
+            "count": 16,
+            "intervalBars": 0.85,
+            "lane": 2
+          }
+        ]
+      },
+      {
+        "section": "finale",
+        "bars": 18,
+        "spawns": [
+          {
+            "bar": 1,
+            "enemy": "e_abe",
+            "count": 8,
+            "intervalBars": 1.9,
+            "lane": 1
+          },
+          {
+            "bar": 1,
+            "enemy": "e_abe",
+            "count": 6,
+            "intervalBars": 2.4,
+            "lane": 0
+          },
+          {
+            "bar": 1,
+            "enemy": "e_abe",
+            "count": 6,
+            "intervalBars": 2.4,
+            "lane": 2
+          },
+          {
+            "bar": 0.5,
+            "enemy": "e_swarm",
+            "count": 22,
+            "intervalBars": 0.7,
+            "lane": 0
+          },
+          {
+            "bar": 0.5,
+            "enemy": "e_swarm",
+            "count": 22,
+            "intervalBars": 0.7,
+            "lane": 1
+          },
+          {
+            "bar": 0.5,
+            "enemy": "e_swarm",
+            "count": 22,
+            "intervalBars": 0.7,
+            "lane": 2
+          }
+        ]
+      }
+    ]
+  },
+  "S14": {
+    "name": "嵐の海上ステージ",
+    "grid": {
+      "w": 16,
+      "h": 9
+    },
+    "lanes": [
+      {
+        "waypoints": [
+          [
+            0,
+            2
+          ],
+          [
+            15,
+            2
+          ]
+        ]
+      },
+      {
+        "waypoints": [
+          [
+            0,
+            4
+          ],
+          [
+            15,
+            4
+          ]
+        ]
+      },
+      {
+        "waypoints": [
+          [
+            0,
+            6
+          ],
+          [
+            15,
+            6
+          ]
+        ]
+      }
+    ],
+    "placeable": [
+      [
+        2,
+        3
+      ],
+      [
+        5,
+        3
+      ],
+      [
+        8,
+        3
+      ],
+      [
+        11,
+        3
+      ],
+      [
+        13,
+        3
+      ],
+      [
+        2,
+        5
+      ],
+      [
+        5,
+        5
+      ],
+      [
+        8,
+        5
+      ],
+      [
+        11,
+        5
+      ],
+      [
+        13,
+        5
+      ],
+      [
+        4,
+        0
+      ],
+      [
+        10,
+        0
+      ],
+      [
+        4,
+        8
+      ],
+      [
+        10,
+        8
+      ]
+    ],
+    "cellTypes": {
+      "8,3": "runway",
+      "11,3": "runway",
+      "8,5": "runway",
+      "11,5": "runway",
+      "10,8": "runway",
+      "5,3": "monitor",
+      "5,5": "monitor",
+      "13,3": "monitor",
+      "13,5": "monitor",
+      "4,0": "audience",
+      "10,0": "audience",
+      "4,8": "audience"
+    },
+    "song": "tsuki_capital",
+    "hpMul": 55,
+    "modifiers": {
+      "rangeMul": 0.85,
+      "note": "嵐で視界が利かない。全メンバーの射程 -15%"
+    },
+    "waves": [
+      {
+        "section": "intro",
+        "bars": 8,
+        "spawns": [],
+        "cardPick": true
+      },
+      {
+        "section": "verse",
+        "bars": 16,
+        "spawns": [
+          {
+            "bar": 1,
+            "enemy": "e_flyer",
+            "count": 10,
+            "intervalBars": 1.4,
+            "lane": 0
+          },
+          {
+            "bar": 1,
+            "enemy": "e_flyer",
+            "count": 10,
+            "intervalBars": 1.4,
+            "lane": 1
+          },
+          {
+            "bar": 1,
+            "enemy": "e_flyer",
+            "count": 10,
+            "intervalBars": 1.4,
+            "lane": 2
+          }
+        ]
+      },
+      {
+        "section": "verse",
+        "bars": 16,
+        "spawns": [
+          {
+            "bar": 1,
+            "enemy": "e_otomo",
+            "count": 5,
+            "intervalBars": 2.6,
+            "lane": 0
+          },
+          {
+            "bar": 1,
+            "enemy": "e_otomo",
+            "count": 5,
+            "intervalBars": 2.6,
+            "lane": 2
+          },
+          {
+            "bar": 0.5,
+            "enemy": "e_tsukibito",
+            "count": 14,
+            "intervalBars": 0.95,
+            "lane": 1
+          }
+        ]
+      },
+      {
+        "section": "bridge",
+        "bars": 8,
+        "spawns": [
+          {
+            "bar": 0.5,
+            "enemy": "e_otomo",
+            "count": 8,
+            "intervalBars": 0.8,
+            "lane": 0
+          },
+          {
+            "bar": 0.5,
+            "enemy": "e_otomo",
+            "count": 8,
+            "intervalBars": 0.8,
+            "lane": 1
+          },
+          {
+            "bar": 0.5,
+            "enemy": "e_otomo",
+            "count": 8,
+            "intervalBars": 0.8,
+            "lane": 2
+          }
+        ],
+        "cardPick": true
+      },
+      {
+        "section": "chorus",
+        "bars": 16,
+        "spawns": [
+          {
+            "bar": 1,
+            "enemy": "e_otomo",
+            "count": 7,
+            "intervalBars": 1.9,
+            "lane": 1
+          },
+          {
+            "bar": 1,
+            "enemy": "e_flyer",
+            "count": 9,
+            "intervalBars": 1.5,
+            "lane": 0
+          },
+          {
+            "bar": 1,
+            "enemy": "e_flyer",
+            "count": 9,
+            "intervalBars": 1.5,
+            "lane": 2
+          },
+          {
+            "bar": 0.5,
+            "enemy": "e_walker",
+            "count": 14,
+            "intervalBars": 0.95,
+            "lane": 0
+          },
+          {
+            "bar": 0.5,
+            "enemy": "e_walker",
+            "count": 14,
+            "intervalBars": 0.95,
+            "lane": 1
+          },
+          {
+            "bar": 0.5,
+            "enemy": "e_walker",
+            "count": 14,
+            "intervalBars": 0.95,
+            "lane": 2
+          }
+        ]
+      },
+      {
+        "section": "verse",
+        "bars": 16,
+        "spawns": [
+          {
+            "bar": 1,
+            "enemy": "e_armor",
+            "count": 6,
+            "intervalBars": 2.2,
+            "lane": 0
+          },
+          {
+            "bar": 1,
+            "enemy": "e_armor",
+            "count": 6,
+            "intervalBars": 2.2,
+            "lane": 2
+          },
+          {
+            "bar": 1,
+            "enemy": "e_otomo",
+            "count": 6,
+            "intervalBars": 2.2,
+            "lane": 1
+          },
+          {
+            "bar": 0.5,
+            "enemy": "e_tsukibito",
+            "count": 14,
+            "intervalBars": 0.95,
+            "lane": 0
+          },
+          {
+            "bar": 0.5,
+            "enemy": "e_tsukibito",
+            "count": 14,
+            "intervalBars": 0.95,
+            "lane": 1
+          },
+          {
+            "bar": 0.5,
+            "enemy": "e_tsukibito",
+            "count": 14,
+            "intervalBars": 0.95,
+            "lane": 2
+          }
+        ]
+      },
+      {
+        "section": "interlude",
+        "bars": 8,
+        "spawns": [],
+        "cardPick": true
+      },
+      {
+        "section": "chorus",
+        "bars": 16,
+        "spawns": [
+          {
+            "bar": 1,
+            "enemy": "e_otomo",
+            "count": 8,
+            "intervalBars": 1.7,
+            "lane": 0
+          },
+          {
+            "bar": 1,
+            "enemy": "e_otomo",
+            "count": 8,
+            "intervalBars": 1.7,
+            "lane": 2
+          },
+          {
+            "bar": 1,
+            "enemy": "e_healer",
+            "count": 4,
+            "intervalBars": 3.2,
+            "lane": 1
+          },
+          {
+            "bar": 0.5,
+            "enemy": "e_swarm",
+            "count": 18,
+            "intervalBars": 0.75,
+            "lane": 0
+          },
+          {
+            "bar": 0.5,
+            "enemy": "e_swarm",
+            "count": 18,
+            "intervalBars": 0.75,
+            "lane": 1
+          },
+          {
+            "bar": 0.5,
+            "enemy": "e_swarm",
+            "count": 18,
+            "intervalBars": 0.75,
+            "lane": 2
+          }
+        ]
+      },
+      {
+        "section": "finale",
+        "bars": 18,
+        "spawns": [
+          {
+            "bar": 1,
+            "enemy": "e_otomo",
+            "count": 10,
+            "intervalBars": 1.6,
+            "lane": 1
+          },
+          {
+            "bar": 1,
+            "enemy": "e_flyer",
+            "count": 10,
+            "intervalBars": 1.6,
+            "lane": 0
+          },
+          {
+            "bar": 1,
+            "enemy": "e_flyer",
+            "count": 10,
+            "intervalBars": 1.6,
+            "lane": 2
+          },
+          {
+            "bar": 0.5,
+            "enemy": "e_walker",
+            "count": 20,
+            "intervalBars": 0.75,
+            "lane": 0
+          },
+          {
+            "bar": 0.5,
+            "enemy": "e_walker",
+            "count": 20,
+            "intervalBars": 0.75,
+            "lane": 1
+          },
+          {
+            "bar": 0.5,
+            "enemy": "e_walker",
+            "count": 20,
+            "intervalBars": 0.75,
+            "lane": 2
+          }
+        ]
+      }
+    ]
+  },
+  "S15": {
+    "name": "燕の高楼ステージ",
+    "grid": {
+      "w": 16,
+      "h": 9
+    },
+    "lanes": [
+      {
+        "waypoints": [
+          [
+            0,
+            1
+          ],
+          [
+            12,
+            1
+          ],
+          [
+            12,
+            4
+          ],
+          [
+            3,
+            4
+          ],
+          [
+            3,
+            7
+          ],
+          [
+            15,
+            7
+          ]
+        ]
+      }
+    ],
+    "placeable": [
+      [
+        2,
+        2
+      ],
+      [
+        5,
+        2
+      ],
+      [
+        8,
+        2
+      ],
+      [
+        14,
+        2
+      ],
+      [
+        14,
+        4
+      ],
+      [
+        6,
+        5
+      ],
+      [
+        9,
+        5
+      ],
+      [
+        12,
+        5
+      ],
+      [
+        1,
+        5
+      ],
+      [
+        6,
+        8
+      ],
+      [
+        9,
+        8
+      ],
+      [
+        12,
+        8
+      ]
+    ],
+    "cellTypes": {
+      "12,5": "monitor",
+      "12,8": "monitor",
+      "2,2": "audience",
+      "1,5": "audience"
+    },
+    "song": "gonan_five",
+    "hpMul": 80,
+    "waves": [
+      {
+        "section": "intro",
+        "bars": 8,
+        "spawns": [],
+        "cardPick": true
+      },
+      {
+        "section": "verse",
+        "bars": 16,
+        "spawns": [
+          {
+            "bar": 1,
+            "enemy": "e_tsukibito",
+            "count": 16,
+            "intervalBars": 0.9,
+            "lane": 0
+          }
+        ]
+      },
+      {
+        "section": "verse",
+        "bars": 16,
+        "spawns": [
+          {
+            "bar": 1,
+            "enemy": "e_isonokami",
+            "count": 6,
+            "intervalBars": 2.2,
+            "lane": 0
+          },
+          {
+            "bar": 0.5,
+            "enemy": "e_walker",
+            "count": 16,
+            "intervalBars": 0.85,
+            "lane": 0
+          }
+        ]
+      },
+      {
+        "section": "bridge",
+        "bars": 8,
+        "spawns": [
+          {
+            "bar": 0.5,
+            "enemy": "e_runner",
+            "count": 16,
+            "intervalBars": 0.4,
+            "lane": 0
+          }
+        ],
+        "cardPick": true
+      },
+      {
+        "section": "chorus",
+        "bars": 16,
+        "spawns": [
+          {
+            "bar": 1,
+            "enemy": "e_isonokami",
+            "count": 8,
+            "intervalBars": 1.7,
+            "lane": 0
+          },
+          {
+            "bar": 0.5,
+            "enemy": "e_swarm",
+            "count": 20,
+            "intervalBars": 0.7,
+            "lane": 0
+          }
+        ]
+      },
+      {
+        "section": "verse",
+        "bars": 16,
+        "spawns": [
+          {
+            "bar": 1,
+            "enemy": "e_isonokami",
+            "count": 7,
+            "intervalBars": 1.9,
+            "lane": 0
+          },
+          {
+            "bar": 1,
+            "enemy": "e_healer",
+            "count": 5,
+            "intervalBars": 2.6,
+            "lane": 0
+          },
+          {
+            "bar": 0.5,
+            "enemy": "e_tsukibito",
+            "count": 16,
+            "intervalBars": 0.85,
+            "lane": 0
+          }
+        ]
+      },
+      {
+        "section": "interlude",
+        "bars": 8,
+        "spawns": [],
+        "cardPick": true
+      },
+      {
+        "section": "chorus",
+        "bars": 16,
+        "spawns": [
+          {
+            "bar": 1,
+            "enemy": "e_isonokami",
+            "count": 9,
+            "intervalBars": 1.6,
+            "lane": 0
+          },
+          {
+            "bar": 1,
+            "enemy": "e_shield",
+            "count": 6,
+            "intervalBars": 2.2,
+            "lane": 0
+          },
+          {
+            "bar": 0.5,
+            "enemy": "e_runner",
+            "count": 18,
+            "intervalBars": 0.8,
+            "lane": 0
+          }
+        ]
+      },
+      {
+        "section": "finale",
+        "bars": 18,
+        "spawns": [
+          {
+            "bar": 1,
+            "enemy": "e_isonokami",
+            "count": 12,
+            "intervalBars": 1.4,
+            "lane": 0
+          },
+          {
+            "bar": 1,
+            "enemy": "e_drainer",
+            "count": 6,
+            "intervalBars": 2.4,
+            "lane": 0
+          },
+          {
+            "bar": 0.5,
+            "enemy": "e_walker",
+            "count": 24,
+            "intervalBars": 0.65,
+            "lane": 0
+          }
+        ]
+      }
+    ]
+  },
+  "S16": {
+    "name": "帝の御所ステージ",
+    "grid": {
+      "w": 16,
+      "h": 9
+    },
+    "lanes": [
+      {
+        "waypoints": [
+          [
+            0,
+            1
+          ],
+          [
+            7,
+            1
+          ],
+          [
+            7,
+            4
+          ],
+          [
+            15,
+            4
+          ]
+        ]
+      },
+      {
+        "waypoints": [
+          [
+            0,
+            4
+          ],
+          [
+            15,
+            4
+          ]
+        ]
+      },
+      {
+        "waypoints": [
+          [
+            0,
+            7
+          ],
+          [
+            7,
+            7
+          ],
+          [
+            7,
+            4
+          ],
+          [
+            15,
+            4
+          ]
+        ]
+      }
+    ],
+    "placeable": [
+      [
+        2,
+        2
+      ],
+      [
+        4,
+        2
+      ],
+      [
+        9,
+        2
+      ],
+      [
+        11,
+        2
+      ],
+      [
+        13,
+        2
+      ],
+      [
+        2,
+        6
+      ],
+      [
+        4,
+        6
+      ],
+      [
+        9,
+        6
+      ],
+      [
+        11,
+        6
+      ],
+      [
+        13,
+        6
+      ],
+      [
+        5,
+        3
+      ],
+      [
+        5,
+        5
+      ]
+    ],
+    "cellTypes": {
+      "9,2": "runway",
+      "13,2": "runway",
+      "9,6": "runway",
+      "13,6": "runway",
+      "11,2": "monitor",
+      "11,6": "monitor",
+      "5,3": "monitor",
+      "5,5": "monitor",
+      "2,2": "audience",
+      "2,6": "audience"
+    },
+    "song": "tsuki_capital",
+    "hpMul": 100,
+    "waves": [
+      {
+        "section": "intro",
+        "bars": 8,
+        "spawns": [],
+        "cardPick": true
+      },
+      {
+        "section": "verse",
+        "bars": 16,
+        "spawns": [
+          {
+            "bar": 1,
+            "enemy": "e_nakatomi",
+            "count": 8,
+            "intervalBars": 1.7,
+            "lane": 0
+          },
+          {
+            "bar": 1,
+            "enemy": "e_nakatomi",
+            "count": 8,
+            "intervalBars": 1.7,
+            "lane": 1
+          },
+          {
+            "bar": 1,
+            "enemy": "e_nakatomi",
+            "count": 8,
+            "intervalBars": 1.7,
+            "lane": 2
+          }
+        ]
+      },
+      {
+        "section": "verse",
+        "bars": 16,
+        "spawns": [
+          {
+            "bar": 1,
+            "enemy": "e_nakatomi",
+            "count": 8,
+            "intervalBars": 1.7,
+            "lane": 1
+          },
+          {
+            "bar": 1,
+            "enemy": "e_shield",
+            "count": 6,
+            "intervalBars": 2.2,
+            "lane": 0
+          },
+          {
+            "bar": 1,
+            "enemy": "e_shield",
+            "count": 6,
+            "intervalBars": 2.2,
+            "lane": 2
+          }
+        ]
+      },
+      {
+        "section": "bridge",
+        "bars": 8,
+        "spawns": [
+          {
+            "bar": 0.5,
+            "enemy": "e_tsukibito",
+            "count": 14,
+            "intervalBars": 0.5,
+            "lane": 0
+          },
+          {
+            "bar": 0.5,
+            "enemy": "e_tsukibito",
+            "count": 14,
+            "intervalBars": 0.5,
+            "lane": 1
+          },
+          {
+            "bar": 0.5,
+            "enemy": "e_tsukibito",
+            "count": 14,
+            "intervalBars": 0.5,
+            "lane": 2
+          }
+        ],
+        "cardPick": true
+      },
+      {
+        "section": "chorus",
+        "bars": 16,
+        "spawns": [
+          {
+            "bar": 1,
+            "enemy": "e_nakatomi",
+            "count": 9,
+            "intervalBars": 1.6,
+            "lane": 0
+          },
+          {
+            "bar": 1,
+            "enemy": "e_nakatomi",
+            "count": 9,
+            "intervalBars": 1.6,
+            "lane": 2
+          },
+          {
+            "bar": 1,
+            "enemy": "e_healer",
+            "count": 5,
+            "intervalBars": 2.6,
+            "lane": 1
+          },
+          {
+            "bar": 0.5,
+            "enemy": "e_walker",
+            "count": 16,
+            "intervalBars": 0.85,
+            "lane": 0
+          },
+          {
+            "bar": 0.5,
+            "enemy": "e_walker",
+            "count": 16,
+            "intervalBars": 0.85,
+            "lane": 1
+          },
+          {
+            "bar": 0.5,
+            "enemy": "e_walker",
+            "count": 16,
+            "intervalBars": 0.85,
+            "lane": 2
+          }
+        ]
+      },
+      {
+        "section": "verse",
+        "bars": 16,
+        "spawns": [
+          {
+            "bar": 1,
+            "enemy": "e_abe",
+            "count": 5,
+            "intervalBars": 2.6,
+            "lane": 0
+          },
+          {
+            "bar": 1,
+            "enemy": "e_isonokami",
+            "count": 5,
+            "intervalBars": 2.6,
+            "lane": 2
+          },
+          {
+            "bar": 1,
+            "enemy": "e_nakatomi",
+            "count": 8,
+            "intervalBars": 1.7,
+            "lane": 1
+          }
+        ]
+      },
+      {
+        "section": "interlude",
+        "bars": 8,
+        "spawns": [],
+        "cardPick": true
+      },
+      {
+        "section": "chorus",
+        "bars": 16,
+        "spawns": [
+          {
+            "bar": 1,
+            "enemy": "e_nakatomi",
+            "count": 10,
+            "intervalBars": 1.5,
+            "lane": 1
+          },
+          {
+            "bar": 1,
+            "enemy": "e_flyer",
+            "count": 10,
+            "intervalBars": 1.4,
+            "lane": 0
+          },
+          {
+            "bar": 1,
+            "enemy": "e_flyer",
+            "count": 10,
+            "intervalBars": 1.4,
+            "lane": 2
+          },
+          {
+            "bar": 0.5,
+            "enemy": "e_tsukibito",
+            "count": 16,
+            "intervalBars": 0.85,
+            "lane": 0
+          },
+          {
+            "bar": 0.5,
+            "enemy": "e_tsukibito",
+            "count": 16,
+            "intervalBars": 0.85,
+            "lane": 1
+          },
+          {
+            "bar": 0.5,
+            "enemy": "e_tsukibito",
+            "count": 16,
+            "intervalBars": 0.85,
+            "lane": 2
+          }
+        ]
+      },
+      {
+        "section": "finale",
+        "bars": 18,
+        "spawns": [
+          {
+            "bar": 1,
+            "enemy": "e_nakatomi",
+            "count": 12,
+            "intervalBars": 1.4,
+            "lane": 1
+          },
+          {
+            "bar": 1,
+            "enemy": "e_drainer",
+            "count": 6,
+            "intervalBars": 2.4,
+            "lane": 0
+          },
+          {
+            "bar": 1,
+            "enemy": "e_drainer",
+            "count": 6,
+            "intervalBars": 2.4,
+            "lane": 2
+          },
+          {
+            "bar": 0.5,
+            "enemy": "e_walker",
+            "count": 22,
+            "intervalBars": 0.7,
+            "lane": 0
+          },
+          {
+            "bar": 0.5,
+            "enemy": "e_walker",
+            "count": 22,
+            "intervalBars": 0.7,
+            "lane": 1
+          },
+          {
+            "bar": 0.5,
+            "enemy": "e_walker",
+            "count": 22,
+            "intervalBars": 0.7,
+            "lane": 2
+          }
+        ]
+      }
+    ]
+  },
+  "S17": {
+    "name": "月からの文・夜の館ステージ",
+    "grid": {
+      "w": 16,
+      "h": 9
+    },
+    "lanes": [
+      {
+        "waypoints": [
+          [
+            0,
+            3
+          ],
+          [
+            15,
+            3
+          ]
+        ]
+      },
+      {
+        "waypoints": [
+          [
+            0,
+            5
+          ],
+          [
+            15,
+            5
+          ]
+        ]
+      }
+    ],
+    "placeable": [
+      [
+        3,
+        4
+      ],
+      [
+        6,
+        4
+      ],
+      [
+        9,
+        4
+      ],
+      [
+        12,
+        4
+      ],
+      [
+        3,
+        1
+      ],
+      [
+        7,
+        1
+      ],
+      [
+        11,
+        1
+      ],
+      [
+        14,
+        1
+      ],
+      [
+        3,
+        7
+      ],
+      [
+        7,
+        7
+      ],
+      [
+        11,
+        7
+      ],
+      [
+        14,
+        7
+      ]
+    ],
+    "cellTypes": {
+      "6,4": "runway",
+      "9,4": "runway",
+      "7,1": "runway",
+      "7,7": "runway",
+      "12,4": "monitor",
+      "11,1": "monitor",
+      "11,7": "monitor",
+      "3,1": "audience",
+      "3,7": "audience",
+      "14,1": "audience",
+      "14,7": "audience"
+    },
+    "song": "gekko_silence",
+    "hpMul": 120,
+    "modifiers": {
+      "cheerGainMul": 0.8,
+      "note": "まだ客が入っていない。自然に溜まる声援 -20%（撃破ぶんは変わらない）"
+    },
+    "waves": [
+      {
+        "section": "intro",
+        "bars": 8,
+        "spawns": [],
+        "cardPick": true
+      },
+      {
+        "section": "verse",
+        "bars": 16,
+        "spawns": [
+          {
+            "bar": 1,
+            "enemy": "e_tsukibito",
+            "count": 14,
+            "intervalBars": 1.0,
+            "lane": 0
+          },
+          {
+            "bar": 1,
+            "enemy": "e_tsukibito",
+            "count": 14,
+            "intervalBars": 1.0,
+            "lane": 1
+          }
+        ]
+      },
+      {
+        "section": "verse",
+        "bars": 16,
+        "spawns": [
+          {
+            "bar": 1,
+            "enemy": "e_nakatomi",
+            "count": 8,
+            "intervalBars": 1.7,
+            "lane": 0
+          },
+          {
+            "bar": 0.5,
+            "enemy": "e_walker",
+            "count": 16,
+            "intervalBars": 0.85,
+            "lane": 1
+          }
+        ]
+      },
+      {
+        "section": "bridge",
+        "bars": 8,
+        "spawns": [
+          {
+            "bar": 0.5,
+            "enemy": "e_runner",
+            "count": 14,
+            "intervalBars": 0.5,
+            "lane": 0
+          },
+          {
+            "bar": 0.5,
+            "enemy": "e_runner",
+            "count": 14,
+            "intervalBars": 0.5,
+            "lane": 1
+          }
+        ],
+        "cardPick": true
+      },
+      {
+        "section": "chorus",
+        "bars": 16,
+        "spawns": [
+          {
+            "bar": 1,
+            "enemy": "e_kusuri",
+            "count": 5,
+            "intervalBars": 2.6,
+            "lane": 0
+          },
+          {
+            "bar": 1,
+            "enemy": "e_kusuri",
+            "count": 5,
+            "intervalBars": 2.6,
+            "lane": 1
+          },
+          {
+            "bar": 0.5,
+            "enemy": "e_tsukibito",
+            "count": 16,
+            "intervalBars": 0.85,
+            "lane": 0
+          },
+          {
+            "bar": 0.5,
+            "enemy": "e_tsukibito",
+            "count": 16,
+            "intervalBars": 0.85,
+            "lane": 1
+          }
+        ]
+      },
+      {
+        "section": "verse",
+        "bars": 16,
+        "spawns": [
+          {
+            "bar": 1,
+            "enemy": "e_kusuri",
+            "count": 6,
+            "intervalBars": 2.2,
+            "lane": 0
+          },
+          {
+            "bar": 1,
+            "enemy": "e_healer",
+            "count": 5,
+            "intervalBars": 2.6,
+            "lane": 1
+          },
+          {
+            "bar": 0.5,
+            "enemy": "e_walker",
+            "count": 16,
+            "intervalBars": 0.85,
+            "lane": 0
+          },
+          {
+            "bar": 0.5,
+            "enemy": "e_walker",
+            "count": 16,
+            "intervalBars": 0.85,
+            "lane": 1
+          }
+        ]
+      },
+      {
+        "section": "interlude",
+        "bars": 8,
+        "spawns": [],
+        "cardPick": true
+      },
+      {
+        "section": "chorus",
+        "bars": 16,
+        "spawns": [
+          {
+            "bar": 1,
+            "enemy": "e_kusuri",
+            "count": 7,
+            "intervalBars": 1.9,
+            "lane": 1
+          },
+          {
+            "bar": 1,
+            "enemy": "e_armor",
+            "count": 7,
+            "intervalBars": 1.9,
+            "lane": 0
+          },
+          {
+            "bar": 0.5,
+            "enemy": "e_tsukibito",
+            "count": 18,
+            "intervalBars": 0.8,
+            "lane": 0
+          },
+          {
+            "bar": 0.5,
+            "enemy": "e_tsukibito",
+            "count": 18,
+            "intervalBars": 0.8,
+            "lane": 1
+          }
+        ]
+      },
+      {
+        "section": "finale",
+        "bars": 18,
+        "spawns": [
+          {
+            "bar": 1,
+            "enemy": "e_kusuri",
+            "count": 8,
+            "intervalBars": 1.9,
+            "lane": 0
+          },
+          {
+            "bar": 1,
+            "enemy": "e_kusuri",
+            "count": 8,
+            "intervalBars": 1.9,
+            "lane": 1
+          },
+          {
+            "bar": 1,
+            "enemy": "e_drainer",
+            "count": 6,
+            "intervalBars": 2.4,
+            "lane": 0
+          },
+          {
+            "bar": 0.5,
+            "enemy": "e_swarm",
+            "count": 24,
+            "intervalBars": 0.65,
+            "lane": 0
+          },
+          {
+            "bar": 0.5,
+            "enemy": "e_swarm",
+            "count": 24,
+            "intervalBars": 0.65,
+            "lane": 1
+          }
+        ]
+      }
+    ]
+  },
+  "S18": {
+    "name": "天人降臨・雲上ステージ",
+    "grid": {
+      "w": 16,
+      "h": 9
+    },
+    "lanes": [
+      {
+        "waypoints": [
+          [
+            0,
+            1
+          ],
+          [
+            15,
+            1
+          ]
+        ]
+      },
+      {
+        "waypoints": [
+          [
+            0,
+            3
+          ],
+          [
+            15,
+            3
+          ]
+        ]
+      },
+      {
+        "waypoints": [
+          [
+            0,
+            5
+          ],
+          [
+            15,
+            5
+          ]
+        ]
+      },
+      {
+        "waypoints": [
+          [
+            0,
+            7
+          ],
+          [
+            15,
+            7
+          ]
+        ]
+      }
+    ],
+    "placeable": [
+      [
+        2,
+        0
+      ],
+      [
+        6,
+        0
+      ],
+      [
+        10,
+        0
+      ],
+      [
+        13,
+        0
+      ],
+      [
+        2,
+        2
+      ],
+      [
+        6,
+        2
+      ],
+      [
+        10,
+        2
+      ],
+      [
+        13,
+        2
+      ],
+      [
+        2,
+        4
+      ],
+      [
+        6,
+        4
+      ],
+      [
+        10,
+        4
+      ],
+      [
+        13,
+        4
+      ],
+      [
+        2,
+        6
+      ],
+      [
+        6,
+        6
+      ],
+      [
+        10,
+        6
+      ],
+      [
+        13,
+        6
+      ],
+      [
+        2,
+        8
+      ],
+      [
+        6,
+        8
+      ],
+      [
+        10,
+        8
+      ],
+      [
+        13,
+        8
+      ]
+    ],
+    "cellTypes": {
+      "13,2": "runway",
+      "13,6": "runway",
+      "6,2": "runway",
+      "10,2": "runway",
+      "6,4": "runway",
+      "10,4": "runway",
+      "10,8": "runway",
+      "13,0": "monitor",
+      "13,4": "monitor",
+      "2,2": "audience",
+      "2,6": "audience",
+      "10,0": "audience",
+      "2,0": "audience",
+      "2,8": "audience",
+      "2,4": "audience"
+    },
+    "song": "tennin_waltz",
+    "hpMul": 80,
+    "modifiers": {
+      "enemySpeedMul": 1.15,
+      "note": "月の重力。敵の移動が 15% 速い"
+    },
+    "waves": [
+      {
+        "section": "intro",
+        "bars": 8,
+        "spawns": [],
+        "cardPick": true
+      },
+      {
+        "section": "verse",
+        "bars": 16,
+        "spawns": [
+          {
+            "bar": 1,
+            "enemy": "e_tsukibito",
+            "count": 12,
+            "intervalBars": 1.1,
+            "lane": 0
+          },
+          {
+            "bar": 1,
+            "enemy": "e_tsukibito",
+            "count": 12,
+            "intervalBars": 1.1,
+            "lane": 1
+          },
+          {
+            "bar": 1,
+            "enemy": "e_tsukibito",
+            "count": 12,
+            "intervalBars": 1.1,
+            "lane": 2
+          },
+          {
+            "bar": 1,
+            "enemy": "e_tsukibito",
+            "count": 12,
+            "intervalBars": 1.1,
+            "lane": 3
+          }
+        ]
+      },
+      {
+        "section": "verse",
+        "bars": 16,
+        "spawns": [
+          {
+            "bar": 1,
+            "enemy": "e_tennin",
+            "count": 6,
+            "intervalBars": 2.2,
+            "lane": 0
+          },
+          {
+            "bar": 1,
+            "enemy": "e_tennin",
+            "count": 6,
+            "intervalBars": 2.2,
+            "lane": 3
+          },
+          {
+            "bar": 0.5,
+            "enemy": "e_walker",
+            "count": 14,
+            "intervalBars": 0.95,
+            "lane": 1
+          },
+          {
+            "bar": 0.5,
+            "enemy": "e_walker",
+            "count": 14,
+            "intervalBars": 0.95,
+            "lane": 2
+          }
+        ]
+      },
+      {
+        "section": "bridge",
+        "bars": 8,
+        "spawns": [
+          {
+            "bar": 0.5,
+            "enemy": "e_flyer",
+            "count": 8,
+            "intervalBars": 0.8,
+            "lane": 0
+          },
+          {
+            "bar": 0.5,
+            "enemy": "e_flyer",
+            "count": 8,
+            "intervalBars": 0.8,
+            "lane": 1
+          },
+          {
+            "bar": 0.5,
+            "enemy": "e_flyer",
+            "count": 8,
+            "intervalBars": 0.8,
+            "lane": 2
+          },
+          {
+            "bar": 0.5,
+            "enemy": "e_flyer",
+            "count": 8,
+            "intervalBars": 0.8,
+            "lane": 3
+          }
+        ],
+        "cardPick": true
+      },
+      {
+        "section": "chorus",
+        "bars": 16,
+        "spawns": [
+          {
+            "bar": 1,
+            "enemy": "e_tennin",
+            "count": 7,
+            "intervalBars": 1.9,
+            "lane": 1
+          },
+          {
+            "bar": 1,
+            "enemy": "e_tennin",
+            "count": 7,
+            "intervalBars": 1.9,
+            "lane": 2
+          },
+          {
+            "bar": 0.5,
+            "enemy": "e_tsukibito",
+            "count": 14,
+            "intervalBars": 0.95,
+            "lane": 0
+          },
+          {
+            "bar": 0.5,
+            "enemy": "e_tsukibito",
+            "count": 14,
+            "intervalBars": 0.95,
+            "lane": 1
+          },
+          {
+            "bar": 0.5,
+            "enemy": "e_tsukibito",
+            "count": 14,
+            "intervalBars": 0.95,
+            "lane": 2
+          },
+          {
+            "bar": 0.5,
+            "enemy": "e_tsukibito",
+            "count": 14,
+            "intervalBars": 0.95,
+            "lane": 3
+          }
+        ]
+      },
+      {
+        "section": "verse",
+        "bars": 16,
+        "spawns": [
+          {
+            "bar": 1,
+            "enemy": "e_tennin",
+            "count": 6,
+            "intervalBars": 2.2,
+            "lane": 0
+          },
+          {
+            "bar": 1,
+            "enemy": "e_otomo",
+            "count": 7,
+            "intervalBars": 1.9,
+            "lane": 3
+          },
+          {
+            "bar": 1,
+            "enemy": "e_armor",
+            "count": 6,
+            "intervalBars": 2.2,
+            "lane": 1
+          },
+          {
+            "bar": 1,
+            "enemy": "e_shield",
+            "count": 6,
+            "intervalBars": 2.2,
+            "lane": 2
+          }
+        ]
+      },
+      {
+        "section": "interlude",
+        "bars": 8,
+        "spawns": [],
+        "cardPick": true
+      },
+      {
+        "section": "chorus",
+        "bars": 16,
+        "spawns": [
+          {
+            "bar": 1,
+            "enemy": "e_tennin",
+            "count": 6,
+            "intervalBars": 2.2,
+            "lane": 0
+          },
+          {
+            "bar": 1,
+            "enemy": "e_tennin",
+            "count": 6,
+            "intervalBars": 2.2,
+            "lane": 1
+          },
+          {
+            "bar": 1,
+            "enemy": "e_tennin",
+            "count": 6,
+            "intervalBars": 2.2,
+            "lane": 2
+          },
+          {
+            "bar": 1,
+            "enemy": "e_tennin",
+            "count": 6,
+            "intervalBars": 2.2,
+            "lane": 3
+          },
+          {
+            "bar": 0.5,
+            "enemy": "e_swarm",
+            "count": 16,
+            "intervalBars": 0.85,
+            "lane": 1
+          },
+          {
+            "bar": 0.5,
+            "enemy": "e_swarm",
+            "count": 16,
+            "intervalBars": 0.85,
+            "lane": 2
+          }
+        ]
+      },
+      {
+        "section": "finale",
+        "bars": 18,
+        "spawns": [
+          {
+            "bar": 1,
+            "enemy": "e_tennin",
+            "count": 7,
+            "intervalBars": 2.2,
+            "lane": 0
+          },
+          {
+            "bar": 1,
+            "enemy": "e_tennin",
+            "count": 7,
+            "intervalBars": 2.2,
+            "lane": 1
+          },
+          {
+            "bar": 1,
+            "enemy": "e_tennin",
+            "count": 7,
+            "intervalBars": 2.2,
+            "lane": 2
+          },
+          {
+            "bar": 1,
+            "enemy": "e_tennin",
+            "count": 7,
+            "intervalBars": 2.2,
+            "lane": 3
+          },
+          {
+            "bar": 0.5,
+            "enemy": "e_tsukibito",
+            "count": 20,
+            "intervalBars": 0.8,
+            "lane": 0
+          },
+          {
+            "bar": 0.5,
+            "enemy": "e_tsukibito",
+            "count": 20,
+            "intervalBars": 0.8,
+            "lane": 1
+          },
+          {
+            "bar": 0.5,
+            "enemy": "e_tsukibito",
+            "count": 20,
+            "intervalBars": 0.8,
+            "lane": 2
+          },
+          {
+            "bar": 0.5,
+            "enemy": "e_tsukibito",
+            "count": 20,
+            "intervalBars": 0.8,
+            "lane": 3
+          }
+        ]
+      }
+    ]
+  },
+  "S19": {
+    "name": "飛ぶ車のアリーナ",
+    "grid": {
+      "w": 16,
+      "h": 9
+    },
+    "lanes": [
+      {
+        "waypoints": [
+          [
+            0,
+            2
+          ],
+          [
+            15,
+            2
+          ]
+        ]
+      },
+      {
+        "waypoints": [
+          [
+            0,
+            4
+          ],
+          [
+            15,
+            4
+          ]
+        ]
+      },
+      {
+        "waypoints": [
+          [
+            0,
+            6
+          ],
+          [
+            15,
+            6
+          ]
+        ]
+      }
+    ],
+    "placeable": [
+      [
+        2,
+        3
+      ],
+      [
+        5,
+        3
+      ],
+      [
+        8,
+        3
+      ],
+      [
+        11,
+        3
+      ],
+      [
+        13,
+        3
+      ],
+      [
+        2,
+        5
+      ],
+      [
+        5,
+        5
+      ],
+      [
+        8,
+        5
+      ],
+      [
+        11,
+        5
+      ],
+      [
+        13,
+        5
+      ],
+      [
+        4,
+        0
+      ],
+      [
+        10,
+        0
+      ],
+      [
+        4,
+        8
+      ],
+      [
+        10,
+        8
+      ]
+    ],
+    "cellTypes": {
+      "8,3": "runway",
+      "11,3": "runway",
+      "8,5": "runway",
+      "11,5": "runway",
+      "10,8": "runway",
+      "5,3": "monitor",
+      "5,5": "monitor",
+      "13,3": "monitor",
+      "13,5": "monitor",
+      "4,0": "audience",
+      "10,0": "audience",
+      "4,8": "audience"
+    },
+    "song": "tennin_waltz",
+    "hpMul": 62,
+    "waves": [
+      {
+        "section": "intro",
+        "bars": 8,
+        "spawns": [],
+        "cardPick": true
+      },
+      {
+        "section": "verse",
+        "bars": 16,
+        "spawns": [
+          {
+            "bar": 1,
+            "enemy": "e_tsukibito",
+            "count": 14,
+            "intervalBars": 1.0,
+            "lane": 0
+          },
+          {
+            "bar": 1,
+            "enemy": "e_tsukibito",
+            "count": 14,
+            "intervalBars": 1.0,
+            "lane": 1
+          },
+          {
+            "bar": 1,
+            "enemy": "e_tsukibito",
+            "count": 14,
+            "intervalBars": 1.0,
+            "lane": 2
+          }
+        ]
+      },
+      {
+        "section": "verse",
+        "bars": 16,
+        "spawns": [
+          {
+            "bar": 1,
+            "enemy": "e_tobukuruma",
+            "count": 3,
+            "intervalBars": 4.0,
+            "lane": 1
+          },
+          {
+            "bar": 0.5,
+            "enemy": "e_walker",
+            "count": 16,
+            "intervalBars": 0.85,
+            "lane": 0
+          },
+          {
+            "bar": 0.5,
+            "enemy": "e_walker",
+            "count": 16,
+            "intervalBars": 0.85,
+            "lane": 2
+          }
+        ]
+      },
+      {
+        "section": "bridge",
+        "bars": 8,
+        "spawns": [
+          {
+            "bar": 0.5,
+            "enemy": "e_runner",
+            "count": 14,
+            "intervalBars": 0.5,
+            "lane": 0
+          },
+          {
+            "bar": 0.5,
+            "enemy": "e_runner",
+            "count": 14,
+            "intervalBars": 0.5,
+            "lane": 1
+          },
+          {
+            "bar": 0.5,
+            "enemy": "e_runner",
+            "count": 14,
+            "intervalBars": 0.5,
+            "lane": 2
+          }
+        ],
+        "cardPick": true
+      },
+      {
+        "section": "chorus",
+        "bars": 16,
+        "spawns": [
+          {
+            "bar": 1,
+            "enemy": "e_tobukuruma",
+            "count": 4,
+            "intervalBars": 3.2,
+            "lane": 0
+          },
+          {
+            "bar": 1,
+            "enemy": "e_tobukuruma",
+            "count": 4,
+            "intervalBars": 3.2,
+            "lane": 2
+          },
+          {
+            "bar": 1,
+            "enemy": "e_tennin",
+            "count": 6,
+            "intervalBars": 2.2,
+            "lane": 1
+          },
+          {
+            "bar": 0.5,
+            "enemy": "e_tsukibito",
+            "count": 16,
+            "intervalBars": 0.85,
+            "lane": 0
+          },
+          {
+            "bar": 0.5,
+            "enemy": "e_tsukibito",
+            "count": 16,
+            "intervalBars": 0.85,
+            "lane": 1
+          },
+          {
+            "bar": 0.5,
+            "enemy": "e_tsukibito",
+            "count": 16,
+            "intervalBars": 0.85,
+            "lane": 2
+          }
+        ]
+      },
+      {
+        "section": "verse",
+        "bars": 16,
+        "spawns": [
+          {
+            "bar": 1,
+            "enemy": "e_tobukuruma",
+            "count": 5,
+            "intervalBars": 2.6,
+            "lane": 1
+          },
+          {
+            "bar": 1,
+            "enemy": "e_kusuri",
+            "count": 5,
+            "intervalBars": 2.6,
+            "lane": 0
+          },
+          {
+            "bar": 1,
+            "enemy": "e_kusuri",
+            "count": 5,
+            "intervalBars": 2.6,
+            "lane": 2
+          }
+        ]
+      },
+      {
+        "section": "interlude",
+        "bars": 8,
+        "spawns": [],
+        "cardPick": true
+      },
+      {
+        "section": "chorus",
+        "bars": 16,
+        "spawns": [
+          {
+            "bar": 1,
+            "enemy": "e_tobukuruma",
+            "count": 4,
+            "intervalBars": 3.2,
+            "lane": 0
+          },
+          {
+            "bar": 1,
+            "enemy": "e_tobukuruma",
+            "count": 4,
+            "intervalBars": 3.2,
+            "lane": 1
+          },
+          {
+            "bar": 1,
+            "enemy": "e_tobukuruma",
+            "count": 4,
+            "intervalBars": 3.2,
+            "lane": 2
+          },
+          {
+            "bar": 0.5,
+            "enemy": "e_swarm",
+            "count": 18,
+            "intervalBars": 0.75,
+            "lane": 0
+          },
+          {
+            "bar": 0.5,
+            "enemy": "e_swarm",
+            "count": 18,
+            "intervalBars": 0.75,
+            "lane": 1
+          },
+          {
+            "bar": 0.5,
+            "enemy": "e_swarm",
+            "count": 18,
+            "intervalBars": 0.75,
+            "lane": 2
+          }
+        ]
+      },
+      {
+        "section": "finale",
+        "bars": 18,
+        "spawns": [
+          {
+            "bar": 1,
+            "enemy": "e_tobukuruma",
+            "count": 5,
+            "intervalBars": 3.0,
+            "lane": 0
+          },
+          {
+            "bar": 1,
+            "enemy": "e_tobukuruma",
+            "count": 5,
+            "intervalBars": 3.0,
+            "lane": 1
+          },
+          {
+            "bar": 1,
+            "enemy": "e_tobukuruma",
+            "count": 5,
+            "intervalBars": 3.0,
+            "lane": 2
+          },
+          {
+            "bar": 1,
+            "enemy": "e_tennin",
+            "count": 8,
+            "intervalBars": 1.9,
+            "lane": 1
+          },
+          {
+            "bar": 0.5,
+            "enemy": "e_walker",
+            "count": 20,
+            "intervalBars": 0.75,
+            "lane": 0
+          },
+          {
+            "bar": 0.5,
+            "enemy": "e_walker",
+            "count": 20,
+            "intervalBars": 0.75,
+            "lane": 1
+          },
+          {
+            "bar": 0.5,
+            "enemy": "e_walker",
+            "count": 20,
+            "intervalBars": 0.75,
+            "lane": 2
+          }
+        ]
+      }
+    ]
+  },
+  "S20": {
+    "name": "天の羽衣・月光の回廊",
+    "grid": {
+      "w": 16,
+      "h": 9
+    },
+    "lanes": [
+      {
+        "waypoints": [
+          [
+            0,
+            1
+          ],
+          [
+            15,
+            1
+          ]
+        ]
+      },
+      {
+        "waypoints": [
+          [
+            0,
+            3
+          ],
+          [
+            15,
+            3
+          ]
+        ]
+      },
+      {
+        "waypoints": [
+          [
+            0,
+            5
+          ],
+          [
+            15,
+            5
+          ]
+        ]
+      },
+      {
+        "waypoints": [
+          [
+            0,
+            7
+          ],
+          [
+            15,
+            7
+          ]
+        ]
+      }
+    ],
+    "placeable": [
+      [
+        2,
+        0
+      ],
+      [
+        6,
+        0
+      ],
+      [
+        10,
+        0
+      ],
+      [
+        13,
+        0
+      ],
+      [
+        2,
+        2
+      ],
+      [
+        6,
+        2
+      ],
+      [
+        10,
+        2
+      ],
+      [
+        13,
+        2
+      ],
+      [
+        2,
+        4
+      ],
+      [
+        6,
+        4
+      ],
+      [
+        10,
+        4
+      ],
+      [
+        13,
+        4
+      ],
+      [
+        2,
+        6
+      ],
+      [
+        6,
+        6
+      ],
+      [
+        10,
+        6
+      ],
+      [
+        13,
+        6
+      ],
+      [
+        2,
+        8
+      ],
+      [
+        6,
+        8
+      ],
+      [
+        10,
+        8
+      ],
+      [
+        13,
+        8
+      ]
+    ],
+    "cellTypes": {
+      "13,2": "runway",
+      "13,6": "runway",
+      "6,2": "runway",
+      "10,2": "runway",
+      "6,4": "runway",
+      "10,4": "runway",
+      "10,8": "runway",
+      "13,0": "monitor",
+      "13,4": "monitor",
+      "2,2": "audience",
+      "2,6": "audience",
+      "10,0": "audience",
+      "2,0": "audience",
+      "2,8": "audience",
+      "2,4": "audience"
+    },
+    "song": "tsuki_capital",
+    "hpMul": 70,
+    "modifiers": {
+      "rangeMul": 0.9,
+      "cheerGainMul": 0.85,
+      "note": "羽衣の光。射程 -10%、自然に溜まる声援 -15%"
+    },
+    "waves": [
+      {
+        "section": "intro",
+        "bars": 8,
+        "spawns": [],
+        "cardPick": true
+      },
+      {
+        "section": "verse",
+        "bars": 16,
+        "spawns": [
+          {
+            "bar": 1,
+            "enemy": "e_tsukibito",
+            "count": 14,
+            "intervalBars": 1.0,
+            "lane": 0
+          },
+          {
+            "bar": 1,
+            "enemy": "e_tsukibito",
+            "count": 14,
+            "intervalBars": 1.0,
+            "lane": 1
+          },
+          {
+            "bar": 1,
+            "enemy": "e_tsukibito",
+            "count": 14,
+            "intervalBars": 1.0,
+            "lane": 2
+          },
+          {
+            "bar": 1,
+            "enemy": "e_tsukibito",
+            "count": 14,
+            "intervalBars": 1.0,
+            "lane": 3
+          }
+        ]
+      },
+      {
+        "section": "verse",
+        "bars": 16,
+        "spawns": [
+          {
+            "bar": 1,
+            "enemy": "e_tennin",
+            "count": 6,
+            "intervalBars": 2.2,
+            "lane": 0
+          },
+          {
+            "bar": 1,
+            "enemy": "e_tobukuruma",
+            "count": 4,
+            "intervalBars": 3.2,
+            "lane": 1
+          },
+          {
+            "bar": 1,
+            "enemy": "e_kusuri",
+            "count": 6,
+            "intervalBars": 2.2,
+            "lane": 2
+          },
+          {
+            "bar": 1,
+            "enemy": "e_nakatomi",
+            "count": 8,
+            "intervalBars": 1.7,
+            "lane": 3
+          }
+        ]
+      },
+      {
+        "section": "bridge",
+        "bars": 8,
+        "spawns": [
+          {
+            "bar": 0.5,
+            "enemy": "e_runner",
+            "count": 14,
+            "intervalBars": 0.5,
+            "lane": 0
+          },
+          {
+            "bar": 0.5,
+            "enemy": "e_runner",
+            "count": 14,
+            "intervalBars": 0.5,
+            "lane": 1
+          },
+          {
+            "bar": 0.5,
+            "enemy": "e_runner",
+            "count": 14,
+            "intervalBars": 0.5,
+            "lane": 2
+          },
+          {
+            "bar": 0.5,
+            "enemy": "e_runner",
+            "count": 14,
+            "intervalBars": 0.5,
+            "lane": 3
+          }
+        ],
+        "cardPick": true
+      },
+      {
+        "section": "chorus",
+        "bars": 16,
+        "spawns": [
+          {
+            "bar": 1,
+            "enemy": "e_tennin",
+            "count": 6,
+            "intervalBars": 2.2,
+            "lane": 0
+          },
+          {
+            "bar": 1,
+            "enemy": "e_tennin",
+            "count": 6,
+            "intervalBars": 2.2,
+            "lane": 3
+          },
+          {
+            "bar": 0.5,
+            "enemy": "e_tsukibito",
+            "count": 16,
+            "intervalBars": 0.85,
+            "lane": 0
+          },
+          {
+            "bar": 0.5,
+            "enemy": "e_tsukibito",
+            "count": 16,
+            "intervalBars": 0.85,
+            "lane": 1
+          },
+          {
+            "bar": 0.5,
+            "enemy": "e_tsukibito",
+            "count": 16,
+            "intervalBars": 0.85,
+            "lane": 2
+          },
+          {
+            "bar": 0.5,
+            "enemy": "e_tsukibito",
+            "count": 16,
+            "intervalBars": 0.85,
+            "lane": 3
+          }
+        ]
+      },
+      {
+        "section": "verse",
+        "bars": 16,
+        "spawns": [
+          {
+            "bar": 1,
+            "enemy": "e_abe",
+            "count": 6,
+            "intervalBars": 2.2,
+            "lane": 0
+          },
+          {
+            "bar": 1,
+            "enemy": "e_isonokami",
+            "count": 6,
+            "intervalBars": 2.2,
+            "lane": 1
+          },
+          {
+            "bar": 1,
+            "enemy": "e_kuramochi",
+            "count": 6,
+            "intervalBars": 2.2,
+            "lane": 2
+          },
+          {
+            "bar": 1,
+            "enemy": "e_ishitsukuri",
+            "count": 6,
+            "intervalBars": 2.2,
+            "lane": 3
+          }
+        ]
+      },
+      {
+        "section": "interlude",
+        "bars": 8,
+        "spawns": [],
+        "cardPick": true
+      },
+      {
+        "section": "chorus",
+        "bars": 16,
+        "spawns": [
+          {
+            "bar": 1,
+            "enemy": "e_tobukuruma",
+            "count": 4,
+            "intervalBars": 3.2,
+            "lane": 1
+          },
+          {
+            "bar": 1,
+            "enemy": "e_tobukuruma",
+            "count": 4,
+            "intervalBars": 3.2,
+            "lane": 2
+          },
+          {
+            "bar": 1,
+            "enemy": "e_kusuri",
+            "count": 6,
+            "intervalBars": 2.2,
+            "lane": 0
+          },
+          {
+            "bar": 1,
+            "enemy": "e_kusuri",
+            "count": 6,
+            "intervalBars": 2.2,
+            "lane": 3
+          },
+          {
+            "bar": 0.5,
+            "enemy": "e_swarm",
+            "count": 18,
+            "intervalBars": 0.75,
+            "lane": 0
+          },
+          {
+            "bar": 0.5,
+            "enemy": "e_swarm",
+            "count": 18,
+            "intervalBars": 0.75,
+            "lane": 1
+          },
+          {
+            "bar": 0.5,
+            "enemy": "e_swarm",
+            "count": 18,
+            "intervalBars": 0.75,
+            "lane": 2
+          },
+          {
+            "bar": 0.5,
+            "enemy": "e_swarm",
+            "count": 18,
+            "intervalBars": 0.75,
+            "lane": 3
+          }
+        ]
+      },
+      {
+        "section": "verse",
+        "bars": 16,
+        "spawns": [
+          {
+            "bar": 1,
+            "enemy": "e_tennin",
+            "count": 7,
+            "intervalBars": 1.9,
+            "lane": 0
+          },
+          {
+            "bar": 1,
+            "enemy": "e_tennin",
+            "count": 7,
+            "intervalBars": 1.9,
+            "lane": 1
+          },
+          {
+            "bar": 1,
+            "enemy": "e_tennin",
+            "count": 7,
+            "intervalBars": 1.9,
+            "lane": 2
+          },
+          {
+            "bar": 1,
+            "enemy": "e_tennin",
+            "count": 7,
+            "intervalBars": 1.9,
+            "lane": 3
+          },
+          {
+            "bar": 0.5,
+            "enemy": "e_walker",
+            "count": 16,
+            "intervalBars": 0.85,
+            "lane": 0
+          },
+          {
+            "bar": 0.5,
+            "enemy": "e_walker",
+            "count": 16,
+            "intervalBars": 0.85,
+            "lane": 1
+          },
+          {
+            "bar": 0.5,
+            "enemy": "e_walker",
+            "count": 16,
+            "intervalBars": 0.85,
+            "lane": 2
+          },
+          {
+            "bar": 0.5,
+            "enemy": "e_walker",
+            "count": 16,
+            "intervalBars": 0.85,
+            "lane": 3
+          }
+        ]
+      },
+      {
+        "section": "finale",
+        "bars": 18,
+        "spawns": [
+          {
+            "bar": 1,
+            "enemy": "e_tobukuruma",
+            "count": 5,
+            "intervalBars": 3.0,
+            "lane": 0
+          },
+          {
+            "bar": 1,
+            "enemy": "e_tobukuruma",
+            "count": 5,
+            "intervalBars": 3.0,
+            "lane": 1
+          },
+          {
+            "bar": 1,
+            "enemy": "e_tobukuruma",
+            "count": 5,
+            "intervalBars": 3.0,
+            "lane": 2
+          },
+          {
+            "bar": 1,
+            "enemy": "e_tobukuruma",
+            "count": 5,
+            "intervalBars": 3.0,
+            "lane": 3
+          },
+          {
+            "bar": 1,
+            "enemy": "e_kusuri",
+            "count": 7,
+            "intervalBars": 2.2,
+            "lane": 1
+          },
+          {
+            "bar": 1,
+            "enemy": "e_kusuri",
+            "count": 7,
+            "intervalBars": 2.2,
+            "lane": 2
+          },
+          {
+            "bar": 0.5,
+            "enemy": "e_tsukibito",
+            "count": 22,
+            "intervalBars": 0.7,
+            "lane": 0
+          },
+          {
+            "bar": 0.5,
+            "enemy": "e_tsukibito",
+            "count": 22,
+            "intervalBars": 0.7,
+            "lane": 1
+          },
+          {
+            "bar": 0.5,
+            "enemy": "e_tsukibito",
+            "count": 22,
+            "intervalBars": 0.7,
+            "lane": 2
+          },
+          {
+            "bar": 0.5,
+            "enemy": "e_tsukibito",
+            "count": 22,
+            "intervalBars": 0.7,
+            "lane": 3
+          }
+        ]
+      }
+    ]
+  },
+  "B3": {
+    "name": "月の王",
+    "grid": {
+      "w": 16,
+      "h": 9
+    },
+    "lanes": [
+      {
+        "waypoints": [
+          [
+            0,
+            1
+          ],
+          [
+            15,
+            1
+          ]
+        ]
+      },
+      {
+        "waypoints": [
+          [
+            0,
+            3
+          ],
+          [
+            15,
+            3
+          ]
+        ]
+      },
+      {
+        "waypoints": [
+          [
+            0,
+            5
+          ],
+          [
+            15,
+            5
+          ]
+        ]
+      },
+      {
+        "waypoints": [
+          [
+            0,
+            7
+          ],
+          [
+            15,
+            7
+          ]
+        ]
+      }
+    ],
+    "placeable": [
+      [
+        2,
+        0
+      ],
+      [
+        6,
+        0
+      ],
+      [
+        10,
+        0
+      ],
+      [
+        13,
+        0
+      ],
+      [
+        2,
+        2
+      ],
+      [
+        6,
+        2
+      ],
+      [
+        10,
+        2
+      ],
+      [
+        13,
+        2
+      ],
+      [
+        2,
+        4
+      ],
+      [
+        6,
+        4
+      ],
+      [
+        10,
+        4
+      ],
+      [
+        13,
+        4
+      ],
+      [
+        2,
+        6
+      ],
+      [
+        6,
+        6
+      ],
+      [
+        10,
+        6
+      ],
+      [
+        13,
+        6
+      ],
+      [
+        2,
+        8
+      ],
+      [
+        6,
+        8
+      ],
+      [
+        10,
+        8
+      ],
+      [
+        13,
+        8
+      ]
+    ],
+    "cellTypes": {
+      "13,2": "runway",
+      "13,6": "runway",
+      "6,2": "runway",
+      "10,2": "runway",
+      "6,4": "runway",
+      "10,4": "runway",
+      "10,8": "runway",
+      "13,0": "monitor",
+      "13,4": "monitor",
+      "2,2": "audience",
+      "2,6": "audience",
+      "10,0": "audience",
+      "2,0": "audience",
+      "2,8": "audience",
+      "2,4": "audience"
+    },
+    "song": "tsuki_capital",
+    "hpMul": 4,
+    "boss": true,
+    "waves": [
+      {
+        "section": "intro",
+        "bars": 8,
+        "spawns": [],
+        "cardPick": true
+      },
+      {
+        "section": "verse",
+        "bars": 16,
+        "spawns": [
+          {
+            "bar": 1,
+            "enemy": "e_tsukibito",
+            "count": 12,
+            "intervalBars": 1.1,
+            "lane": 0
+          },
+          {
+            "bar": 1,
+            "enemy": "e_tsukibito",
+            "count": 12,
+            "intervalBars": 1.1,
+            "lane": 1
+          },
+          {
+            "bar": 1,
+            "enemy": "e_tsukibito",
+            "count": 12,
+            "intervalBars": 1.1,
+            "lane": 2
+          },
+          {
+            "bar": 1,
+            "enemy": "e_tsukibito",
+            "count": 12,
+            "intervalBars": 1.1,
+            "lane": 3
+          }
+        ]
+      },
+      {
+        "section": "bridge",
+        "bars": 8,
+        "spawns": [
+          {
+            "bar": 0.5,
+            "enemy": "e_runner",
+            "count": 10,
+            "intervalBars": 0.6,
+            "lane": 0
+          },
+          {
+            "bar": 0.5,
+            "enemy": "e_runner",
+            "count": 10,
+            "intervalBars": 0.6,
+            "lane": 1
+          },
+          {
+            "bar": 0.5,
+            "enemy": "e_runner",
+            "count": 10,
+            "intervalBars": 0.6,
+            "lane": 2
+          },
+          {
+            "bar": 0.5,
+            "enemy": "e_runner",
+            "count": 10,
+            "intervalBars": 0.6,
+            "lane": 3
+          }
+        ],
+        "cardPick": true
+      },
+      {
+        "section": "chorus",
+        "bars": 16,
+        "spawns": [
+          {
+            "bar": 1,
+            "enemy": "e_tennin",
+            "count": 6,
+            "intervalBars": 2.2,
+            "lane": 1
+          },
+          {
+            "bar": 1,
+            "enemy": "e_tennin",
+            "count": 6,
+            "intervalBars": 2.2,
+            "lane": 2
+          },
+          {
+            "bar": 0.5,
+            "enemy": "e_walker",
+            "count": 14,
+            "intervalBars": 0.9,
+            "lane": 0
+          },
+          {
+            "bar": 0.5,
+            "enemy": "e_walker",
+            "count": 14,
+            "intervalBars": 0.9,
+            "lane": 3
+          }
+        ]
+      },
+      {
+        "section": "verse",
+        "bars": 16,
+        "spawns": [
+          {
+            "bar": 1,
+            "enemy": "e_boss_tsuki_no_o",
+            "count": 1,
+            "intervalBars": 1.0,
+            "lane": 1
+          },
+          {
+            "bar": 0.5,
+            "enemy": "e_swarm",
+            "count": 14,
+            "intervalBars": 0.5,
+            "lane": 0
+          },
+          {
+            "bar": 0.5,
+            "enemy": "e_swarm",
+            "count": 14,
+            "intervalBars": 0.5,
+            "lane": 3
+          }
+        ]
+      },
+      {
+        "section": "interlude",
+        "bars": 8,
+        "spawns": [],
+        "cardPick": true
+      },
+      {
+        "section": "chorus",
+        "bars": 16,
+        "spawns": [
+          {
+            "bar": 1,
+            "enemy": "e_tobukuruma",
+            "count": 4,
+            "intervalBars": 3.2,
+            "lane": 0
+          },
+          {
+            "bar": 1,
+            "enemy": "e_tobukuruma",
+            "count": 4,
+            "intervalBars": 3.2,
+            "lane": 3
+          },
+          {
+            "bar": 0.5,
+            "enemy": "e_tsukibito",
+            "count": 16,
+            "intervalBars": 0.85,
+            "lane": 1
+          },
+          {
+            "bar": 0.5,
+            "enemy": "e_tsukibito",
+            "count": 16,
+            "intervalBars": 0.85,
+            "lane": 2
+          }
+        ]
+      },
+      {
+        "section": "verse",
+        "bars": 16,
+        "spawns": [
+          {
+            "bar": 1,
+            "enemy": "e_boss_tsuki_no_o",
+            "count": 1,
+            "intervalBars": 1.0,
+            "lane": 2
+          },
+          {
+            "bar": 1,
+            "enemy": "e_kusuri",
+            "count": 6,
+            "intervalBars": 2.2,
+            "lane": 1
+          },
+          {
+            "bar": 0.5,
+            "enemy": "e_runner",
+            "count": 14,
+            "intervalBars": 0.95,
+            "lane": 0
+          }
+        ]
+      },
+      {
+        "section": "finale",
+        "bars": 18,
+        "spawns": [
+          {
+            "bar": 1,
+            "enemy": "e_boss_tsuki_no_o",
+            "count": 1,
+            "intervalBars": 1.0,
+            "lane": 0
+          },
+          {
+            "bar": 1,
+            "enemy": "e_boss_tsuki_no_o",
+            "count": 1,
+            "intervalBars": 1.0,
+            "lane": 3
+          },
+          {
+            "bar": 1,
+            "enemy": "e_tennin",
+            "count": 8,
+            "intervalBars": 1.9,
+            "lane": 1
+          },
+          {
+            "bar": 0.5,
+            "enemy": "e_walker",
+            "count": 18,
+            "intervalBars": 0.85,
+            "lane": 1
+          },
+          {
+            "bar": 0.5,
+            "enemy": "e_walker",
+            "count": 18,
+            "intervalBars": 0.85,
+            "lane": 2
           }
         ]
       }

@@ -163,6 +163,10 @@ export const idolUnlockStage: Record<string, string | null> = {
  *
  * ボスは本編の途中と最後に挟まる。B1 は S6 の直後に出るが、
  * **S7 の前提ではない**（寄り道として置く）。
+ *
+ * S11 以降は「月の都」の章（04-content.md）。S11〜S15 が竹取物語の
+ * 五つの難題、S16〜S20 が月からの迎え、B3 が最後の相手。
+ * **B2 の後ろに続ける**ので、前の章をひととおり終えてから入る形になる
  */
 export const stageOrder = [
   'S1',
@@ -177,6 +181,17 @@ export const stageOrder = [
   'S9',
   'S10',
   'B2',
+  'S11',
+  'S12',
+  'S13',
+  'S14',
+  'S15',
+  'S16',
+  'S17',
+  'S18',
+  'S19',
+  'S20',
+  'B3',
 ] as const;
 
 /**
@@ -199,6 +214,19 @@ export const stageUnlock: Record<string, string | null> = {
   S9: 'S8',
   S10: 'S9',
   B2: 'S10',
+  // 月の都の章。**S11 の鍵は S10**（本編の踏破）で、B2 ではない。
+  // B2 を鍵にすると寄り道だったはずのボスが必修になる
+  S11: 'S10',
+  S12: 'S11',
+  S13: 'S12',
+  S14: 'S13',
+  S15: 'S14',
+  S16: 'S15',
+  S17: 'S16',
+  S18: 'S17',
+  S19: 'S18',
+  S20: 'S19',
+  B3: 'S20',
 };
 
 export function requiredStage(stageId: string): string | null {

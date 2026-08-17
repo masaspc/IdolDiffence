@@ -9,13 +9,13 @@
  */
 import { createWorld, type BattleMeta } from '../src/sim/world';
 import { autoplay, type Placement } from '../src/sim/autoplay';
-import { getIdol, getTalent, rosterIds } from '../src/data';
-import { levelAtkMultiplier } from '../src/meta/progression';
-import { emptyTalentEffects, resolveTalents, type TalentEffects } from '../src/meta/talents';
+import { getTalent } from '../src/data';
+import { resolveTalents, type TalentEffects } from '../src/meta/talents';
 import { createNewSave, type CostumeInstance, type SaveData } from '../src/meta/save';
 import { equipCostume, resolvePartyCostumes } from '../src/meta/costumes';
 import { COSTUME_SLOTS, SLOT_MAIN_STATS } from '../src/data/schema/costume';
 import { minimalPlan, PLAN_STAGES, STAGE_PLANS } from '../src/balance/plans';
+import { balanceMeta } from '../src/balance/investment';
 
 const SEED = 20260816;
 
@@ -65,7 +65,13 @@ function fullCostumes(party: readonly string[], seriesId: string, enhance: numbe
   return save;
 }
 
-/** 育成段階を再現する。レベルだけを変えて他は同条件にする */
+/**
+ * 育成段階を再現する。レベルだけを変えて他は同条件にする。
+ *
+ * 土台は**そのステージが前提とする恒久強化**（`balanceMeta`）。
+ * 素の値から組むと、月の都の章（S11 以降）は全行が「負け」で埋まって
+ * 何も読み取れない ―― あの章はレベルではなく強化の段階で難度を作っている
+ */
 function metaAt(
   stageId: string,
   level: number,
@@ -74,13 +80,10 @@ function metaAt(
 ): BattleMeta {
   const plan = STAGE_PLANS[stageId];
   const party = plan?.party ?? [];
+  const base = balanceMeta(stageId, level);
   return {
-    atkByIdol: Object.fromEntries(
-      rosterIds.map((id) => [id, getIdol(id).base.atk * levelAtkMultiplier(level)]),
-    ),
-    party,
-    center: plan?.center ?? null,
-    talents: talents ?? emptyTalentEffects(),
+    ...base,
+    ...(talents ? { talents } : {}),
     ...(costumeSeries
       ? { costumes: resolvePartyCostumes(fullCostumes(party, costumeSeries, 15), party) }
       : {}),

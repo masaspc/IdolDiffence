@@ -7,7 +7,8 @@
  * やり込みが義務になる。
  */
 import { describe, expect, it } from 'vitest';
-import { achievements, canonIds, stageOrder } from '../data';
+import { achievements, bossStageIds, canonIds, mainStageIds, stageOrder } from '../data';
+import { MAX_STAR } from '../sim/star';
 import { createNewSave, type SaveData } from './save';
 import { applyReward, calcReward } from './progression';
 import { totalTalentPoints } from './talents';
@@ -56,6 +57,16 @@ describe('データ', () => {
     // 「原作 12 人」「Lv30」のような上限を超える目標は永久に埋まらない
     expect(achievements['full_roster']!.goal).toBe(canonIds.length);
     expect(achievements['level30']!.goal).toBe(30);
+  });
+
+  it('ステージ数の目標は実際の本数と一致している', () => {
+    // ステージを足すたびに手で直す羽目になっていた。**数え直せる目標は
+    // 数え直して比べる** —— ズレると「全ステージ制覇」が届かないか、
+    // 全部終える前に立ってしまう
+    expect(achievements['all_main']!.goal).toBe(mainStageIds.length);
+    expect(achievements['all_stages']!.goal).toBe(stageOrder.length);
+    // ★の合計は「全ステージ × ★10」が上限。届く範囲に置く
+    expect(achievements['star_grind']!.goal).toBeLessThan(stageOrder.length * MAX_STAR);
   });
 });
 
@@ -193,14 +204,16 @@ describe('数え方の境界', () => {
         ids.map((id) => [id, { cleared: true, bestAudience: 100, plays: 1 }]),
       ),
     });
-    // S1〜S9 + B1 = 10 ステージ。本編は 9 本しか終わっていない
-    const nine = cleared(['S1', 'S2', 'S3', 'S4', 'S5', 'S6', 'S7', 'S8', 'S9', 'B1']);
-    expect(statValue(nine, 'clearedStages')).toBe(10);
-    expect(statValue(nine, 'clearedMainStages')).toBe(9);
-    expect(achievementView(nine, 'all_main').unlocked).toBe(false);
+    // 本編 19 本 + ボス 3 本 = 22 ステージ。本編はまだ 1 本残っている
+    const almost = cleared([...mainStageIds.slice(0, 19), ...bossStageIds]);
+    expect(statValue(almost, 'clearedStages')).toBe(22);
+    expect(statValue(almost, 'clearedMainStages')).toBe(19);
+    expect(achievementView(almost, 'all_main').unlocked).toBe(false);
 
-    const ten = cleared(['S1','S2','S3','S4','S5','S6','S7','S8','S9','S10']);
-    expect(achievementView(ten, 'all_main').unlocked).toBe(true);
+    // ボスを 1 本も終えていなくても、本編を全部やれば立つ（ボスは寄り道）
+    const mainOnly = cleared([...mainStageIds]);
+    expect(achievementView(mainOnly, 'all_main').unlocked).toBe(true);
+    expect(achievementView(mainOnly, 'all_stages').unlocked).toBe(false);
   });
 
   it('「全員集合」は隠しキャラを数えない', () => {

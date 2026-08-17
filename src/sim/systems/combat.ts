@@ -7,7 +7,14 @@
 import { withinRange } from '../../core/vec';
 import type { Rng } from '../../core/rng';
 import { computeDamage, type DamageResult } from '../damage';
-import { applyStatus, isCharmed, vulnerability, type Enemy, type Unit } from '../entities';
+import {
+  applyStatus,
+  isCharmed,
+  typeGuardFactor,
+  vulnerability,
+  type Enemy,
+  type Unit,
+} from '../entities';
 import { findTarget } from './targeting';
 
 export interface CombatContext {
@@ -91,6 +98,11 @@ export function updateUnit(unit: Unit, ctx: CombatContext, dtMs: number): void {
     if (shield !== undefined && unit.attack.kind === 'single') {
       result.amount *= 1 - shield * (1 - unit.attack.shieldPierce);
     }
+
+    // 火鼠の裘は焼けない。**その系統では通らない**を作る枠で、
+    // 3 すくみの 0.9 と違って数を積んでも答えにならない。
+    // Echo は系統を持たないので通る（「焼けないなら燻す」が答え）
+    result.amount *= typeGuardFactor(victim, unit.type);
 
     ctx.applyDamage(victim, result, unit);
     if (!victim.alive) killedAny = true;

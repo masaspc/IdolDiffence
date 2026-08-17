@@ -239,6 +239,8 @@ export interface UnitView {
 export interface EnemyView {
   id: EntityId;
   name: string;
+  /** ドット絵の取り出しキー（敵の定義 ID）。絵が無ければ丸へ戻る */
+  spriteId: string;
   attr: string;
   x: number;
   y: number;
@@ -452,6 +454,8 @@ export class BattleWorld {
   private readonly costumeBonuses: ReadonlyMap<string, CostumeCombatBonus>;
   /** 衣装のうち経済（声援・月華）に効くぶん。センターと同じく世界が持つ */
   private readonly costumeEconomyPool: ModifierPool;
+  /** ステージのギミックのうち経済に効くぶん（声援の入り） */
+  private readonly stageEconomyPool: ModifierPool;
   /** ★の追加ルール（系統ペナルティ）。全ユニット共通なので加算プール 1 つで足りる */
   private readonly starPool: ModifierPool;
 
@@ -557,6 +561,13 @@ export class BattleWorld {
     if (this.weakType) addTypePct(this.starPool, this.weakType, -WEAKEN_PCT);
     const rangeMul = this.stage.modifiers.rangeMul;
     if (rangeMul !== undefined) addPct(this.starPool, 'range', rangeMul - 1);
+
+    // ステージのギミックのうち、経済に効くもの。
+    // **経済は世界レベルのプールでしか解決されない**（`updateEconomy`）ので、
+    // 上の starPool（ユニットのプール）へ入れても効かない
+    this.stageEconomyPool = emptyPool();
+    const cheerGainMul = this.stage.modifiers.cheerGainMul;
+    if (cheerGainMul !== undefined) addPct(this.stageEconomyPool, 'cheerGain', cheerGainMul - 1);
 
     this.costumeEconomyPool = emptyPool();
     addPct(this.costumeEconomyPool, 'cheerGain', meta.costumes?.cheerGainPct ?? 0);
@@ -832,6 +843,7 @@ export class BattleWorld {
         this.talentPool,
         this.centerPool,
         this.costumeEconomyPool,
+        this.stageEconomyPool,
       ]) * this.cheerGainFromCells();
     const regen = (CHEER_REGEN_BASE + CHEER_REGEN_PER_AUDIENCE * this.audience) * gain;
     this.addCheer((regen * dtMs) / 1000);
@@ -899,6 +911,8 @@ export class BattleWorld {
       prevPos: vec(start.x, start.y),
       statuses: [],
       alive: true,
+      // 蘇生の残りは**個体ごと**。定義を書き換えると 2 体目から蘇らなくなる
+      revivesLeft: def.traits.revive?.times ?? 0,
     };
     this.enemies.push(enemy);
     this.events.emit('enemySpawned', { id: enemy.id, defId: enemy.defId });
@@ -906,7 +920,10 @@ export class BattleWorld {
   }
 
   private updateEnemies(dtMs: number): void {
-    const globalSpeedMul = this.specialActive ? SPECIAL_ENEMY_SPEED_MUL : 1;
+    // 必殺中の減速と、ステージのギミック（月の重力）は掛け算で重なる
+    const globalSpeedMul =
+      (this.specialActive ? SPECIAL_ENEMY_SPEED_MUL : 1) *
+      (this.stage.modifiers.enemySpeedMul ?? 1);
     this.applyHealAuras(dtMs);
     this.applySilence(dtMs);
 
@@ -1089,6 +1106,18 @@ export class BattleWorld {
     }
 
     if (enemy.hp <= 0) {
+      // 不死の薬。**倒せていない**ので撃破にも声援にも分裂にも数えない。
+      // 貢献度と月華は上で加算済み ―― 実際に削ったぶんは削ったので、
+      // ここで巻き戻すと「削っても何も起きない」相手になってしまう
+      if (enemy.revivesLeft > 0) {
+        enemy.revivesLeft -= 1;
+        enemy.hp = enemy.maxHp * (enemy.traits.revive?.hpRatio ?? 1);
+        // 蘇生の瞬間に足枷を解く。魅了で止めたまま蘇らせると、
+        // 止めた側が何もせずに 2 回目の削りへ入れてしまう
+        enemy.statuses.length = 0;
+        this.events.emit('enemyRevived', { id: enemy.id, defId: enemy.defId });
+        return;
+      }
       enemy.alive = false;
       this.killed++;
       this.addCheer(enemy.bounty);
@@ -1662,6 +1691,8 @@ export class BattleWorld {
       enemies: this.enemies.map((e) => ({
         id: e.id,
         name: e.name,
+        // 絵の取り出しに使う。render 層に敵定義を引かせないための橋渡し
+        spriteId: e.defId,
         attr: e.attr,
         x: e.pos.x,
         y: e.pos.y,

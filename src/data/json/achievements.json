@@ -19,19 +19,19 @@
   },
   "all_main": {
     "name": "本編制覇",
-    "desc": "本編ステージ 10 すべてをクリアする（ボスを除く）",
+    "desc": "本編ステージ 20 すべてをクリアする（ボスを除く）",
     "title": "ツクヨミの顔",
     "stat": "clearedMainStages",
-    "goal": 10,
+    "goal": 20,
     "points": 3,
     "funds": 20000
   },
   "all_stages": {
     "name": "全ステージ制覇",
-    "desc": "ボスを含む 12 ステージすべてをクリアする",
+    "desc": "ボスを含む 23 ステージすべてをクリアする",
     "title": "満月の演出家",
     "stat": "clearedStages",
-    "goal": 12,
+    "goal": 23,
     "points": 5,
     "funds": 50000
   },
@@ -100,10 +100,10 @@
   },
   "star_grind": {
     "name": "周回の果て",
-    "desc": "全ステージの★を合計 60 まで積む",
+    "desc": "全ステージの★を合計 120 まで積む",
     "title": "周回巧者",
     "stat": "starTotal",
-    "goal": 60,
+    "goal": 120,
     "points": 4,
     "funds": 40000
   },

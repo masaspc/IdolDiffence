@@ -68,6 +68,33 @@ export interface Enemy {
 
   statuses: StatusEffect[];
   alive: boolean;
+  /**
+   * 残りの蘇生回数（`traits.revive`）。
+   *
+   * 定義側ではなく**個体**に持つ。定義を書き換えると、同じ敵が 2 体目から
+   * 蘇らなくなる（定義は全個体で共有している）
+   */
+  revivesLeft: number;
+}
+
+/**
+ * 手負いになると速くなる（`traits.enrage`）。石上麻呂。
+ * @returns 移動速度に掛ける倍率
+ */
+export function enrageFactor(enemy: Enemy): number {
+  const enrage = enemy.traits.enrage;
+  if (!enrage) return 1;
+  return enemy.hp / enemy.maxHp <= enrage.at ? enrage.speedMul : 1;
+}
+
+/**
+ * 特定系統への耐性（`traits.typeGuard`）。阿倍御主人「火鼠の裘」。
+ * @returns 直接攻撃のダメージに掛ける倍率
+ */
+export function typeGuardFactor(enemy: Enemy, type: IdolType): number {
+  const guard = enemy.traits.typeGuard;
+  if (!guard || guard.type !== type) return 1;
+  return 1 - guard.reduction;
 }
 
 /** 攻撃の実効パラメータ。覚醒とカードを反映した後の姿 */

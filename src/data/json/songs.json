@@ -28,5 +28,23 @@
     "bpm": 140,
     "beatsPerBar": 4,
     "tempoBase": 132
+  },
+  "gonan_five": {
+    "name": "五つの難題",
+    "bpm": 156,
+    "beatsPerBar": 4,
+    "tempoBase": 132
+  },
+  "tennin_waltz": {
+    "name": "天人ワルツ",
+    "bpm": 126,
+    "beatsPerBar": 4,
+    "tempoBase": 132
+  },
+  "tsuki_capital": {
+    "name": "月の都",
+    "bpm": 144,
+    "beatsPerBar": 4,
+    "tempoBase": 132
   }
 }

@@ -9,7 +9,13 @@ import { describe, expect, it } from 'vitest';
 import { createWorld, type BattleWorld } from './world';
 import { getEnemy, getIdol, rosterIds } from '../data';
 import { runHeadless } from '../core/loop';
-import { applyStatus, isImmobilized, type Enemy } from './entities';
+import {
+  applyStatus,
+  enrageFactor,
+  isImmobilized,
+  typeGuardFactor,
+  type Enemy,
+} from './entities';
 import { advanceEnemy, knockbackEnemy } from './systems/movement';
 import { buildPaths } from './path';
 
@@ -295,6 +301,138 @@ describe('アイドルの固有挙動', () => {
   });
 });
 
+/**
+ * 竹取物語の「五つの難題」として入れた特性（04-content.md 4.3）。
+ *
+ * どれも**特定の答えを潰す**ための枠なので、
+ * 「潰したいものが潰れていること」と「用意した答えが通ること」を対で見る。
+ */
+describe('阿倍御主人の火鼠の裘（typeGuard）', () => {
+  /** 1 人だけ置いて 4 秒殴らせ、削れた量を返す */
+  function dealDamage(idolId: string, enemyId: string): number {
+    const world = richWorld('S7');
+    const unit = world.placeUnit(idolId, 7, 3);
+    if (typeof unit === 'string') throw new Error(unit);
+    const enemy = spawnDummy(world, enemyId, unit.cell.x + 1, unit.cell.y);
+    // 蘇られると削り量が読めない。ここで見たいのは軽減だけ
+    enemy.revivesLeft = 0;
+    runHeadless(4000, (dt) => world.update(dt));
+    return enemy.maxHp - enemy.hp;
+  }
+
+  it('ヴィジュアルは相性で有利なのに通らない', () => {
+    // attr は虚飾（裘は偽物だった）なので、本来ヴィジュアルが 1.2 倍で刺さる。
+    // **その刺さるはずの系統だけ**が塞がっているのが、この敵の問い
+    expect(getEnemy('e_abe').attr).toBe('glare');
+    expect(getIdol('Vi1').type).toBe('visual');
+
+    const guarded = dealDamage('Vi1', 'e_abe');
+    const control = dealDamage('Vi1', 'e_armor');
+    // 素の DEF も HP も e_armor より重いので、比ではなく「極端に通らない」ことを見る
+    expect(guarded).toBeGreaterThan(0);
+    expect(guarded).toBeLessThan(control * 0.5);
+  });
+
+  it('他の系統は通る（編成を変えれば越えられる）', () => {
+    // 塞がれた系統を外す答えが無いと、ただの「無敵の壁」になる
+    expect(dealDamage('D1', 'e_abe')).toBeGreaterThan(dealDamage('Vi1', 'e_abe'));
+  });
+
+  it('軽減は該当する系統にだけ掛かる', () => {
+    const enemy = getEnemy('e_abe');
+    expect(typeGuardFactor({ traits: enemy.traits } as Enemy, 'visual')).toBeCloseTo(0.25);
+    expect(typeGuardFactor({ traits: enemy.traits } as Enemy, 'dance')).toBe(1);
+    expect(typeGuardFactor({ traits: getEnemy('e_walker').traits } as Enemy, 'visual')).toBe(1);
+  });
+});
+
+describe('石上麻呂の手負い加速（enrage）', () => {
+  it('閾値を下回ると速くなる', () => {
+    const enemy = spawnDummy(richWorld('S6'), 'e_isonokami', 5, 4);
+    expect(enrageFactor(enemy)).toBe(1);
+    enemy.hp = enemy.maxHp * 0.39;
+    expect(enrageFactor(enemy)).toBe(2.6);
+  });
+
+  it('減速と掛け算になる（減速で打ち消せない）', () => {
+    // 足し算にすると、減速を撒くだけで問いが消える
+    const world = richWorld('S6');
+    const enemy = spawnDummy(world, 'e_isonokami', 5, 4);
+    enemy.baseSpeed = getEnemy('e_isonokami').speed;
+    enemy.hp = enemy.maxHp * 0.2;
+    applyStatus(enemy, { kind: 'slow', value: 0.5, remainingMs: 5000 });
+
+    const path = buildPaths(world.stage)[0];
+    if (!path) throw new Error('経路が無い');
+    const before = enemy.progress;
+    advanceEnemy(enemy, path, 1000);
+    // 素の速度 0.75 × 減速 0.5 × 加速 2.6 = 0.975 マス/秒
+    expect(enemy.progress - before).toBeCloseTo(0.975, 2);
+  });
+
+  it('傷ついていない個体は素の速さのまま', () => {
+    const enemy = spawnDummy(richWorld('S6'), 'e_walker', 5, 4);
+    expect(enrageFactor(enemy)).toBe(1);
+  });
+});
+
+describe('不死の薬（revive）', () => {
+  /** HP を 1 にして 1 発当てる。蘇生の前後を見るための下ごしらえ */
+  function finishOff(enemyId: string): { world: BattleWorld; enemy: Enemy } {
+    const world = richWorld('S6');
+    const unit = world.placeUnit('V1', 5, 2);
+    if (typeof unit === 'string') throw new Error(unit);
+    const enemy = spawnDummy(world, enemyId, 5.5, 3.0);
+    enemy.hp = 1;
+    runHeadless(2000, (dt) => world.update(dt));
+    return { world, enemy };
+  }
+
+  it('倒しても一度だけ戻ってくる', () => {
+    const { enemy } = finishOff('e_kusuri');
+    expect(enemy.alive).toBe(true);
+    expect(enemy.hp).toBeGreaterThan(1);
+    expect(enemy.revivesLeft).toBe(0);
+  });
+
+  it('蘇った回は撃破に数えない（声援も入らない）', () => {
+    // 数えてしまうと、蘇る敵を置くほど資源が増えるという逆の設計になる
+    const { world } = finishOff('e_kusuri');
+    expect(world.snapshot().killed).toBe(0);
+  });
+
+  it('二度目は倒れる', () => {
+    const world = richWorld('S6');
+    const unit = world.placeUnit('V1', 5, 2);
+    if (typeof unit === 'string') throw new Error(unit);
+    const enemy = spawnDummy(world, 'e_kusuri', 5.5, 3.0);
+    enemy.hp = 1;
+    runHeadless(2000, (dt) => world.update(dt));
+    enemy.hp = 1;
+    runHeadless(2000, (dt) => world.update(dt));
+    expect(enemy.alive).toBe(false);
+    expect(world.snapshot().killed).toBe(1);
+  });
+
+  it('蘇るときに足枷が外れる', () => {
+    // 止めたまま蘇らせると、魅了を撒いた側が何もせず 2 周目へ入れてしまう
+    const world = richWorld('S6');
+    const unit = world.placeUnit('V1', 5, 2);
+    if (typeof unit === 'string') throw new Error(unit);
+    const enemy = spawnDummy(world, 'e_kusuri', 5.5, 3.0);
+    applyStatus(enemy, { kind: 'charm', value: 1, remainingMs: 60_000 });
+    enemy.hp = 1;
+    runHeadless(2000, (dt) => world.update(dt));
+    expect(isImmobilized(enemy.statuses)).toBe(false);
+  });
+
+  it('蘇生を持たない敵はそのまま倒れる', () => {
+    const { enemy, world } = finishOff('e_walker');
+    expect(enemy.alive).toBe(false);
+    expect(world.snapshot().killed).toBe(1);
+  });
+});
+
 // --- ヘルパー ---
 
 /**
@@ -329,6 +467,8 @@ function spawnDummy(world: BattleWorld, enemyId: string, x: number, y: number): 
     prevPos: { x, y },
     statuses: [],
     alive: true,
+    // 定義どおりに蘇らせる。0 で固定すると不死の薬が試せない
+    revivesLeft: def.traits.revive?.times ?? 0,
   };
   internalEnemies(world).push(enemy);
   return enemy;
@@ -362,5 +502,6 @@ function makeEnemy(): Enemy {
     prevPos: { x: 0, y: 4 },
     statuses: [],
     alive: true,
+    revivesLeft: 0,
   };
 }

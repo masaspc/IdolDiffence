@@ -33,8 +33,8 @@ function worldWithPlan(stageId: string, subscribe: (world: BattleWorld) => void)
 }
 
 describe('データ', () => {
-  it('ボスは 2 種で、どちらもボスステージに出る', () => {
-    expect(bossStageIds).toEqual(['B1', 'B2']);
+  it('ボスは 3 種で、どれもボスステージに出る', () => {
+    expect(bossStageIds).toEqual(['B1', 'B2', 'B3']);
     for (const stageId of bossStageIds) {
       const used = new Set(
         getStage(stageId).waves.flatMap((wave) => wave.spawns.map((s) => s.enemy)),
@@ -45,7 +45,7 @@ describe('データ', () => {
 
   it('ボスを通すと観客が大きく減る（倒すのが目的になる）', () => {
     // leak が軽いと「素通しさせて完走」が成立してしまい、ボス戦にならない
-    for (const id of ['e_boss_utsushi', 'e_boss_hagoromo']) {
+    for (const id of ['e_boss_utsushi', 'e_boss_hagoromo', 'e_boss_tsuki_no_o']) {
       expect(getEnemy(id).leak).toBeGreaterThan(30);
     }
   });
@@ -115,6 +115,7 @@ describe('状態異常の耐性（02-core-battle.md 2.8）', () => {
       prevPos: vec(0, 0),
       statuses: [],
       alive: true,
+      revivesLeft: 0,
     };
   }
 
