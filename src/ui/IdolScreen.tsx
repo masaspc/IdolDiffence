@@ -27,6 +27,7 @@ import {
   unlockedIds,
 } from '../meta/progression';
 import { equippedCostume, mainValue, resolveCostumes } from '../meta/costumes';
+import { SECRET_STAR_GATE } from '../meta/secrets';
 import type { SaveData } from '../meta/save';
 import {
   affinityText,
@@ -73,6 +74,8 @@ function evolveHint(block: EvolveBlock, stageName: string, level: number): strin
 
 interface IdolScreenProps {
   save: SaveData;
+  /** 最初に開いておく人。隠しキャラの登場から飛んできたときに使う */
+  focusId?: string | null;
   onLevelUp: (idolId: string) => void;
   onEvolve: (idolId: string) => void;
   onBack: () => void;
@@ -95,12 +98,13 @@ function Block({ title, lines }: { title: string; lines: string[] }): React.JSX.
 
 export function IdolScreen({
   save,
+  focusId = null,
   onLevelUp,
   onEvolve,
   onBack,
 }: IdolScreenProps): React.JSX.Element {
   const roster = unlockedIds(save);
-  const [selected, setSelected] = useState(roster[0] ?? 'V1');
+  const [selected, setSelected] = useState(focusId ?? roster[0] ?? 'V1');
   const id = roster.includes(selected) ? selected : (roster[0] ?? 'V1');
 
   const def = getIdol(id);
@@ -123,7 +127,15 @@ export function IdolScreen({
     .map((slot) => ({ slot, costume: equippedCostume(save, id, slot) }))
     .filter((entry) => entry.costume !== null);
 
+  // 加入の経緯。隠しキャラは `idolUnlockStage` に載っていない（載せると
+  // 未解放のうちから条件が先出しされる）ので、ここで別に書く
   const gate = idolUnlockStage[id];
+  const starGate = SECRET_STAR_GATE[id];
+  const joinText = starGate
+    ? `（${getStage(starGate.stage).name} を ★${starGate.star} で勝ち、ツクヨミの外から接続してきた）`
+    : gate
+      ? `（${getStage(gate).name} をクリアして加入）`
+      : '（最初から使えます）';
 
   return (
     <div className="home idol-screen">
@@ -298,7 +310,7 @@ export function IdolScreen({
             <p className="detail-lead">
               資金でレベルを上げます。Lv{MAX_LEVEL} が上限で、攻撃力は 1 レベルごとに
               素の 6% ぶん増えます。
-              {gate ? `（${getStage(gate).name} をクリアして加入）` : '（最初から使えます）'}
+              {joinText}
             </p>
             <button
               type="button"

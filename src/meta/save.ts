@@ -13,7 +13,7 @@ import { seedFromString } from '../core/rng';
 import { DEFAULT_SETTINGS, settingsSchema } from './settings';
 
 export const SAVE_KEY = 'idoldiffence.save';
-export const CURRENT_VERSION = 8;
+export const CURRENT_VERSION = 9;
 
 /**
  * 生成された衣装 1 着（03-progression.md ⑨）。
@@ -94,6 +94,13 @@ export const saveSchema = z.object({
    * 条件を変えたときに古いセーブだけ食い違う
    */
   secrets: z.array(z.string()),
+  /**
+   * 「登場しました」と知らせ済みの隠しキャラ。
+   *
+   * 解放そのものは導けるが（`isSecretUnlocked`）、**知らせたかどうかは出来事**で、
+   * 進捗からは復元できない。持たないとホームを開くたびに同じ通知が出続ける
+   */
+  seenSecrets: z.array(z.string()),
   /** 設定（06-ui-ux.md 6.7 アクセシビリティ） */
   settings: settingsSchema,
   /**
@@ -156,6 +163,7 @@ export function createNewSave(rngState: number = DEFAULT_RNG_STATE): SaveData {
     totalExp: 0,
     songExp: {},
     secrets: [],
+    seenSecrets: [],
     settings: { ...DEFAULT_SETTINGS },
     stats: emptyStats(),
     claimedAchievements: [],
@@ -234,6 +242,17 @@ const migrations: Record<number, Migration> = {
     stats: emptyStats(),
     claimedAchievements: [],
     title: null,
+  }),
+  // v8 -> v9: 隠しキャラが腕前でも解放されるようになった（S5 を ★5 で勝つ）。
+  // 条件は `bestStar` から毎回導くので、**既存プレイヤーにも遡って適用される** ——
+  // すでに S5 を ★5 で勝っている人は、次にホームを開いた時点で登場する。
+  //
+  // 通知済みの一覧は、合言葉で開けていたぶんを「済み」として引き継ぐ。
+  // 自分で打って呼び出した人に、いまさら「登場しました」と出すのはおかしい
+  8: (old) => ({
+    ...old,
+    version: 9,
+    seenSecrets: [...((old.secrets ?? []) as string[])],
   }),
 };
 

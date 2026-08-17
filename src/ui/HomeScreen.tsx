@@ -18,6 +18,7 @@ import {
   pendingRewards,
 } from '../meta/achievements';
 import { canEvolve } from '../meta/evolution';
+import { unseenSecrets } from '../meta/secrets';
 import { canLevelUp, normalizeParty, unlockedIds } from '../meta/progression';
 import type { CostumeInstance, SaveData } from '../meta/save';
 
@@ -34,6 +35,8 @@ interface HomeScreenProps {
   onStart: (stageId: string, star: number) => void;
   /** 隠しキャラの合言葉が揃ったとき（`ui/useSecretCode.ts`） */
   onSecret: (idolId: string) => void;
+  /** 隠しキャラの登場を見せたあと。詳細を開き、二度と通知しない印を付ける */
+  onReveal: (idolId: string) => void;
   lastResult: {
     won: boolean;
     audience: number;
@@ -52,6 +55,7 @@ export function HomeScreen({
   onOpenIdols,
   onStart,
   onSecret,
+  onReveal,
   lastResult,
 }: HomeScreenProps): React.JSX.Element {
   const roster = unlockedIds(save);
@@ -66,6 +70,8 @@ export function HomeScreen({
   const pending = pendingRewards(save);
   const unlockedCount = achievementViews(save).filter((v) => v.unlocked).length;
   const totalAchievements = achievementIds.length;
+  // 解放しただけでは気づかれない。いちばん強い駒が黙って増えるのがいちばん惜しい
+  const revealed = unseenSecrets(save)[0] ?? null;
 
   return (
     <div className="home">
@@ -94,6 +100,18 @@ export function HomeScreen({
           ⚙
         </button>
       </header>
+
+      {revealed && (
+        <button type="button" className="secret-reveal" onClick={() => onReveal(revealed)}>
+          <span className="secret-reveal-tag">ツクヨミに接続してきた者がいる</span>
+          <strong className="secret-reveal-name">
+            {getIdol(revealed).name} が登場しました
+          </strong>
+          <span className="secret-reveal-hint">
+            タップして能力を見る（編成に入れられます）
+          </span>
+        </button>
+      )}
 
       {lastResult && (
         <div className={`last-result ${lastResult.won ? 'won' : 'lost'}`}>

@@ -6,6 +6,7 @@ import { getIdol, getStage, idolUnlockStage, PARTY_SIZE, rosterIds, SECRET_IDS }
 import { clampStar, MAX_STAR, starCoefficients } from '../sim/star';
 import { battleExp, songExp } from './rank';
 import { dropCount, grantDrops } from './costumes';
+import { isSecretUnlocked } from './secrets';
 import type { CostumeInstance, SaveData } from './save';
 
 /** M2 のレベル上限。設計上の最終は 60 だが、限界突破は M3 以降 */
@@ -56,8 +57,9 @@ export function isUnlocked(save: SaveData, idolId: string): boolean {
   // 手で書き換えたセーブや、キャラを削除した後の古いセーブがここを通ると、
   // 後段の getIdol() が例外を投げてゲームごと起動しなくなる
   if (!ROSTER.has(idolId)) return false;
-  // 隠しキャラはステージでは開かない。合言葉だけが鍵（`meta/secrets.ts`）
-  if (SECRETS.has(idolId)) return save.secrets.includes(idolId);
+  // 隠しキャラの鍵は合言葉と腕前の 2 つ。`idolUnlockStage` には載せない
+  // ―― 載せると育成画面に条件が先出しされ、隠れていることにならない（`meta/secrets.ts`）
+  if (SECRETS.has(idolId)) return isSecretUnlocked(save, idolId);
   const gate = idolUnlockStage[idolId];
   if (gate === null || gate === undefined) return true;
   return save.stageProgress[gate]?.cleared === true;
