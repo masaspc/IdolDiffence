@@ -9616,7 +9616,7 @@
       "2,8": "audience"
     },
     "song": "remember",
-    "hpMul": 95,
+    "hpMul": 120,
     "waves": [
       {
         "section": "intro",
@@ -13547,7 +13547,7 @@
       "2,7": "audience"
     },
     "song": "ex_otogibanashi",
-    "hpMul": 22,
+    "hpMul": 24,
     "modifiers": {
       "rangeMul": 0.9,
       "cheerGainMul": 0.85,
@@ -14220,7 +14220,7 @@
       "2,7": "audience"
     },
     "song": "ray_cpk",
-    "hpMul": 2.9,
+    "hpMul": 7.5,
     "boss": true,
     "waves": [
       {

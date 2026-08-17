@@ -249,6 +249,13 @@ export interface EnemyView {
   prevY: number;
   radius: number;
   hpRatio: number;
+  /**
+   * 残りバリアの割合（`traits.barrier`）。持たない敵は 0。
+   *
+   * HP バーだけだと、バリアを削っているあいだ**何も動かない**ように見える。
+   * 「集めて一気に割る」が効いていることを、その場で読めるようにする
+   */
+  barrierRatio: number;
   slowed: boolean;
   /** 魅了・スタンで足が止まっている */
   bound: boolean;
@@ -1095,7 +1102,9 @@ export class BattleWorld {
     // 吸われたぶんまで数えると、割れないバリアを叩き続けるのが最も稼げる手になる
     const amount = absorbByBarrier(enemy, result.amount);
     if (amount <= 0) {
-      if (showText) this.pushDamageText(enemy, result, 0);
+      // 吸われたぶんは**別枠で**出す。0 とだけ出すと、盾があと少しなのか
+      // 戻ったばかりなのかが読めず、「集めて割る」が効いていることが伝わらない
+      if (showText) this.pushDamageText(enemy, result, result.amount, true);
       return;
     }
     // 過剰キル分は数えない。硬い敵を溶かした最後の一撃だけが得をするのを避ける
@@ -1131,10 +1140,15 @@ export class BattleWorld {
   }
 
   /**
-   * ダメージ表示。**バリアに吸われたぶんは 0 として出す** ——
-   * 通っていない数字を出すと「削れているのに減らない」ように見える
+   * ダメージ表示。バリアに吸われたぶんは `absorbed` を立てて別の見た目で出す ——
+   * HP には通っていないので、素の色で出すと「削れているのに減らない」ように見える
    */
-  private pushDamageText(enemy: Enemy, result: DamageResult, amount: number): void {
+  private pushDamageText(
+    enemy: Enemy,
+    result: DamageResult,
+    amount: number,
+    absorbed = false,
+  ): void {
     this.floatingTexts.push({
       x: enemy.pos.x,
       y: enemy.pos.y,
@@ -1143,6 +1157,7 @@ export class BattleWorld {
       effectiveness: result.effectiveness,
       ageMs: 0,
       lifeMs: FLOATING_TEXT_LIFE_MS,
+      ...(absorbed ? { absorbed: true } : {}),
     });
   }
 
@@ -1719,6 +1734,7 @@ export class BattleWorld {
         prevY: e.prevPos.y,
         radius: e.radius,
         hpRatio: Math.max(0, e.hp / e.maxHp),
+        barrierRatio: maxBarrier(e) > 0 ? Math.max(0, e.barrier / maxBarrier(e)) : 0,
         slowed: e.statuses.some((s) => s.kind === 'slow'),
         bound: isImmobilized(e.statuses),
         echo: echoStacks(e.statuses),

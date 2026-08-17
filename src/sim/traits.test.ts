@@ -477,6 +477,67 @@ describe('月の都の門番のバリア（barrier）', () => {
     expect(enemy.barrier).toBeLessThan(maxBarrier(enemy));
   });
 
+  it('割ったあとも撃ち続けていれば戻らない', () => {
+    // 猶予を「バリアを削っているあいだだけ」止めると、割ってから HP を
+    // 殴っている最中に盾が丸ごと戻る。**割ってから削り切る**が成立しなくなる
+    const enemy = spawnDummy(richWorld('S6'), 'e_monban', 5, 4);
+    absorbByBarrier(enemy, enemy.barrier); // 割り切る
+    expect(enemy.barrier).toBe(0);
+
+    for (let i = 0; i < 10; i++) {
+      expect(absorbByBarrier(enemy, 100)).toBe(100); // HP へ素通し
+      tickBarrier(enemy, 1000);
+    }
+    expect(enemy.barrier).toBe(0);
+  });
+
+  it('盤面でも、割ったあと殴り続けていれば戻らない', () => {
+    const world = richWorld('S6');
+    const unit = world.placeUnit('V1', 5, 2);
+    if (typeof unit === 'string') throw new Error(unit);
+    const enemy = spawnDummy(world, 'e_monban', 5.5, 3.0);
+    enemy.barrier = 1; // すぐ割れる状態から始める
+
+    runHeadless(6000, (dt) => world.update(dt));
+    expect(enemy.hp).toBeLessThan(enemy.maxHp); // ちゃんと削れている
+    expect(enemy.barrier).toBe(0);
+  });
+
+  it('残りバリアが盤面から読める（HP バーだけだと何も動かない）', () => {
+    const world = richWorld('S6');
+    const enemy = spawnDummy(world, 'e_monban', 5, 4);
+    const ratio = (): number =>
+      world.snapshot().enemies.find((e) => e.id === enemy.id)?.barrierRatio ?? -1;
+    expect(ratio()).toBeCloseTo(1, 5);
+
+    absorbByBarrier(enemy, maxBarrier(enemy) * 0.5);
+    expect(ratio()).toBeCloseTo(0.5, 5);
+
+    // バリアを持たない敵は 0（帯を出さない）
+    const walker = spawnDummy(world, 'e_walker', 6, 4);
+    expect(world.snapshot().enemies.find((e) => e.id === walker.id)?.barrierRatio).toBe(0);
+  });
+
+  it('吸われたぶんは別枠の表示になる（0 とだけ出さない）', () => {
+    // 0 だけだと「盾があと少し」なのか「戻ったばかり」なのかが読めない
+    const world = richWorld('S6');
+    const unit = world.placeUnit('V1', 5, 2);
+    if (typeof unit === 'string') throw new Error(unit);
+    const enemy = spawnDummy(world, 'e_monban', 5.5, 3.0);
+    enemy.barrier = 1e9;
+
+    // 表示は 700ms で消えるので、1 発当たったところで覗く
+    const seen: number[] = [];
+    runHeadless(3000, (dt) => {
+      world.update(dt);
+      for (const text of world.snapshot().floatingTexts) {
+        if (text.absorbed) seen.push(text.amount);
+      }
+    });
+    expect(seen.length).toBeGreaterThan(0);
+    for (const amount of seen) expect(amount).toBeGreaterThan(0);
+  });
+
   it('吸われたぶんは貢献度にも月華にも数えない', () => {
     // 数えてしまうと、**割れないバリアを叩き続けるのが最も稼げる手**になり、
     // 「守りを剥がしてから殴る」という問いが逆立ちする

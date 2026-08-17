@@ -102,11 +102,17 @@ export function tickBarrier(enemy: Enemy, dtMs: number): void {
 
 /**
  * バリアで受け止める。
+ *
+ * 猶予は**当たっているあいだ**進まない —— 割り切ったあとも同じ。
+ * 「バリアを削っているあいだだけ」にすると、割ってから HP を殴り続けている最中に
+ * 盾が丸ごと戻ってきて、「集めて一気に割ってから削り切る」という答えが成立しない。
+ *
  * @returns HP へ通すぶんのダメージ
  */
 export function absorbByBarrier(enemy: Enemy, amount: number): number {
-  if (enemy.barrier <= 0) return amount;
+  if (!enemy.traits.barrier) return amount;
   enemy.barrierIdleMs = 0;
+  if (enemy.barrier <= 0) return amount;
   const absorbed = Math.min(enemy.barrier, amount);
   enemy.barrier -= absorbed;
   return amount - absorbed;
@@ -249,6 +255,14 @@ export interface FloatingText {
   effectiveness: Effectiveness;
   ageMs: number;
   lifeMs: number;
+  /**
+   * バリアに吸われたぶん（`traits.barrier`）。HP には通っていない。
+   *
+   * 通っていない数字を素の色で出すと「削れているのに減らない」に見え、
+   * かといって 0 とだけ出すと**盾があと少しなのか戻ったばかりなのか**が分からない。
+   * 別枠にして、削れていること自体は見せる
+   */
+  absorbed?: boolean;
 }
 
 /** 減速は最大値のみ適用（重複しない） */
