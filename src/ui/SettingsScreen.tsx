@@ -131,6 +131,29 @@ export function SettingsScreen({
         キーボードだけでも遊べます。数字キーで配置メンバーを選び、Q で月華の解放、
         P で一時停止、Tab で速度、Space でコール。
       </p>
+
+      {/*
+        原作との関係をはっきりさせる場所。**ここが無いと楽曲名が誤解される。**
+        ステージに出る曲名は原作の劇中歌そのものだが、鳴っている音は本作が
+        合成した別物なので、その 1 点だけは必ず読める場所に置く
+      */}
+      <section className="party-summary">
+        <h2>この作品について</h2>
+        <p className="settings-note">
+          Netflix 映画『超かぐや姫！』の<strong>非公式ファン制作</strong>です。
+          権利は原作の権利者に帰属します。
+        </p>
+        <p className="settings-note">
+          ステージの楽曲名は<strong>原作の劇中歌</strong>で、作曲者と歌唱もそのクレジットです。
+          <strong>このゲームに音声はまだありません。</strong>
+          今後 BGM を鳴らす場合も本作が合成したオリジナルで、
+          <strong>原作の音源は使いません</strong>。原作の曲は Netflix と各配信サービスでお聴きください。
+        </p>
+        <p className="settings-note">
+          ステージ・敵・数値・ドット絵は本作が作ったものです。
+          S11 以降の敵は『竹取物語』の登場人物で、こちらは古典です。
+        </p>
+      </section>
     </div>
   );
 }

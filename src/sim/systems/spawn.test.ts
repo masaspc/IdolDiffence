@@ -6,7 +6,7 @@ import type { Song } from '../../data/schema/song';
 import { songSchema } from '../../data/schema/song';
 
 const song = (bpm: number): Song =>
-  songSchema.parse({ name: 'test', bpm, beatsPerBar: 4, tempoBase: 132 });
+  songSchema.parse({ name: 'test', writer: 'test', singer: 'test', bpm, beatsPerBar: 4, tempoBase: 132 });
 
 const stage = (): Stage =>
   stageSchema.parse({

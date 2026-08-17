@@ -1,50 +1,58 @@
 {
-  "kaguya_rising": {
-    "name": "カグヤ・ライジング",
+  "reply": {
+    "name": "Reply",
     "bpm": 132,
     "beatsPerBar": 4,
-    "tempoBase": 132
+    "tempoBase": 132,
+    "writer": "kz (livetune)",
+    "singer": "かぐや"
   },
-  "neon_horai": {
-    "name": "ネオン蓬莱",
+  "ray_cpk": {
+    "name": "ray 超かぐや姫！Version",
     "bpm": 148,
     "beatsPerBar": 4,
-    "tempoBase": 132
+    "tempoBase": 132,
+    "writer": "BUMP OF CHICKEN",
+    "singer": "かぐや & ヤチヨ"
   },
-  "gekko_silence": {
-    "name": "月光サイレンス",
+  "hoshifuru_umi": {
+    "name": "星降る海",
     "bpm": 118,
     "beatsPerBar": 4,
-    "tempoBase": 132
+    "tempoBase": 132,
+    "writer": "Aqu3ra",
+    "singer": "ヤチヨ"
   },
-  "hinezumi_overdrive": {
-    "name": "火鼠オーバードライヴ",
+  "shunkan": {
+    "name": "瞬間、シンフォニー。",
     "bpm": 172,
     "beatsPerBar": 4,
-    "tempoBase": 132
+    "tempoBase": 132,
+    "writer": "40mP",
+    "singer": "かぐや"
   },
-  "hagoromo_encore": {
-    "name": "羽衣アンコール",
+  "watashi_wa": {
+    "name": "私は、わたしの事が好き。",
     "bpm": 140,
     "beatsPerBar": 4,
-    "tempoBase": 132
+    "tempoBase": 132,
+    "writer": "HoneyWorks",
+    "singer": "かぐや"
   },
-  "gonan_five": {
-    "name": "五つの難題",
+  "remember": {
+    "name": "Remember",
     "bpm": 156,
     "beatsPerBar": 4,
-    "tempoBase": 132
+    "tempoBase": 132,
+    "writer": "yuigot",
+    "singer": "ヤチヨ"
   },
-  "tennin_waltz": {
-    "name": "天人ワルツ",
-    "bpm": 126,
-    "beatsPerBar": 4,
-    "tempoBase": 132
-  },
-  "tsuki_capital": {
-    "name": "月の都",
+  "ex_otogibanashi": {
+    "name": "Ex-Otogibanashi",
     "bpm": 144,
     "beatsPerBar": 4,
-    "tempoBase": 132
+    "tempoBase": 132,
+    "writer": "ryo (supercell)",
+    "singer": "かぐや & ヤチヨ"
   }
 }

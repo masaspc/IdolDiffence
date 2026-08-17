@@ -1,8 +1,8 @@
 {
   "first_live": {
-    "name": "はじめてのライブ",
+    "name": "はじめての配信",
     "desc": "ステージを 1 つクリアする",
-    "title": "新人プロデューサー",
+    "title": "新人ライバー",
     "stat": "clearedStages",
     "goal": 1,
     "points": 1,
@@ -11,16 +11,16 @@
   "five_stages": {
     "name": "軌道に乗る",
     "desc": "ステージを 5 つクリアする",
-    "title": "売り出し中",
+    "title": "ツクヨミの新星",
     "stat": "clearedStages",
     "goal": 5,
     "points": 1,
     "funds": 2000
   },
   "all_main": {
-    "name": "本編制覇",
+    "name": "天守まで登る",
     "desc": "本編ステージ 20 すべてをクリアする（ボスを除く）",
-    "title": "ツクヨミの顔",
+    "title": "ヤチヨ城の常連",
     "stat": "clearedMainStages",
     "goal": 20,
     "points": 3,
@@ -29,16 +29,16 @@
   "all_stages": {
     "name": "全ステージ制覇",
     "desc": "ボスを含む 23 ステージすべてをクリアする",
-    "title": "満月の演出家",
+    "title": "八百万の頂",
     "stat": "clearedStages",
     "goal": 23,
     "points": 5,
     "funds": 50000
   },
   "first_boss": {
-    "name": "ボス初撃破",
+    "name": "なりすまし退治",
     "desc": "ボスステージを 1 つクリアする",
-    "title": "なりすまし退治",
+    "title": "本物はこっち",
     "stat": "bossStages",
     "goal": 1,
     "points": 2,
@@ -55,7 +55,7 @@
   },
   "first_perfect": {
     "name": "満員御礼",
-    "desc": "観客 100 でライブを完走する",
+    "desc": "観客 100 でライブを完走する（子ウサギが満席）",
     "title": "満員御礼",
     "stat": "perfectStages",
     "goal": 1,
@@ -92,7 +92,7 @@
   "star10": {
     "name": "極限",
     "desc": "どこかのステージで ★10 をクリアする",
-    "title": "極限のプロデューサー",
+    "title": "極限のライバー",
     "stat": "maxStar",
     "goal": 10,
     "points": 6,
@@ -101,7 +101,7 @@
   "star_grind": {
     "name": "周回の果て",
     "desc": "全ステージの★を合計 120 まで積む",
-    "title": "周回巧者",
+    "title": "八千年ぶんの練習",
     "stat": "starTotal",
     "goal": 120,
     "points": 4,
@@ -119,7 +119,7 @@
   "rank30": {
     "name": "ベテラン",
     "desc": "プロデューサーランク 30 に到達する",
-    "title": "ベテラン",
+    "title": "ツクヨミの顔",
     "stat": "rank",
     "goal": 30,
     "points": 3,
@@ -128,7 +128,7 @@
   "rank50": {
     "name": "頂点",
     "desc": "プロデューサーランク 50 に到達する",
-    "title": "殿堂入り",
+    "title": "トップライバー",
     "stat": "rank",
     "goal": 50,
     "points": 6,
@@ -146,7 +146,7 @@
   "full_roster": {
     "name": "全員集合",
     "desc": "原作の 12 人すべてを仲間にする",
-    "title": "全員集合",
+    "title": "ヤオヨロー！",
     "stat": "roster",
     "goal": 12,
     "points": 3,

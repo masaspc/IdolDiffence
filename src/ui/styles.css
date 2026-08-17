@@ -992,6 +992,15 @@ kbd {
   font-weight: bold;
 }
 
+/* 原作へのクレジット。曲名のすぐ下に小さく添える */
+.stage-credit {
+  display: block;
+  margin-top: 0.15rem;
+  font-size: 0.7rem;
+  color: var(--text-dim);
+  letter-spacing: 0.02em;
+}
+
 .stage-gimmick {
   font-size: 0.72rem;
   color: #8fd7ff;
