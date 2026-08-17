@@ -17,55 +17,20 @@ import {
   activeTitle,
   pendingRewards,
 } from '../meta/achievements';
-import {
-  canEvolve,
-  evolutionOf,
-  evolveBlocker,
-  isEvolved,
-  type EvolveBlock,
-} from '../meta/evolution';
-import {
-  canLevelUp,
-  idolLevel,
-  levelAtkMultiplier,
-  levelUpCost,
-  MAX_LEVEL,
-  normalizeParty,
-  unlockedIds,
-} from '../meta/progression';
+import { canEvolve } from '../meta/evolution';
+import { canLevelUp, normalizeParty, unlockedIds } from '../meta/progression';
 import type { CostumeInstance, SaveData } from '../meta/save';
 
 const TYPE_ICON: Record<string, string> = { vocal: '♪', dance: '★', visual: '♥' };
-const TYPE_LABEL: Record<string, string> = { vocal: '歌', dance: 'ダンス', visual: 'ヴィジュアル' };
-
-/**
- * 進化できない理由の文言。
- *
- * 「解放できません」だけだと、レベルを上げればいいのか資金を貯めればいいのかが
- * 分からず、ホームで手が止まる。**次に何をすればいいか**を必ず書く。
- */
-function evolveHint(block: EvolveBlock, stageName: string, level: number): string {
-  switch (block) {
-    case 'stage':
-      return `${stageName} をクリアすると解放`;
-    case 'level':
-      return `Lv${level} まで育てると解放`;
-    case 'funds':
-      return '資金が足りません';
-    default:
-      return '解放できません';
-  }
-}
 
 interface HomeScreenProps {
   save: SaveData;
-  onLevelUp: (idolId: string) => void;
-  onEvolve: (idolId: string) => void;
   onOpenParty: () => void;
   onOpenTalents: () => void;
   onOpenCostumes: () => void;
   onOpenSettings: () => void;
   onOpenAchievements: () => void;
+  onOpenIdols: () => void;
   onStart: (stageId: string, star: number) => void;
   /** 隠しキャラの合言葉が揃ったとき（`ui/useSecretCode.ts`） */
   onSecret: (idolId: string) => void;
@@ -79,13 +44,12 @@ interface HomeScreenProps {
 
 export function HomeScreen({
   save,
-  onLevelUp,
-  onEvolve,
   onOpenParty,
   onOpenTalents,
   onOpenCostumes,
   onOpenSettings,
   onOpenAchievements,
+  onOpenIdols,
   onStart,
   onSecret,
   lastResult,
@@ -202,90 +166,18 @@ export function HomeScreen({
         </button>
       </section>
 
-      <section className="roster">
+      <section className="party-summary">
         <h2>
-          レッスン
+          育成
           {upgradable > 0 && <span className="badge">{upgradable}</span>}
         </h2>
-        <div className="roster-list">
-          {roster.map((id) => {
-            const idol = getIdol(id);
-            const level = idolLevel(save, id);
-            const maxed = level >= MAX_LEVEL;
-            const cost = levelUpCost(level);
-            const affordable = canLevelUp(save, id);
-            const evolution = evolutionOf(id);
-            const evolved = isEvolved(save, id);
-            // 盤面では進化ぶんの倍率も乗る。ここで隠すと
-            // 「解放したのに数字が変わらない」ように見える
-            const evoMul = evolved && evolution ? evolution.atkMul : 1;
-            const atk = Math.round(idol.base.atk * levelAtkMultiplier(level) * evoMul);
-            const nextAtk = Math.round(idol.base.atk * levelAtkMultiplier(level + 1) * evoMul);
-            const block = evolution ? evolveBlocker(save, id) : 'no-evolution';
-
-            return (
-              <article key={id} className={`roster-card type-${idol.type}${evolved ? ' is-evolved' : ''}`}>
-                <div className="roster-head">
-                  <span className="roster-icon">{TYPE_ICON[idol.type]}</span>
-                  <div>
-                    <strong>{evolved && evolution ? evolution.name : idol.name}</strong>
-                    <span className="roster-type">{TYPE_LABEL[idol.type]}</span>
-                  </div>
-                  <span className="roster-level">Lv{level}</span>
-                </div>
-
-                <dl className="roster-stats">
-                  <div>
-                    <dt>攻撃力</dt>
-                    <dd>
-                      {atk}
-                      {!maxed && <span className="delta"> → {nextAtk}</span>}
-                    </dd>
-                  </div>
-                  <div>
-                    <dt>配置コスト</dt>
-                    <dd>♥{idol.cost}</dd>
-                  </div>
-                </dl>
-
-                <button
-                  type="button"
-                  className="lesson"
-                  disabled={maxed || !affordable}
-                  onClick={() => onLevelUp(id)}
-                >
-                  {maxed ? 'レベル上限' : `レッスン（¥${cost.toLocaleString()}）`}
-                </button>
-
-                {evolution && (
-                  <div className="evolve">
-                    <p className="evolve-name">
-                      ✦ {evolution.name}
-                      {evolved && <span className="evolve-done">解放済み</span>}
-                    </p>
-                    <p className="evolve-desc">{evolution.desc}</p>
-                    {!evolved && (
-                      <button
-                        type="button"
-                        className="lesson evolve-button"
-                        disabled={block !== null}
-                        onClick={() => onEvolve(id)}
-                      >
-                        {block === null
-                          ? `進化（¥${evolution.cost.toLocaleString()}）`
-                          : evolveHint(
-                              block,
-                              getStage(evolution.requires.stage).name,
-                              evolution.requires.level,
-                            )}
-                      </button>
-                    )}
-                  </div>
-                )}
-              </article>
-            );
-          })}
-        </div>
+        <button type="button" className="party-open" onClick={onOpenIdols}>
+          <span className="party-hint">
+            {upgradable > 0
+              ? `レッスンか進化ができるメンバーが ${upgradable} 人います`
+              : 'レベルを上げる・進化させる・能力の詳細を読む'}
+          </span>
+        </button>
       </section>
 
       <section className="stage-select">

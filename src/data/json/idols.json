@@ -265,7 +265,7 @@
     "evolution": {
       "name": "酒寄 彩葉（Ray）",
       "shortName": "彩葉Ray",
-      "desc": "「ray」を仕上げたプロデューサーが前へ出る。同時に 4 体まで捌き、飛ぶ相手にも届く",
+      "desc": "「ray」を仕上げたプロデューサーが前へ出る。飛ぶ相手にも届き、守りを抜く",
       "requires": {
         "stage": "S5",
         "level": 15
@@ -274,9 +274,10 @@
       "atkMul": 2.8,
       "rangeMul": 1.5,
       "mods": {
-        "multiTarget": 4,
+        "multiTarget": 2,
         "critRateAdd": 0.2,
-        "grantFlying": true
+        "grantFlying": true,
+        "defIgnoreAdd": 0.3
       },
       "art": {
         "hairStyle": "bob",
@@ -487,7 +488,7 @@
     "evolution": {
       "name": "月見 ヤチヨ（Ray）",
       "shortName": "ヤチヨRay",
-      "desc": "「ray」をかぐやと二人で歌う。足止めがひときわ強くなり、範囲ごと止めて守りを貫く",
+      "desc": "「ray」をかぐやと二人で歌う。手数が増え、守りを貫き、覚醒の効きも大きくなる",
       "requires": {
         "stage": "S5",
         "level": 15
@@ -496,9 +497,8 @@
       "atkMul": 3.2,
       "rangeMul": 1.45,
       "mods": {
-        "slowValue": 0.6,
-        "toAoe": 1.6,
-        "radiusMul": 1.3,
+        "attackIntervalMul": 0.82,
+        "radiusMul": 1.4,
         "critRateAdd": 0.12,
         "defIgnoreAdd": 0.4
       },

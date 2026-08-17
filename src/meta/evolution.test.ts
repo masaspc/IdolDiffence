@@ -98,14 +98,41 @@ describe('データ', () => {
     // かぐや: 声の輪が広がり、守りを抜く
     expect(kaguya?.radiusMul).toBeGreaterThan(1.5);
     expect(kaguya?.defIgnoreAdd).toBeGreaterThan(0);
-    // 彩葉: 同時に捌き、**ダンスの原則（対空不可）を越える**
-    expect(ayaha?.multiTarget).toBeGreaterThanOrEqual(4);
+    // 彩葉: **ダンスの原則（対空不可）を越える**
     expect(ayaha?.grantFlying).toBe(true);
     expect(getIdol('D1').attack.canHitFlying, '素の彩葉は対空できない前提').toBe(false);
-    // ヤチヨ: 単体だったものが範囲になり、止める力が跳ね上がる
-    expect(yachiyo?.toAoe).toBeGreaterThan(0);
-    expect(getIdol('Vi1').attack.kind, '素のヤチヨは単体').toBe('single');
-    expect(yachiyo?.slowValue).toBeGreaterThan(0.5);
+    // ヤチヨ: 手数が増え、守りを貫く
+    expect(yachiyo?.attackIntervalMul).toBeLessThan(1);
+    expect(yachiyo?.defIgnoreAdd).toBeGreaterThan(0);
+  });
+
+  /**
+   * 「いちばん大きい枝が勝つ」器（03-progression.md ⑦-2 実装メモ）。
+   * ここへ進化が大きい値を置くと、覚醒 A/B のどちらを選んでも結果が同じになる
+   */
+  const WINNER_TAKES_ALL = ['toAoe', 'slowValue', 'multiTarget'] as const;
+
+  it('進化が覚醒の選択を潰さない', () => {
+    // 進化を強くしたときに真っ先に壊れる。**覚醒が持っている軸には
+    // 進化から手を出さない**（出すなら覚醒側が必ず上回るようにする）
+    for (const id of STARTER_IDS) {
+      const evolution = evolutionOf(id);
+      const awakening = getIdol(id).awakening;
+      if (!evolution || !awakening) continue;
+
+      for (const key of WINNER_TAKES_ALL) {
+        const fromEvolution = evolution.mods[key];
+        if (fromEvolution === undefined) continue;
+        for (const branch of [awakening.A, awakening.B]) {
+          const fromBranch = branch.mods[key];
+          if (fromBranch === undefined) continue;
+          expect(
+            fromBranch,
+            `${id} の覚醒「${branch.name}」の ${key} が進化に負けていて、選ぶ意味が無い`,
+          ).toBeGreaterThan(fromEvolution);
+        }
+      }
+    }
   });
 
   it('3 人の伸び幅がそろっている（1 人だけ桁が違わない）', () => {
@@ -237,28 +264,44 @@ describe('盤面への反映', () => {
     const unit = world.placeUnit('D1', 4, 6);
     if (typeof unit === 'string') throw new Error(unit);
 
-    // D1 の進化は multiTarget 4、覚醒 A「乱舞」は 3。**強い方が残る**。
-    // 底上げで進化が覚醒を上回ったので、ここは「覚醒を選んでも下がらない」
-    // ことの確認になった（弱い方で上書きされていないか）
-    expect(unit.attack.multiTarget).toBe(4);
+    // D1 の進化は multiTarget 2、覚醒 A「乱舞」は 3。**強い方が残る**ので、
+    // 覚醒を選ぶと 2 → 3 へ伸びる。進化が 3 以上を持っていると
+    // ここが動かなくなり、Lv3 の選択そのものが消える
+    expect(unit.attack.multiTarget).toBe(2);
     for (let level = 1; level < 3; level++) expect(world.upgradeUnit(unit.id)).toBeNull();
     expect(world.chooseAwakening(unit.id, 'A')).toBe(true);
-    expect(unit.attack.multiTarget).toBe(4);
-    // 覚醒 B「一閃」のクリ率は進化のぶんと**足し合わさる**（別の器）
-    expect(unit.critRate).toBeGreaterThan(getIdol('D1').base.critRate);
+    expect(unit.attack.multiTarget).toBe(3);
+  });
+
+  it('進化していても覚醒 B は別の器で足し合わさる', () => {
+    // 一閃はクリ率。進化のクリ率と**加算**されるので、勝ち抜きにならない
+    const world = createWorld('S1', 1, { party: ['D1'], center: 'D1', evolved: ['D1'] });
+    world.addCheer(20_000);
+    const unit = world.placeUnit('D1', 4, 6);
+    if (typeof unit === 'string') throw new Error(unit);
+    const beforeAwaken = unit.critRate;
+    for (let level = 1; level < 3; level++) expect(world.upgradeUnit(unit.id)).toBeNull();
+    expect(world.chooseAwakening(unit.id, 'B')).toBe(true);
+    expect(unit.critRate).toBeGreaterThan(beforeAwaken);
   });
 
   it('進化しても基本の命中時効果は消えない', () => {
     // 進化を覚醒と同じ枝として扱っているので、onHit を持たせると
     // 基本の効果を「置き換え」てしまう。Vi1 の減速が残ることを確かめる
     const world = createWorld('S1', 1, { party: ['Vi1'], center: 'Vi1', evolved: ['Vi1'] });
-    world.addCheer(5000);
+    world.addCheer(20_000);
     const unit = world.placeUnit('Vi1', 4, 6);
     if (typeof unit === 'string') throw new Error(unit);
     const slow = unit.attack.onHit.find((h) => h.status === 'slow');
     expect(slow).toBeDefined();
-    // 進化で減速が 0.25 -> 0.35 に強まる
-    expect(slow!.value).toBeGreaterThan(0.3);
+    expect(slow!.value).toBeCloseTo(getIdol('Vi1').attack.onHit[0]!.value, 5);
+
+    // 減速を強めるのは覚醒 B「モデレート」の役目。
+    // 進化がそこへ手を出すと、B を選ぶ意味が無くなる
+    for (let level = 1; level < 3; level++) expect(world.upgradeUnit(unit.id)).toBeNull();
+    expect(world.chooseAwakening(unit.id, 'B')).toBe(true);
+    const stronger = unit.attack.onHit.find((h) => h.status === 'slow');
+    expect(stronger!.value).toBeGreaterThan(slow!.value);
   });
 
   it('進化していても canEvolve は編成や解放を無視しない', () => {

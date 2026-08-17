@@ -5,6 +5,7 @@ import { TalentScreen } from './TalentScreen';
 import { CostumeScreen } from './CostumeScreen';
 import { SettingsScreen } from './SettingsScreen';
 import { AchievementScreen } from './AchievementScreen';
+import { IdolScreen } from './IdolScreen';
 import { BattleScreen } from './BattleScreen';
 import {
   applyReward,
@@ -41,7 +42,15 @@ import {
 import type { CostumeSlot } from '../data/schema/costume';
 import type { BattleMeta } from '../sim/world';
 
-type Screen = 'home' | 'party' | 'talents' | 'costumes' | 'settings' | 'achievements' | 'battle';
+type Screen =
+  | 'home'
+  | 'party'
+  | 'idols'
+  | 'talents'
+  | 'costumes'
+  | 'settings'
+  | 'achievements'
+  | 'battle';
 
 export function App(): React.JSX.Element {
   const [save, setSave] = useState<SaveData>(() => {
@@ -185,6 +194,17 @@ export function App(): React.JSX.Element {
     );
   }
 
+  if (screen === 'idols') {
+    return (
+      <IdolScreen
+        save={save}
+        onLevelUp={handleLevelUp}
+        onEvolve={handleEvolve}
+        onBack={() => setScreen('home')}
+      />
+    );
+  }
+
   if (screen === 'party') {
     return (
       <PartyScreen
@@ -200,14 +220,13 @@ export function App(): React.JSX.Element {
     <HomeScreen
       save={save}
       lastResult={lastResult}
-      onLevelUp={handleLevelUp}
       onSecret={(idolId) => setSave((current) => unlockSecret(current, idolId))}
-      onEvolve={handleEvolve}
       onOpenParty={() => setScreen('party')}
       onOpenTalents={() => setScreen('talents')}
       onOpenCostumes={() => setScreen('costumes')}
       onOpenSettings={() => setScreen('settings')}
       onOpenAchievements={() => setScreen('achievements')}
+      onOpenIdols={() => setScreen('idols')}
       onStart={(id, star) => {
         setStageId(id);
         setLastResult(null);
