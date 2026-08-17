@@ -14,6 +14,15 @@ import { GeneratedSprites, SPRITE_DRAW_SIZE, type SpriteProvider } from './sprit
 import { enemyDrawSize, GeneratedEnemySprites } from './enemySprites';
 import { allowsFloatingText, flashAmount, type EffectLevel } from '../meta/settings';
 import { CUTIN_STYLES, CutInQueue, type CutIn } from './cutin';
+import {
+  drawBallSparkle,
+  drawDrifters,
+  drawMirrorBall,
+  drawMoon,
+  drawWater,
+  skyDrifters,
+} from './sky';
+import { chapterIndexOf } from '../data';
 
 /** 論理解像度。1 マス = 64px、16×9 マスで 1024×576 */
 export const CELL_SIZE = 64;
@@ -57,6 +66,13 @@ export class Renderer {
   private specialAgeMs: number | null = null;
   /** カットイン（月華・ソロ・ボス・フェーズ・危機）。閃光とは別枠で数える */
   private readonly cutIns = new CutInQueue();
+  /**
+   * 空の飾り（ツクヨミの魚群・飛行船・蒸気機関車）。
+   * sim 時刻ではなく**実時間**で流す —— 一時停止で空まで止まると、
+   * 画面が死んだように見える
+   */
+  private skyTimeMs = 0;
+  private readonly drifters: ReturnType<typeof skyDrifters>;
 
   constructor(
     private readonly canvas: HTMLCanvasElement,
@@ -79,6 +95,7 @@ export class Renderer {
     const ctx = canvas.getContext('2d', { alpha: false });
     if (!ctx) throw new Error('2D コンテキストを取得できませんでした');
     this.ctx = ctx;
+    this.drifters = skyDrifters(world.stageId);
   }
 
   get logicalWidth(): number {
@@ -190,6 +207,7 @@ export class Renderer {
     }
 
     this.drawStaticLayer(ctx);
+    drawDrifters(ctx, this.logicalWidth, this.logicalHeight, this.drifters, this.skyTimeMs);
     this.drawBeatPulse(ctx);
     this.drawGoalGlow(ctx);
     this.drawHover(ctx, hover, snapshot);
@@ -212,6 +230,7 @@ export class Renderer {
       if (this.specialAgeMs > SPECIAL_EFFECT_MS) this.specialAgeMs = null;
     }
     this.cutIns.advance(deltaMs, this.effects);
+    this.skyTimeMs += deltaMs;
   }
 
   /**
@@ -394,7 +413,13 @@ export class Renderer {
     if (!ctx) throw new Error('静的レイヤの 2D コンテキストを取得できませんでした');
 
     this.drawBackground(ctx);
-    this.drawMoon(ctx);
+    // ヤチヨのライブは一面が水。背景に重ねるだけで、盤面の描き方は変えない
+    if (this.world.stage.scenery === 'water') {
+      drawWater(ctx, this.logicalWidth, this.logicalHeight);
+    }
+    // ツクヨミの空にあるのはミラーボール。本物の月は章が進むと昇る（sky.ts）
+    drawMoon(ctx, this.logicalWidth, this.logicalHeight, chapterIndexOf(this.world.stageId));
+    drawMirrorBall(ctx, this.logicalWidth, this.logicalHeight);
     this.drawGrid(ctx);
     this.drawLanes(ctx);
     this.drawPlaceableCells(ctx);
@@ -407,29 +432,6 @@ export class Renderer {
     gradient.addColorStop(1, palette.bgBottom);
     ctx.fillStyle = gradient;
     ctx.fillRect(0, 0, this.logicalWidth, this.logicalHeight);
-  }
-
-  /**
-   * 背景の月。ステージが進むほど大きくなり、迫る帰還の期限を言葉なしで伝える
-   * （docs/design/04-content.md 4.6）。S1 は小さめ。
-   */
-  private drawMoon(ctx: CanvasRenderingContext2D): void {
-    const cx = this.logicalWidth * 0.72;
-    const cy = this.logicalHeight * 0.17;
-    const r = this.logicalHeight * 0.11;
-
-    const glow = ctx.createRadialGradient(cx, cy, r * 0.6, cx, cy, r * 3);
-    glow.addColorStop(0, 'rgba(232, 241, 255, 0.22)');
-    glow.addColorStop(1, 'rgba(232, 241, 255, 0)');
-    ctx.fillStyle = glow;
-    ctx.beginPath();
-    ctx.arc(cx, cy, r * 3, 0, Math.PI * 2);
-    ctx.fill();
-
-    ctx.fillStyle = palette.moonLow;
-    ctx.beginPath();
-    ctx.arc(cx, cy, r, 0, Math.PI * 2);
-    ctx.fill();
   }
 
   private drawGrid(ctx: CanvasRenderingContext2D): void {
@@ -512,6 +514,8 @@ export class Renderer {
     if (pulse <= 0.01) return;
 
     const isDownbeat = Math.floor(this.world.clock.absoluteBeat) % beatsPerBar === 0;
+    // 空のミラーボールも一緒に光る。盤面と空が同じ会場に見える
+    drawBallSparkle(ctx, this.logicalWidth, this.logicalHeight, pulse * (isDownbeat ? 1 : 0.45));
     const pad = 6;
 
     ctx.save();

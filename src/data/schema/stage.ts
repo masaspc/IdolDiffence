@@ -65,6 +65,14 @@ export const stageSchema = z.object({
       note: z.string().optional(),
     })
     .default({}),
+  /**
+   * 会場の見た目（04-content.md 4.0）。既定は常夜の街。
+   *
+   * `water` は**ステージが一面水で覆われ、観客が海の中にいるような空間** ——
+   * 原作でヤチヨのライブが描かれるときの形。盤面の読みやすさは変えず、
+   * 背景の色と波紋だけを差し替える
+   */
+  scenery: z.enum(['street', 'water']).default('street'),
   /** ボスステージか。ステージ選択で別枠に出す */
   boss: z.boolean().default(false),
   waves: z.array(waveSchema).min(1),

@@ -268,10 +268,22 @@ export function requiredStage(stageId: string): string | null {
  * 区切りは `stageOrder` から**切り出す**ので、並びと二重管理にならない。
  */
 export const chapters: readonly { name: string; lead: string; stages: readonly string[] }[] = [
-  { name: '第 1 章 ツクヨミ', lead: '麓の路地裏からヤチヨ城の天守まで', stages: stageOrder.slice(0, 12) },
+  // 「ヤチヨカップ」は原作の呼称。1 か月でいちばん新規ファンを獲得したライバーが
+  // ヤチヨとのコラボライブの権利を得る大会で、かぐやはこれでデビューする
+  {
+    name: '第 1 章 ヤチヨカップ',
+    lead: 'いちばんファンを集めた人が、ヤチヨとコラボライブ',
+    stages: stageOrder.slice(0, 12),
+  },
   { name: '第 2 章 月の都', lead: '竹取物語をなぞる迎えが来る', stages: stageOrder.slice(12, 23) },
   { name: '第 3 章 羽衣', lead: '着せられれば、全部忘れる', stages: stageOrder.slice(23) },
 ];
+
+/** そのステージが属する章の番号（0 始まり）。見つからなければ 0 */
+export function chapterIndexOf(stageId: string): number {
+  const index = chapters.findIndex((chapter) => chapter.stages.includes(stageId));
+  return index < 0 ? 0 : index;
+}
 
 /** 本編のステージだけ（ボスを除く）。バランス計測の対象 */
 export const mainStageIds = stageOrder.filter((id) => !getStage(id).boss);
