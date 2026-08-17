@@ -1,6 +1,6 @@
 {
   "S1": {
-    "name": "ツクヨミ辺境・路地裏ステージ",
+    "name": "ツクヨミ辺境・路地裏",
     "grid": {
       "w": 16,
       "h": 9
@@ -78,7 +78,7 @@
       "8,5": "runway",
       "12,5": "runway"
     },
-    "song": "kaguya_rising",
+    "song": "reply",
     "hpMul": 1,
     "waves": [
       {
@@ -203,7 +203,7 @@
     ]
   },
   "S2": {
-    "name": "常夜市の櫓ステージ",
+    "name": "常夜市の櫓",
     "grid": {
       "w": 16,
       "h": 9
@@ -284,7 +284,7 @@
       "7,4": "runway",
       "12,5": "audience"
     },
-    "song": "neon_horai",
+    "song": "ray_cpk",
     "hpMul": 12,
     "waves": [
       {
@@ -443,7 +443,7 @@
     ]
   },
   "S3": {
-    "name": "ライブワールド「銀波ホール」",
+    "name": "ライブワールド「銀波」",
     "grid": {
       "w": 16,
       "h": 9
@@ -541,7 +541,7 @@
       "9,6": "runway",
       "4,5": "audience"
     },
-    "song": "gekko_silence",
+    "song": "hoshifuru_umi",
     "hpMul": 32,
     "waves": [
       {
@@ -761,7 +761,7 @@
     ]
   },
   "S4": {
-    "name": "深夜のスタジオ",
+    "name": "かぐや・いろPチャンネル",
     "grid": {
       "w": 16,
       "h": 9
@@ -863,7 +863,7 @@
       "8,6": "runway",
       "2,2": "audience"
     },
-    "song": "hagoromo_encore",
+    "song": "watashi_wa",
     "hpMul": 20,
     "waves": [
       {
@@ -1104,7 +1104,7 @@
     ]
   },
   "S5": {
-    "name": "夏祭りの野外ステージ",
+    "name": "花火大会の川辺",
     "grid": {
       "w": 16,
       "h": 9
@@ -1219,7 +1219,7 @@
       "2,2": "audience",
       "2,6": "audience"
     },
-    "song": "hinezumi_overdrive",
+    "song": "shunkan",
     "hpMul": 50,
     "waves": [
       {
@@ -1675,7 +1675,7 @@
       "1,2": "audience",
       "2,6": "audience"
     },
-    "song": "neon_horai",
+    "song": "ray_cpk",
     "hpMul": 20,
     "waves": [
       {
@@ -2096,7 +2096,7 @@
       "7,4": "monitor",
       "9,4": "monitor"
     },
-    "song": "neon_horai",
+    "song": "ray_cpk",
     "hpMul": 1.5,
     "boss": true,
     "waves": [
@@ -2250,7 +2250,7 @@
     ]
   },
   "S7": {
-    "name": "テレビ局スタジオ",
+    "name": "黒鬼のアリーナ",
     "grid": {
       "w": 16,
       "h": 9
@@ -2354,7 +2354,7 @@
       "9,5": "runway",
       "1,4": "audience"
     },
-    "song": "gekko_silence",
+    "song": "hoshifuru_umi",
     "hpMul": 30,
     "waves": [
       {
@@ -2725,7 +2725,7 @@
     ]
   },
   "S8": {
-    "name": "冬の武道館",
+    "name": "月間ランキング決戦場",
     "grid": {
       "w": 16,
       "h": 9
@@ -2842,7 +2842,7 @@
       "11,2": "monitor",
       "11,6": "monitor"
     },
-    "song": "hagoromo_encore",
+    "song": "watashi_wa",
     "hpMul": 15,
     "waves": [
       {
@@ -3345,7 +3345,7 @@
     ]
   },
   "S9": {
-    "name": "雨のアリーナ",
+    "name": "霧の登楼",
     "grid": {
       "w": 16,
       "h": 9
@@ -3462,11 +3462,11 @@
       "2,2": "audience",
       "2,6": "audience"
     },
-    "song": "gekko_silence",
+    "song": "hoshifuru_umi",
     "hpMul": 26,
     "modifiers": {
       "rangeMul": 0.9,
-      "note": "雨で視界が悪い。全メンバーの射程 -10%"
+      "note": "常夜の霧で見通しが利かない。全メンバーの射程 -10%"
     },
     "waves": [
       {
@@ -3969,7 +3969,7 @@
     ]
   },
   "S10": {
-    "name": "満月のドーム",
+    "name": "ヤチヨ城・天守",
     "grid": {
       "w": 16,
       "h": 9
@@ -4088,7 +4088,7 @@
       "13,2": "runway",
       "13,6": "runway"
     },
-    "song": "kaguya_rising",
+    "song": "reply",
     "hpMul": 11,
     "waves": [
       {
@@ -4832,7 +4832,7 @@
       "2,2": "audience",
       "2,6": "audience"
     },
-    "song": "hinezumi_overdrive",
+    "song": "shunkan",
     "hpMul": 2.85,
     "boss": true,
     "waves": [
@@ -5048,7 +5048,7 @@
     ]
   },
   "S11": {
-    "name": "天竺の大寺院ステージ",
+    "name": "再現・天竺の大伽藍",
     "grid": {
       "w": 16,
       "h": 9
@@ -5169,7 +5169,7 @@
       "2,2": "audience",
       "2,6": "audience"
     },
-    "song": "gonan_five",
+    "song": "remember",
     "hpMul": 95,
     "waves": [
       {
@@ -5440,7 +5440,7 @@
     ]
   },
   "S12": {
-    "name": "玉の枝の庭園ステージ",
+    "name": "再現・蓬莱の玉の庭",
     "grid": {
       "w": 16,
       "h": 9
@@ -5555,7 +5555,7 @@
       "10,0": "audience",
       "4,8": "audience"
     },
-    "song": "gonan_five",
+    "song": "remember",
     "hpMul": 65,
     "waves": [
       {
@@ -5833,7 +5833,7 @@
     ]
   },
   "S13": {
-    "name": "火鼠の炉ステージ",
+    "name": "再現・火鼠の炉",
     "grid": {
       "w": 16,
       "h": 9
@@ -5954,7 +5954,7 @@
       "2,2": "audience",
       "2,6": "audience"
     },
-    "song": "hinezumi_overdrive",
+    "song": "shunkan",
     "hpMul": 95,
     "waves": [
       {
@@ -6239,7 +6239,7 @@
     ]
   },
   "S14": {
-    "name": "嵐の海上ステージ",
+    "name": "再現・龍の首の荒海",
     "grid": {
       "w": 16,
       "h": 9
@@ -6354,11 +6354,11 @@
       "10,0": "audience",
       "4,8": "audience"
     },
-    "song": "tsuki_capital",
+    "song": "ex_otogibanashi",
     "hpMul": 55,
     "modifiers": {
       "rangeMul": 0.85,
-      "note": "嵐で視界が利かない。全メンバーの射程 -15%"
+      "note": "荒海の飛沫でアバターの視界が落ちる。全メンバーの射程 -15%"
     },
     "waves": [
       {
@@ -6650,7 +6650,7 @@
     ]
   },
   "S15": {
-    "name": "燕の高楼ステージ",
+    "name": "再現・燕の巣の高楼",
     "grid": {
       "w": 16,
       "h": 9
@@ -6741,7 +6741,7 @@
       "2,2": "audience",
       "1,5": "audience"
     },
-    "song": "gonan_five",
+    "song": "remember",
     "hpMul": 80,
     "waves": [
       {
@@ -6907,7 +6907,7 @@
     ]
   },
   "S16": {
-    "name": "帝の御所ステージ",
+    "name": "月からの勅使・御所",
     "grid": {
       "w": 16,
       "h": 9
@@ -7028,7 +7028,7 @@
       "2,2": "audience",
       "2,6": "audience"
     },
-    "song": "tsuki_capital",
+    "song": "ex_otogibanashi",
     "hpMul": 100,
     "waves": [
       {
@@ -7299,7 +7299,7 @@
     ]
   },
   "S17": {
-    "name": "月からの文・夜の館ステージ",
+    "name": "月からの文が届く館",
     "grid": {
       "w": 16,
       "h": 9
@@ -7393,11 +7393,11 @@
       "14,1": "audience",
       "14,7": "audience"
     },
-    "song": "gekko_silence",
+    "song": "hoshifuru_umi",
     "hpMul": 120,
     "modifiers": {
       "cheerGainMul": 0.8,
-      "note": "まだ客が入っていない。自然に溜まる声援 -20%（撃破ぶんは変わらない）"
+      "note": "まだ子ウサギが集まっていない。自然に溜まる声援 -20%（撃破ぶんは変わらない）"
     },
     "waves": [
       {
@@ -7619,7 +7619,7 @@
     ]
   },
   "S18": {
-    "name": "天人降臨・雲上ステージ",
+    "name": "天人降臨・雲上回廊",
     "grid": {
       "w": 16,
       "h": 9
@@ -7773,11 +7773,11 @@
       "2,8": "audience",
       "2,4": "audience"
     },
-    "song": "tennin_waltz",
+    "song": "ex_otogibanashi",
     "hpMul": 80,
     "modifiers": {
       "enemySpeedMul": 1.15,
-      "note": "月の重力。敵の移動が 15% 速い"
+      "note": "雲の上は月に近い。敵の移動が 15% 速い"
     },
     "waves": [
       {
@@ -8090,7 +8090,7 @@
     ]
   },
   "S19": {
-    "name": "飛ぶ車のアリーナ",
+    "name": "飛ぶ車の大路",
     "grid": {
       "w": 16,
       "h": 9
@@ -8205,8 +8205,8 @@
       "10,0": "audience",
       "4,8": "audience"
     },
-    "song": "tennin_waltz",
-    "hpMul": 62,
+    "song": "ex_otogibanashi",
+    "hpMul": 64,
     "waves": [
       {
         "section": "intro",
@@ -8483,7 +8483,7 @@
     ]
   },
   "S20": {
-    "name": "天の羽衣・月光の回廊",
+    "name": "天の羽衣・月光の橋",
     "grid": {
       "w": 16,
       "h": 9
@@ -8637,7 +8637,7 @@
       "2,8": "audience",
       "2,4": "audience"
     },
-    "song": "tsuki_capital",
+    "song": "ex_otogibanashi",
     "hpMul": 70,
     "modifiers": {
       "rangeMul": 0.9,
@@ -9199,7 +9199,7 @@
       "2,8": "audience",
       "2,4": "audience"
     },
-    "song": "tsuki_capital",
+    "song": "ex_otogibanashi",
     "hpMul": 4,
     "boss": true,
     "waves": [

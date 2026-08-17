@@ -257,6 +257,11 @@ function StageCard({ save, stageId, onStart }: StageCardProps): React.JSX.Elemen
         {songLevel >= MAX_SONG_LEVEL ? ' 上限' : ''}）・{song.bpm} BPM・
         {stage.lanes.length} レーン{progress ? ` ・ ${progress.plays} 回` : ''}
       </span>
+      {/* 原作へのクレジット。**鳴っている音を作った人ではない**ので、
+          そのことは設定画面に一度だけ書く（06-ui-ux.md 6.8） */}
+      <span className="stage-credit">
+        原作劇中歌 ／ {song.writer} ・ 歌 {song.singer}
+      </span>
       {stage.modifiers.note && <span className="stage-gimmick">{stage.modifiers.note}</span>}
 
       {!locked && (

@@ -13,7 +13,7 @@ import { seedFromString } from '../core/rng';
 import { DEFAULT_SETTINGS, settingsSchema } from './settings';
 
 export const SAVE_KEY = 'idoldiffence.save';
-export const CURRENT_VERSION = 9;
+export const CURRENT_VERSION = 10;
 
 /**
  * 生成された衣装 1 着（03-progression.md ⑨）。
@@ -254,7 +254,37 @@ const migrations: Record<number, Migration> = {
     version: 9,
     seenSecrets: [...((old.secrets ?? []) as string[])],
   }),
+  // v9 -> v10: 楽曲を原作の劇中歌の実タイトルへ差し替えた（M5-3）。
+  // **習熟度は移す。** 曲名を変えただけで、プレイヤーが積んだものは同じ。
+  // 捨てるとソロパートの解禁が巻き戻り、「何もしていないのに弱くなった」になる。
+  // 126BPM の枠を畳んだので、そのぶんは移り先へ足し込む
+  9: (old) => ({
+    ...old,
+    version: 10,
+    songExp: renameSongExp((old.songExp ?? {}) as Record<string, number>),
+  }),
 };
+
+/** 旧 ID -> 新 ID。畳んだ枠は同じ移り先へ合流する */
+const SONG_RENAMES: Record<string, string> = {
+  kaguya_rising: 'reply',
+  neon_horai: 'ray_cpk',
+  gekko_silence: 'hoshifuru_umi',
+  hinezumi_overdrive: 'shunkan',
+  hagoromo_encore: 'watashi_wa',
+  gonan_five: 'remember',
+  tsuki_capital: 'ex_otogibanashi',
+  tennin_waltz: 'ex_otogibanashi',
+};
+
+function renameSongExp(old: Record<string, number>): Record<string, number> {
+  const next: Record<string, number> = {};
+  for (const [id, exp] of Object.entries(old)) {
+    const key = SONG_RENAMES[id] ?? id;
+    next[key] = (next[key] ?? 0) + exp;
+  }
+  return next;
+}
 
 export function migrate(raw: Record<string, unknown>): Record<string, unknown> {
   let data = raw;

@@ -95,7 +95,18 @@
           }
         ]
       }
-    }
+    },
+    "affinity": [
+      {
+        "name": "二人で歌う",
+        "desc": "ヤチヨと声を重ねる。同じ曲を、二人で",
+        "with": [
+          "Vi1"
+        ],
+        "atkPct": 0.12,
+        "attackSpeedPct": 0.0
+      }
+    ]
   },
   "V2": {
     "name": "忠犬オタ公",
@@ -157,7 +168,8 @@
           "auraToSelfAtk": 0.45
         }
       }
-    }
+    },
+    "affinity": []
   },
   "V3": {
     "name": "乙事 照琴",
@@ -220,7 +232,8 @@
           }
         ]
       }
-    }
+    },
+    "affinity": []
   },
   "D1": {
     "name": "酒寄 彩葉",
@@ -316,7 +329,27 @@
           "critRateAdd": 0.35
         }
       }
-    }
+    },
+    "affinity": [
+      {
+        "name": "クールな親友",
+        "desc": "芦花が隣にいると肩の力が抜ける",
+        "with": [
+          "Vi3"
+        ],
+        "atkPct": 0.12,
+        "attackSpeedPct": 0.05
+      },
+      {
+        "name": "食べに行く約束",
+        "desc": "真実に誘われると、終わったあとの楽しみができる",
+        "with": [
+          "V4"
+        ],
+        "atkPct": 0.08,
+        "attackSpeedPct": 0.05
+      }
+    ]
   },
   "D2": {
     "name": "帝 アキラ",
@@ -376,7 +409,8 @@
           "defIgnoreAdd": 0.6
         }
       }
-    }
+    },
+    "affinity": []
   },
   "D3": {
     "name": "駒沢 雷",
@@ -442,7 +476,8 @@
           }
         ]
       }
-    }
+    },
+    "affinity": []
   },
   "Vi1": {
     "name": "月見 ヤチヨ",
@@ -538,7 +573,27 @@
           "slowValue": 0.45
         }
       }
-    }
+    },
+    "affinity": [
+      {
+        "name": "二人で歌う",
+        "desc": "かぐやと声を重ねる。管理人ではなく、歌い手の顔になる",
+        "with": [
+          "V1"
+        ],
+        "atkPct": 0.12,
+        "attackSpeedPct": 0.0
+      },
+      {
+        "name": "相棒",
+        "desc": "FUSHI が隣にいると案内がいらない",
+        "with": [
+          "Vi4"
+        ],
+        "atkPct": 0.12,
+        "attackSpeedPct": 0.0
+      }
+    ]
   },
   "Vi2": {
     "name": "駒沢 乃依",
@@ -610,7 +665,8 @@
           }
         ]
       }
-    }
+    },
+    "affinity": []
   },
   "Vi3": {
     "name": "綾紬 芦花",
@@ -680,7 +736,18 @@
           "auraRadiusMul": 1.7
         }
       }
-    }
+    },
+    "affinity": [
+      {
+        "name": "クールな親友",
+        "desc": "彩葉の隣。放っておけない",
+        "with": [
+          "D1"
+        ],
+        "atkPct": 0.12,
+        "attackSpeedPct": 0.05
+      }
+    ]
   },
   "V4": {
     "name": "諌山 真実",
@@ -749,7 +816,18 @@
           }
         ]
       }
-    }
+    },
+    "affinity": [
+      {
+        "name": "食べに行く約束",
+        "desc": "彩葉を誘う。終わったら食べに行く",
+        "with": [
+          "D1"
+        ],
+        "atkPct": 0.08,
+        "attackSpeedPct": 0.05
+      }
+    ]
   },
   "D4": {
     "name": "犬DOGE",
@@ -791,7 +869,7 @@
     "affinity": [
       {
         "name": "おさんぽ",
-        "desc": "かぐやの隣で走る。攻撃速度 +30%、攻撃力 +15%",
+        "desc": "かぐやと歩く。ツクヨミを作った日からずっと",
         "with": [
           "V1"
         ],
@@ -866,20 +944,22 @@
     "affinity": [
       {
         "name": "相棒",
-        "desc": "ヤチヨの隣で本領を出す。攻撃力 +30%",
+        "desc": "ヤチヨの隣。案内役はここにいる",
         "with": [
           "Vi1"
         ],
-        "atkPct": 0.3
+        "atkPct": 0.3,
+        "attackSpeedPct": 0.0
       },
       {
         "name": "犬猿の仲",
-        "desc": "かぐや／犬DOGE の隣では機嫌が悪い。攻撃力 -25%",
+        "desc": "かぐやと犬DOGE が近いと機嫌が悪い",
         "with": [
           "V1",
           "D4"
         ],
-        "atkPct": -0.25
+        "atkPct": -0.25,
+        "attackSpeedPct": 0.0
       }
     ],
     "centerPassive": {
