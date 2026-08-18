@@ -226,12 +226,10 @@ export function BattleScreen({
         // 押していないのに手応えの音だけ返るのはおかしい
         if (!e.auto && e.judge === 'perfect') playSe('callPerfect');
       }),
-      world.events.on('battleEnded', (e) => {
-        playSe(e.won ? 'win' : 'lose');
-        // 完走の拍手は 1 声では寂しい。間隔は renderer 側が守る
-        renderer.pushComment(e.won ? 'win' : 'lose');
-        renderer.pushComment(e.won ? 'win' : 'lose');
-      }),
+      // 決着の瞬間に流すコメントは無い —— 決着のフレームで描画ループが
+      // 止まるので、流し始めても誰にも見えない。完走の拍手は結果画面が
+      // 静止したコメント欄として出す（`comments.ts` resultComments）
+      world.events.on('battleEnded', (e) => playSe(e.won ? 'win' : 'lose')),
     ];
 
     // HUD が覆う高さを測って渡す。canvas は全面のままにして背景を端まで見せ、

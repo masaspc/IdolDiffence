@@ -2809,3 +2809,19 @@ kbd {
   0%, 100% { opacity: 0.92; }
   50% { opacity: 1; }
 }
+
+/* 配信終了後のコメント欄（結果画面）。流れずに静止して並ぶ */
+.result-comments {
+  display: flex;
+  justify-content: center;
+  gap: 1rem;
+  flex-wrap: wrap;
+  margin: 0.5rem 0 0.2rem;
+  font-size: 0.82rem;
+  color: var(--text-dim);
+}
+
+.result-comments span::before {
+  content: '💬 ';
+  opacity: 0.6;
+}

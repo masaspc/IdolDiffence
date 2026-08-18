@@ -103,6 +103,28 @@ function capFor(effects: EffectLevel): number {
   return 12;
 }
 
+/**
+ * 結果画面に出す視聴者コメント。
+ *
+ * 完走・中断の瞬間に流すのは**構造的に無理**がある —— 決着のフレームで
+ * 描画ループは止まる（結果画面を 60Hz で再描画し続けないため）ので、
+ * 流し始めたコメントは誰にも見えない。動かして見せる代わりに、
+ * **配信終了後のコメント欄**として結果画面へ静止して並べる。
+ *
+ * @param seed そのライブの数字（撃破数など）。周回ごとに並びが変わる
+ */
+export function resultComments(won: boolean, seed: number): string[] {
+  const pool = won ? POOL.win : POOL.lose;
+  const out: string[] = [];
+  let cursor = (seed * 2654435761) >>> 0;
+  while (out.length < 3 && out.length < pool.length) {
+    cursor = (Math.imul(cursor, 1664525) + 1013904223) >>> 0;
+    const text = pool[cursor % pool.length];
+    if (text !== undefined && !out.includes(text)) out.push(text);
+  }
+  return out;
+}
+
 export class CommentStream {
   private readonly items: ActiveComment[] = [];
   private counter = 0;

@@ -6,7 +6,7 @@
  * 盤面ではなくコメントを見るゲームになる。
  */
 import { describe, expect, it } from 'vitest';
-import { CommentStream } from './comments';
+import { CommentStream, resultComments } from './comments';
 
 describe('間引きと上限', () => {
   it('同じ種類は最短間隔を空ける（撃破の連打で埋まらない）', () => {
@@ -81,5 +81,21 @@ describe('流れる', () => {
     stream.advance(120_000);
     stream.prune(800);
     expect(stream.active.length).toBe(0);
+  });
+});
+
+describe('結果画面のコメント欄', () => {
+  it('3 件・重複なし・決定的', () => {
+    // 決着の瞬間に流すのは無理がある（描画ループが止まる）ので、
+    // 結果画面に静止して並べる。同じライブなら同じ並びになる
+    const a = resultComments(true, 144);
+    expect(a).toHaveLength(3);
+    expect(new Set(a).size).toBe(3);
+    expect(resultComments(true, 144)).toEqual(a);
+  });
+
+  it('勝ち負けと周回で文言が変わる', () => {
+    expect(resultComments(true, 10)).not.toEqual(resultComments(false, 10));
+    expect(resultComments(true, 10)).not.toEqual(resultComments(true, 11));
   });
 });
