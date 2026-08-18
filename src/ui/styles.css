@@ -2672,3 +2672,140 @@ kbd {
   opacity: 0.45;
   cursor: default;
 }
+
+/* --- タイトル。ツクヨミへ「接続」する 1 枚（原作の仮想空間の入り方） --- */
+
+.title-screen {
+  position: fixed;
+  inset: 0;
+  z-index: 30;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  border: none;
+  cursor: pointer;
+  color: var(--text);
+  /* 常夜の空。バトル背景と同じ世界の色 */
+  background:
+    radial-gradient(ellipse at 50% 26%, rgba(143, 107, 255, 0.18), transparent 55%),
+    linear-gradient(180deg, #0b0a1c 0%, #14102e 58%, #1c1440 100%);
+  overflow: hidden;
+}
+
+/* 月の代わりのミラーボール */
+.title-ball {
+  position: absolute;
+  top: 9%;
+  left: 50%;
+  width: 7.5rem;
+  height: 7.5rem;
+  transform: translateX(-50%);
+  border-radius: 50%;
+  background:
+    radial-gradient(circle at 34% 30%, rgba(255, 255, 255, 0.9), rgba(214, 214, 235, 0.35) 38%, rgba(120, 120, 160, 0.25) 70%, rgba(60, 60, 100, 0.3)),
+    repeating-linear-gradient(90deg, rgba(255, 255, 255, 0.1) 0 2px, transparent 2px 12px),
+    repeating-linear-gradient(0deg, rgba(255, 255, 255, 0.1) 0 2px, transparent 2px 12px);
+  box-shadow: 0 0 60px rgba(214, 214, 250, 0.35);
+}
+
+.title-ball-shine {
+  position: absolute;
+  inset: -40%;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(234, 230, 255, 0.16), transparent 60%);
+  animation: title-glow 4s ease-in-out infinite;
+}
+
+/* ミラーボールの反射。ゆっくり瞬く */
+.title-sparkles i {
+  position: absolute;
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: rgba(234, 230, 255, 0.8);
+  animation: title-twinkle 3.6s ease-in-out infinite;
+}
+
+.title-sparkles i:nth-child(1) { top: 18%; left: 26%; animation-delay: 0s; }
+.title-sparkles i:nth-child(2) { top: 30%; left: 68%; animation-delay: 0.6s; }
+.title-sparkles i:nth-child(3) { top: 12%; left: 58%; animation-delay: 1.2s; }
+.title-sparkles i:nth-child(4) { top: 42%; left: 20%; animation-delay: 1.8s; }
+.title-sparkles i:nth-child(5) { top: 36%; left: 82%; animation-delay: 2.4s; }
+.title-sparkles i:nth-child(6) { top: 24%; left: 42%; animation-delay: 3s; }
+
+.title-work {
+  margin-top: 6rem;
+  font-size: 1.1rem;
+  letter-spacing: 0.4em;
+  color: var(--text-dim);
+}
+
+.title-name {
+  font-size: clamp(2rem, 7vw, 3.4rem);
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  background: linear-gradient(120deg, var(--vocal), var(--visual) 55%, var(--dance));
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+.title-enter {
+  margin-top: 2.2rem;
+  padding: 0.7rem 1.6rem;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 213, 79, 0.55);
+  font-size: 0.95rem;
+  animation: title-glow 2.2s ease-in-out infinite;
+}
+
+.title-note {
+  position: absolute;
+  bottom: 1.2rem;
+  left: 50%;
+  transform: translateX(-50%);
+  width: max-content;
+  max-width: calc(100vw - 2rem);
+  font-size: 0.7rem;
+  color: var(--text-dim);
+  text-align: center;
+}
+
+@keyframes title-glow {
+  0%, 100% { opacity: 0.75; }
+  50% { opacity: 1; }
+}
+
+@keyframes title-twinkle {
+  0%, 100% { opacity: 0.15; transform: scale(0.8); }
+  50% { opacity: 1; transform: scale(1.3); }
+}
+
+/* 演出「控えめ」は点滅を**弱くする**（06-ui-ux.md 6.7 の約束）。
+   タイトルは設定画面より先に出るので、保存済みの好みがここにも効かないと
+   光過敏対策として意味が無い */
+:root[data-effects='reduced'] .title-ball-shine,
+:root[data-effects='reduced'] .title-enter {
+  animation-name: title-glow-soft;
+  animation-duration: 4.8s;
+}
+
+:root[data-effects='reduced'] .title-sparkles i {
+  /* 瞬きがいちばん強い点滅なので、控えめでは静かな点に置き換える */
+  animation: none;
+  opacity: 0.4;
+}
+
+/* 演出「最小」では動きを止める（点滅は情報ではない） */
+:root[data-effects='minimal'] .title-ball-shine,
+:root[data-effects='minimal'] .title-sparkles i,
+:root[data-effects='minimal'] .title-enter {
+  animation: none;
+}
+
+@keyframes title-glow-soft {
+  0%, 100% { opacity: 0.92; }
+  50% { opacity: 1; }
+}

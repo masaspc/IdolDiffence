@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { HomeScreen } from './HomeScreen';
+import { TitleScreen } from './TitleScreen';
 import { PartyScreen } from './PartyScreen';
 import { TalentScreen } from './TalentScreen';
 import { CostumeScreen } from './CostumeScreen';
@@ -32,7 +33,11 @@ import { markSecretSeen, unlockSecret } from '../meta/secrets';
 import { claimRewards } from '../meta/achievements';
 import { textScaleRatio, type Settings } from '../meta/settings';
 import { randomSeed } from '../core/rng';
-import { installAudioUnlock } from '../audio/context';
+import { audioContext, installAudioUnlock } from '../audio/context';
+import { HomeBgm } from '../audio/homeBgm';
+import { styleOf } from '../audio/bgm';
+import { getSong } from '../data';
+import { volumeRatio } from '../meta/settings';
 import { isOpen, lockedForBattle } from '../meta/onboarding';
 import { markTutorialSeen, resetTutorial } from '../meta/tutorial';
 import {
@@ -46,6 +51,7 @@ import type { CostumeSlot } from '../data/schema/costume';
 import type { BattleMeta } from '../sim/world';
 
 type Screen =
+  | 'title'
   | 'home'
   | 'party'
   | 'idols'
@@ -73,7 +79,8 @@ export function App(): React.JSX.Element {
     }
     return result.data;
   });
-  const [screen, setScreen] = useState<Screen>('home');
+  // タイトルから始める。「ツクヨミへ接続」の 1 タップが音の解錠を兼ねる
+  const [screen, setScreen] = useState<Screen>('title');
   /** 育成画面を開いたとき最初に見せる人。隠しキャラの登場からだけ入る */
   const [idolFocus, setIdolFocus] = useState<string | null>(null);
   const [stageId, setStageId] = useState('S1');
@@ -130,6 +137,36 @@ export function App(): React.JSX.Element {
     installAudioUnlock();
   }, []);
 
+  /**
+   * ホームの BGM（`audio/homeBgm.ts`）。**バトル以外の画面で流れ続ける。**
+   *
+   * バトルへ入るときに止め、戻ったら作り直す。画面ごとに作り直さないのは、
+   * 編成や設定を行き来するたびに曲が頭へ戻るとホームが落ち着かないから。
+   * 音量 0 のときは作らない（無音のためだけに標本を焼かない）
+   */
+  const homeBgmRef = useRef<HomeBgm | null>(null);
+  // タイトルではまだ作らない（接続のタップ＝最初の操作より前に AudioContext を
+  // 作らないため）。バトル中は BattleScreen の BGM に譲る
+  const homeActive = screen !== 'battle' && screen !== 'title';
+  const homeVolume = volumeRatio(save.settings.bgmVolume);
+  useEffect(() => {
+    if (!homeActive || homeVolume === 0) {
+      homeBgmRef.current?.dispose();
+      homeBgmRef.current = null;
+      return;
+    }
+    if (homeBgmRef.current) return;
+    const audio = audioContext();
+    if (!audio) return;
+    const songId = 'ex_otogibanashi';
+    homeBgmRef.current = new HomeBgm(audio, songId, getSong(songId), styleOf(getSong(songId)), homeVolume);
+    return undefined;
+  }, [homeActive, homeVolume]);
+  // 音量スライダーは作り直さずに追従させる
+  useEffect(() => {
+    homeBgmRef.current?.setVolume(homeVolume);
+  }, [homeVolume]);
+
   // リザルト処理は setSave の更新関数の**外**で行う。
   // 更新関数は純粋でなければならず、中でドロップを引くと
   // StrictMode の二重呼び出しで 2 組できてしまう
@@ -166,6 +203,10 @@ export function App(): React.JSX.Element {
   const handleTutorialSeen = useCallback((id: string) => {
     setSave((current) => markTutorialSeen(current, id));
   }, []);
+
+  if (screen === 'title') {
+    return <TitleScreen onEnter={() => setScreen('home')} />;
+  }
 
   if (screen === 'battle') {
     return (
