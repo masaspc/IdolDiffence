@@ -32,6 +32,7 @@ import { markSecretSeen, unlockSecret } from '../meta/secrets';
 import { claimRewards } from '../meta/achievements';
 import { textScaleRatio, type Settings } from '../meta/settings';
 import { randomSeed } from '../core/rng';
+import { installAudioUnlock } from '../audio/context';
 import {
   DEFAULT_RNG_STATE,
   loadSave,
@@ -105,6 +106,17 @@ export function App(): React.JSX.Element {
     root.style.fontSize = `${textScaleRatio(save.settings.textScale) * 100}%`;
     root.dataset.effects = save.settings.effects;
   }, [save.settings.textScale, save.settings.effects]);
+
+  /**
+   * 最初の操作で音を起こす（`audio/context.ts`）。
+   *
+   * バトルに入るときに作るだけでは **Safari / iOS で一切鳴らない** ——
+   * あちらはユーザー操作のハンドラの**中**で起こさないと動かないが、
+   * `useEffect` はクリックの外で走る。起動時に掴んでおく
+   */
+  useEffect(() => {
+    installAudioUnlock();
+  }, []);
 
   // リザルト処理は setSave の更新関数の**外**で行う。
   // 更新関数は純粋でなければならず、中でドロップを引くと
