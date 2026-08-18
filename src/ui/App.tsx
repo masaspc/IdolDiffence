@@ -87,6 +87,14 @@ export function App(): React.JSX.Element {
   const [lastResult, setLastResult] = useState<{
     /** どのステージの結果か。ここで何が新しく開いたかを出す（`meta/onboarding.ts`） */
     stageId: string;
+    /**
+     * このライブで**初めて**クリアしたか。
+     *
+     * ステージ ID だけで「開いた」を出すと、S1 を周回するたびに
+     * 「編成が開きました」と言い続けることになる。開いたのは出来事なので、
+     * 進捗が未クリア → クリアへ変わったかどうかで判定する
+     */
+    firstClear: boolean;
     won: boolean;
     audience: number;
     funds: number;
@@ -138,10 +146,15 @@ export function App(): React.JSX.Element {
 
   const handleFinish = useCallback((outcome: BattleOutcome) => {
     const reward = calcReward(outcome);
-    const { save: next, dropped } = applyReward(saveRef.current, outcome, reward);
+    const before = saveRef.current;
+    const { save: next, dropped } = applyReward(before, outcome, reward);
+    const firstClear =
+      before.stageProgress[outcome.stageId]?.cleared !== true &&
+      next.stageProgress[outcome.stageId]?.cleared === true;
     setSave(next);
     setLastResult({
       stageId: outcome.stageId,
+      firstClear,
       won: outcome.won,
       audience: outcome.audience,
       funds: reward.funds,
@@ -241,7 +254,12 @@ export function App(): React.JSX.Element {
       <PartyScreen
         save={save}
         onToggle={(id) => setSave((current) => toggleParty(current, id))}
-        onSetCenter={(id) => setSave((current) => setCenter(current, id))}
+        canSetCenter={isOpen(save, 'center')}
+        onSetCenter={(id) =>
+          // 画面のボタンを消すだけにすると、押せる経路が残る（キーボード・古い状態）。
+          // 解放の判定は**変更する側**にも置く
+          setSave((current) => (isOpen(current, 'center') ? setCenter(current, id) : current))
+        }
         onBack={() => setScreen('home')}
       />
     );
@@ -277,7 +295,9 @@ export function App(): React.JSX.Element {
           locked: lockedForBattle(save),
           star,
           call: save.settings.call,
-          soloPart: soloPartForStage(save, id),
+          // 楽曲レベルが開くまではソロパートも渡さない。
+          // ラベルを隠すだけでは**仕組みは動いたまま**で、S1 から ×1.6 が使えていた
+          ...(isOpen(save, 'songLevel') ? { soloPart: soloPartForStage(save, id) } : {}),
           atkByIdol: Object.fromEntries(
             unlockedIds(save).map((rid) => [rid, resolvedAtk(save, rid)]),
           ),

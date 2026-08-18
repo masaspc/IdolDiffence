@@ -47,6 +47,8 @@ interface HomeScreenProps {
   onReveal: (idolId: string) => void;
   lastResult: {
     stageId: string;
+    /** このライブで初めてクリアしたか。周回で「開きました」を出し直さないため */
+    firstClear: boolean;
     won: boolean;
     audience: number;
     funds: number;
@@ -86,7 +88,7 @@ export function HomeScreen({
   const open = (feature: Feature): boolean => isOpen(save, feature);
   const next = nextUnlock(save);
   // 直前のライブで開いたもの。ホームへ戻ってから探させると気づかれない
-  const justOpened = lastResult?.won === true ? unlockedBy(lastResult.stageId) : [];
+  const justOpened = lastResult?.firstClear === true ? unlockedBy(lastResult.stageId) : [];
 
   return (
     <div className="home">
@@ -128,7 +130,10 @@ export function HomeScreen({
         <div className={`last-result ${lastResult.won ? 'won' : 'lost'}`}>
           前回のライブ: {lastResult.won ? '完走' : '中断'}（観客 {lastResult.audience}）
           <strong>＋¥{lastResult.funds.toLocaleString()}</strong>
-          {lastResult.drops.length > 0 && (
+          {/* 衣装は S7 まで開かない。**中身は配っている**（開いたときに
+              まとめて受け取れる）が、開く前に「手に入りました」と言うと、
+              見に行けない持ち物を知らせることになる */}
+          {open('costumes') && lastResult.drops.length > 0 && (
             <span className="last-drops">
               衣装 {lastResult.drops.length} 着（
               {lastResult.drops.map((drop) => drop.rarity).join('・')}）

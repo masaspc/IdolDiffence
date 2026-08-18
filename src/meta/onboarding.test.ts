@@ -72,6 +72,16 @@ describe('最初の画面', () => {
     expect(lockedForBattle(clearedThrough('S1', 'S2'))).toEqual([]);
   });
 
+  it('新規プレイヤーには仕組みそのものが渡らない（表示だけ隠さない）', () => {
+    // **隠すのと塞ぐのは別。** 楽曲レベルのラベルを消しただけのときは
+    // ソロパート（×1.6）が S1 から使えたままだったし、センターの行を消しても
+    // 編成画面のボタンからは選べていた。判定は渡す側・変更する側にも要る
+    const save = createNewSave();
+    expect(isOpen(save, 'songLevel'), 'ソロパート').toBe(false);
+    expect(isOpen(save, 'center'), 'センター').toBe(false);
+    expect(isOpen(save, 'costumes'), '衣装').toBe(false);
+  });
+
   it('1 ステージにつき新しい仕組みは 1 つずつ増える', () => {
     const counts = ['S1', 'S2', 'S3'].map((id) => unlockedBy(id).length);
     // S3 では何も開かない ―― 前の 2 本で開いたものを使う回
