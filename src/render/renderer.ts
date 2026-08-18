@@ -53,7 +53,9 @@ export interface HoverState {
 
 export class Renderer {
   private ctx: CanvasRenderingContext2D;
-  private staticLayer: HTMLCanvasElement | null = null;
+  /** 背景（空）と盤面を分けて焼く。あいだに空の飾りが入る */
+  private skyLayer: HTMLCanvasElement | null = null;
+  private boardLayer: HTMLCanvasElement | null = null;
   private dpr = 1;
   private widthCss = 0;
   private heightCss = 0;
@@ -118,7 +120,9 @@ export class Renderer {
     this.canvas.height = Math.round(cssHeight * dpr);
     this.canvas.style.width = `${cssWidth}px`;
     this.canvas.style.height = `${cssHeight}px`;
-    this.staticLayer = null; // スケールが変わったので静的レイヤを作り直す
+    // スケールが変わったので静的レイヤを作り直す
+    this.skyLayer = null;
+    this.boardLayer = null;
   }
 
   /**
@@ -206,8 +210,10 @@ export class Renderer {
       ctx.rotate(Math.PI / 2);
     }
 
-    this.drawStaticLayer(ctx);
+    this.drawSkyLayer(ctx);
+    // 空の飾りは**背景と盤面のあいだ**。経路や配置マスの上を泳がせない
     drawDrifters(ctx, this.logicalWidth, this.logicalHeight, this.drifters, this.skyTimeMs);
+    this.drawBoardLayer(ctx);
     this.drawBeatPulse(ctx);
     this.drawGoalGlow(ctx);
     this.drawHover(ctx, hover, snapshot);
@@ -399,18 +405,37 @@ export class Renderer {
   }
 
   // --- 静的レイヤ ---
+  //
+  // **2 枚に分ける。** 空の飾り（魚群・飛行船・蒸気機関車）は
+  // 背景と盤面のあいだへ入るので、1 枚に焼き込むと経路や配置マスの上を
+  // 泳ぐことになる。「盤面より奥に描く」という前提が崩れて読みにくくなる。
 
-  private drawStaticLayer(ctx: CanvasRenderingContext2D): void {
-    if (!this.staticLayer) this.staticLayer = this.buildStaticLayer();
-    ctx.drawImage(this.staticLayer, 0, 0);
+  /** 空（背景・水・月・ミラーボール）。飾りより奥 */
+  private drawSkyLayer(ctx: CanvasRenderingContext2D): void {
+    if (!this.skyLayer) this.skyLayer = this.buildLayer(false);
+    ctx.drawImage(this.skyLayer, 0, 0);
   }
 
-  private buildStaticLayer(): HTMLCanvasElement {
+  /** 盤面（グリッド・経路・配置マス）。飾りより手前 */
+  private drawBoardLayer(ctx: CanvasRenderingContext2D): void {
+    if (!this.boardLayer) this.boardLayer = this.buildLayer(true);
+    ctx.drawImage(this.boardLayer, 0, 0);
+  }
+
+  private buildLayer(board: boolean): HTMLCanvasElement {
     const layer = document.createElement('canvas');
     layer.width = this.logicalWidth;
     layer.height = this.logicalHeight;
     const ctx = layer.getContext('2d');
     if (!ctx) throw new Error('静的レイヤの 2D コンテキストを取得できませんでした');
+
+    if (board) {
+      // 盤面側は**透ける**。下の空と飾りを覆い隠さない
+      this.drawGrid(ctx);
+      this.drawLanes(ctx);
+      this.drawPlaceableCells(ctx);
+      return layer;
+    }
 
     this.drawBackground(ctx);
     // ヤチヨのライブは一面が水。背景に重ねるだけで、盤面の描き方は変えない
@@ -420,9 +445,6 @@ export class Renderer {
     // ツクヨミの空にあるのはミラーボール。本物の月は章が進むと昇る（sky.ts）
     drawMoon(ctx, this.logicalWidth, this.logicalHeight, chapterIndexOf(this.world.stageId));
     drawMirrorBall(ctx, this.logicalWidth, this.logicalHeight);
-    this.drawGrid(ctx);
-    this.drawLanes(ctx);
-    this.drawPlaceableCells(ctx);
     return layer;
   }
 
