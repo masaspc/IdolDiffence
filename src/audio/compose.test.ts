@@ -9,7 +9,7 @@
  */
 import { describe, expect, it } from 'vitest';
 import { composeBar, sectionMap, DEFAULT_STYLE, type Note } from './compose';
-import { hash01, midiToFreq, scaleNote } from './scale';
+import { chordDegrees, hash01, midiToFreq, scaleNote } from './scale';
 import { getSong, getStage, songs, stageOrder } from '../data';
 import { styleOf } from './bgm';
 import type { Song } from '../data/schema/song';
@@ -72,27 +72,33 @@ describe('譜面', () => {
     expect(bar('chorus', 7)).toEqual(bar('chorus', 7));
   });
 
-  it('曲が違えば同じ小節でも旋律が違う', () => {
-    const a = bar('chorus', 7, 'reply').filter((n) => n.voice === 'shakuhachi');
-    const b = bar('chorus', 7, 'remember').filter((n) => n.voice === 'shakuhachi');
-    expect(a.map((n) => n.midi)).not.toEqual(b.map((n) => n.midi));
-  });
-
   it('イントロは静かで、サビで全部鳴る', () => {
     // セクションで音が変わることが、この仕組みのいちばんの取り柄。
     // 同じ厚さで鳴らすなら、わざわざ構成に合わせる意味が無い
     const intro = voices(bar('intro'));
     const chorus = voices(bar('chorus'));
     expect(intro.has('taiko')).toBe(false);
-    expect(intro.has('shakuhachi')).toBe(false);
     expect(chorus.has('taiko')).toBe(true);
-    expect(chorus.has('shakuhachi')).toBe(true);
     expect(chorus.size).toBeGreaterThan(intro.size);
+  });
+
+  it('静かなセクションの旋律はオルゴール', () => {
+    // 原作の音源は使えないので、せめて音色で「聴かせる」場所を作る
+    expect(voices(bar('intro')).has('musicbox')).toBe(true);
+    expect(voices(bar('interlude')).has('musicbox')).toBe(true);
+    expect(voices(bar('chorus')).has('shakuhachi')).toBe(true);
   });
 
   it('どのセクションでも低音は途切れない（曲の土台）', () => {
     for (const section of ['intro', 'verse', 'bridge', 'chorus', 'interlude', 'finale'] as const) {
       expect(voices(bar(section)).has('bass'), section).toBe(true);
+    }
+  });
+
+  it('どのセクションにも旋律がある', () => {
+    for (const section of ['intro', 'verse', 'bridge', 'chorus', 'interlude', 'finale'] as const) {
+      const lead = bar(section).filter((n) => n.voice === 'shakuhachi' || n.voice === 'musicbox');
+      expect(lead.length, section).toBeGreaterThan(0);
     }
   });
 
@@ -118,11 +124,61 @@ describe('譜面', () => {
     }
   });
 
+  it('旋律も小節に収まる（変形で伸びても切る）', () => {
+    for (const section of ['intro', 'verse', 'bridge', 'chorus', 'interlude', 'finale'] as const) {
+      for (let i = 0; i < 8; i++) {
+        const lead = bar(section, i).filter(
+          (n) => n.voice === 'shakuhachi' || n.voice === 'musicbox',
+        );
+        const end = lead.reduce((max, n) => Math.max(max, n.beat + n.beats), 0);
+        expect(end, `${section} bar ${i}`).toBeLessThanOrEqual(SONG.beatsPerBar + 1e-9);
+      }
+    }
+  });
+
   it('音程を持つ声部には必ず midi が付く', () => {
     for (const note of bar('finale', 4)) {
       const pitched = note.voice !== 'taiko' && note.voice !== 'hat';
       expect(note.midi !== undefined, note.voice).toBe(pitched);
     }
+  });
+});
+
+describe('動機の展開', () => {
+  const lead = (section: Parameters<typeof composeBar>[3], index: number): number[] =>
+    bar(section, index)
+      .filter((n) => n.voice === 'shakuhachi' || n.voice === 'musicbox')
+      .map((n) => n.midi ?? 0);
+
+  it('同じ動機が繰り返し出てくる（覚えられる）', () => {
+    // 4 小節でひと回りする和音進行に乗るので、同じ位置の小節は同じ旋律になる。
+    // ここが崩れると、鳴ってはいるが覚えられない音の列に戻る
+    expect(lead('verse', 0)).toEqual(lead('verse', 4));
+    expect(lead('verse', 1)).toEqual(lead('verse', 5));
+  });
+
+  it('小節ごとに和音が動くので、同じ動機でも高さが変わる', () => {
+    expect(lead('verse', 0)).not.toEqual(lead('verse', 1));
+  });
+
+  it('セクションが変われば同じ小節でも扱いが変わる', () => {
+    // サビはオクターブ上、間奏は反行。同じ動機のまま景色が変わる
+    expect(lead('chorus', 0)).not.toEqual(lead('verse', 0));
+    expect(lead('interlude', 0)).not.toEqual(lead('verse', 0));
+  });
+
+  it('サビは音域が上がる', () => {
+    const top = (notes: number[]): number => Math.max(...notes);
+    expect(top(lead('chorus', 0))).toBeGreaterThan(top(lead('verse', 0)));
+  });
+
+  it('ブリッジは音数が増える（詰めて溜める）', () => {
+    expect(lead('bridge', 0).length).toBeGreaterThan(lead('verse', 0).length);
+  });
+
+  it('大サビは前半と後半で問いと答えになる', () => {
+    // 後半は逆行。同じ材料のまま「返事」に聞こえる
+    expect(lead('finale', 0)).not.toEqual(lead('finale', 2));
   });
 });
 
@@ -145,22 +201,125 @@ describe('構成', () => {
   });
 });
 
-describe('曲ごとの合成設定', () => {
-  it('全曲に設定がある', () => {
+describe('曲ごとの顔', () => {
+  it('全曲に動機と進行がある', () => {
     for (const id of Object.keys(songs)) {
       const style = styleOf(getSong(id));
+      expect(style.motif.degrees.length, id).toBeGreaterThanOrEqual(2);
+      expect(style.motif.degrees.length, id).toBe(style.motif.beats.length);
+      expect(style.progression.length, id).toBeGreaterThanOrEqual(2);
       expect(style.root, id).toBeGreaterThan(30);
       expect(style.root, id).toBeLessThan(80);
     }
   });
 
-  it('7 曲が全部同じ響きにはならない', () => {
-    // 同じ調・同じ音階で 34 ステージを回すと、どのステージも同じ曲に聞こえる
-    const keys = Object.keys(songs).map((id) => {
-      const style = styleOf(getSong(id));
-      return `${style.root}/${style.scale}/${style.groove}`;
-    });
-    expect(new Set(keys).size).toBeGreaterThanOrEqual(5);
+  it('動機は 1 小節に収まる', () => {
+    for (const id of Object.keys(songs)) {
+      const song = getSong(id);
+      const total = styleOf(song).motif.beats.reduce((sum, b) => sum + b, 0);
+      expect(total, id).toBeCloseTo(song.beatsPerBar, 6);
+    }
+  });
+
+  it('7 曲が全部違う曲になる', () => {
+    // **ここが今回いちばん直したかったところ。** 前は調と打ち方しか違わず、
+    // 7 曲が実質同じ曲だった。動機が違えば別の曲になる
+    const motifs = Object.keys(songs).map((id) => styleOf(getSong(id)).motif.degrees.join(','));
+    expect(new Set(motifs).size).toBe(motifs.length);
+
+    const progressions = Object.keys(songs).map((id) => styleOf(getSong(id)).progression.join(','));
+    expect(new Set(progressions).size).toBe(progressions.length);
+  });
+
+  it('実際に鳴らす音も曲ごとに違う', () => {
+    const firstBar = (id: string): string => {
+      const song = getSong(id);
+      return composeBar(id, song, styleOf(song), 'chorus', 0)
+        .filter((n) => n.voice === 'shakuhachi')
+        .map((n) => n.midi)
+        .join(',');
+    };
+    const heads = Object.keys(songs).map(firstBar);
+    expect(new Set(heads).size).toBe(heads.length);
+  });
+
+  it('全曲・全セクションで旋律が歌える音域に収まる', () => {
+    // 進行・オクターブ・終止が足し合わさると音域が上がり続ける。
+    // 放っておくとサビの終わりだけ 2 オクターブ上へ飛んで、耳に刺さる音になる
+    for (const id of Object.keys(songs)) {
+      const song = getSong(id);
+      const style = styleOf(song);
+      for (const section of [
+        'intro',
+        'verse',
+        'bridge',
+        'chorus',
+        'interlude',
+        'finale',
+      ] as const) {
+        for (let i = 0; i < 8; i++) {
+          for (const note of composeBar(id, song, style, section, i)) {
+            if (note.voice !== 'shakuhachi' && note.voice !== 'musicbox') continue;
+            // C2〜C6。これを外すと歌えない高さになる
+            expect(note.midi, `${id} ${section} bar${i}`).toBeGreaterThanOrEqual(36);
+            expect(note.midi, `${id} ${section} bar${i}`).toBeLessThanOrEqual(84);
+          }
+        }
+      }
+    }
+  });
+
+  it('音の長さが譜面に書ける値になる（端数を出さない）', () => {
+    // 変形の倍率を直に書いていたころは 0.575 拍や 0.1 拍が出ていた。
+    // 0.1 拍の切れ端は旋律ではなく取りこぼしに聞こえる
+    for (const id of Object.keys(songs)) {
+      const song = getSong(id);
+      const style = styleOf(song);
+      for (const section of [
+        'intro',
+        'verse',
+        'bridge',
+        'chorus',
+        'interlude',
+        'finale',
+      ] as const) {
+        for (let i = 0; i < 8; i++) {
+          for (const note of composeBar(id, song, style, section, i)) {
+            if (note.voice !== 'shakuhachi' && note.voice !== 'musicbox') continue;
+            expect(note.beats, `${id} ${section} bar${i}`).toBeGreaterThanOrEqual(0.25);
+            // 16 分（0.25 拍）の倍数に乗っているか
+            const steps = note.beats / 0.25;
+            expect(
+              Math.abs(steps - Math.round(steps)),
+              `${id} ${section} ${note.beats}`,
+            ).toBeLessThan(1e-6);
+          }
+        }
+      }
+    }
+  });
+
+  it('サビは動機を引き伸ばしてから畳みかける（音数が増える）', () => {
+    // 同じ材料のまま「張り上げてから駆け抜ける」形。
+    // オクターブを上げるだけだと、サビが「同じ旋律の高いほう」で終わる
+    const lead = (section: Parameters<typeof composeBar>[3]): Note[] =>
+      bar(section, 0).filter((n) => n.voice === 'shakuhachi' || n.voice === 'musicbox');
+    expect(lead('chorus').length).toBeGreaterThan(lead('verse').length);
+    // 頭の音がいちばん長い
+    const head = lead('chorus')[0];
+    expect(head?.beats).toBeGreaterThanOrEqual(SONG.beatsPerBar / 2);
+  });
+
+  it('高い和音は転回して近くへ寄せる（小節ごとに音域が跳ねない）', () => {
+    // 進行に度数 4 を書くと、その小節だけ旋律まるごと持ち上がっていた
+    const top = (index: number): number =>
+      Math.max(
+        ...bar('verse', index)
+          .filter((n) => n.voice === 'shakuhachi')
+          .map((n) => n.midi ?? 0),
+      );
+    const tops = [0, 1, 2, 3].map(top);
+    expect(Math.max(...tops) - Math.min(...tops)).toBeLessThanOrEqual(12);
   });
 
   it('打ち方が譜面に効く（sparse は低音が薄い）', () => {
@@ -168,5 +327,11 @@ describe('曲ごとの合成設定', () => {
     const sparse = composeBar('x', SONG, { ...DEFAULT_STYLE, groove: 'sparse' }, 'verse', 0);
     const bassOf = (notes: Note[]): number => notes.filter((n) => n.voice === 'bass').length;
     expect(bassOf(sparse)).toBeLessThan(bassOf(straight));
+  });
+
+  it('和音は四度堆積（三和音を積んで濁らせない）', () => {
+    // 5 音音階に 3 度堆積を乗せると濁る。1 つ飛ばしで重ねるのが和風の定番
+    expect(chordDegrees(0)).toEqual([0, 2, 4]);
+    expect(chordDegrees(3)).toEqual([3, 5, 7]);
   });
 });

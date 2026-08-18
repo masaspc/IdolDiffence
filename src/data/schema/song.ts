@@ -44,11 +44,33 @@ export const songSchema = z.object({
       /** 主音の MIDI ノート番号。48 = C3 */
       root: z.number().int(),
       /** 使う 5 音音階。`scale.ts` を参照 */
-      scale: z.enum(['miyakobushi', 'ritsu', 'insen']),
+      scale: z.enum(['miyakobushi', 'ritsu', 'insen', 'yonanuki']),
       /** 打ち方の性格 */
       groove: z.enum(['straight', 'driving', 'sparse']),
+      /**
+       * その曲の**動機**（3〜5 音の短い型）。音階上の度数で、和音の根音からの相対。
+       *
+       * ここが曲の顔になる。セクションごとに移高・反行・逆行・拡大・断片化して
+       * 展開するので（`audio/motif.ts`）、**曲ごとに違う型を書けば違う曲になる**。
+       * 逆にここを共通にすると、調を変えただけの同じ曲が 7 本並ぶ
+       */
+      motif: z.array(z.number()).min(2).max(8),
+      /** 動機の各音の長さ（拍）。`motif` と同じ本数、合計は 1 小節ぶん */
+      rhythm: z.array(z.number().positive()).min(2).max(8),
+      /** 和音進行。1 小節に 1 つ、音階上の度数 */
+      progression: z.array(z.number()).min(2).max(8),
     })
-    .default({ root: 50, scale: 'miyakobushi', groove: 'straight' }),
+    .default({
+      root: 50,
+      scale: 'miyakobushi',
+      groove: 'straight',
+      motif: [0, 2, 1, 4],
+      rhythm: [1, 1, 1, 1],
+      progression: [0, 3, 1, 4],
+    })
+    .refine((m) => m.motif.length === m.rhythm.length, {
+      message: '動機の音数と長さの数が合っていません',
+    }),
 });
 
 export const songsSchema = z.record(z.string(), songSchema);

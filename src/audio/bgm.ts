@@ -49,7 +49,13 @@ export interface BgmOptions {
 
 /** `songs.json` の `music` から合成の設定を取り出す */
 export function styleOf(song: Song): MusicStyle {
-  return { root: song.music.root, scale: song.music.scale, groove: song.music.groove };
+  return {
+    root: song.music.root,
+    scale: song.music.scale,
+    groove: song.music.groove,
+    motif: { degrees: song.music.motif, beats: song.music.rhythm },
+    progression: song.music.progression,
+  };
 }
 
 export class BgmPlayer {
