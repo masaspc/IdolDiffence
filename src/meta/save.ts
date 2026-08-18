@@ -11,9 +11,10 @@ import { z } from 'zod';
 import { costumeRaritySchema, costumeSlotSchema, costumeStatSchema } from '../data/schema/costume';
 import { seedFromString } from '../core/rng';
 import { DEFAULT_SETTINGS, settingsSchema } from './settings';
+import { TUTORIAL_IDS } from './tutorial';
 
 export const SAVE_KEY = 'idoldiffence.save';
-export const CURRENT_VERSION = 11;
+export const CURRENT_VERSION = 12;
 
 /**
  * 生成された衣装 1 着（03-progression.md ⑨）。
@@ -129,6 +130,14 @@ export const saveSchema = z.object({
   claimedAchievements: z.array(z.string()),
   /** 表示している称号（実績 ID）。未設定なら null */
   title: z.string().nullable(),
+  /**
+   * 見せ終わったチュートリアルの札（`meta/tutorial.ts`）。
+   *
+   * 段階解放（`meta/onboarding.ts`）と違って**これは出来事**で、
+   * 進捗からは復元できない。持たないと同じ札が毎ライブ出続ける
+   * （隠しキャラの `seenSecrets` と同じ理由）
+   */
+  tutorialSeen: z.array(z.string()),
 });
 
 export type SaveData = z.infer<typeof saveSchema>;
@@ -168,6 +177,7 @@ export function createNewSave(rngState: number = DEFAULT_RNG_STATE): SaveData {
     stats: emptyStats(),
     claimedAchievements: [],
     title: null,
+    tutorialSeen: [],
   };
 }
 
@@ -276,7 +286,28 @@ const migrations: Record<number, Migration> = {
       seVolume: DEFAULT_SETTINGS.seVolume,
     },
   }),
+  // v11 -> v12: 段階解放とチュートリアルを入れた（M5-8）。
+  //
+  // **すでに遊んでいる人には出さない。** 1 本でもクリアしていれば
+  // 配置も強化もセットリストも通ってきた人なので、いまさら
+  // 「まずは配置」と教えるのは失礼なうえ、邪魔になる。
+  // 一度も勝っていないセーブ（作っただけ・負けただけ）には出す ——
+  // その人はまだ何も分かっていない可能性のほうが高い。
+  //
+  // 解放そのものは進捗から導くので移行が要らない（`meta/onboarding.ts`）
+  11: (old) => ({
+    ...old,
+    version: 12,
+    tutorialSeen: hasClearedAny(old.stageProgress) ? [...TUTORIAL_IDS] : [],
+  }),
 };
+
+function hasClearedAny(progress: unknown): boolean {
+  if (typeof progress !== 'object' || progress === null) return false;
+  return Object.values(progress as Record<string, { cleared?: boolean }>).some(
+    (entry) => entry?.cleared === true,
+  );
+}
 
 /** 旧 ID -> 新 ID。畳んだ枠は同じ移り先へ合流する */
 const SONG_RENAMES: Record<string, string> = {

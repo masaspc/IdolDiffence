@@ -125,6 +125,27 @@ describe('マイグレーション', () => {
     expect(parsed.data.bestStar).toEqual({ S1: 1 });
   });
 
+  it('すでに遊んでいる人にチュートリアルを出し直さない', () => {
+    // 1 本でもクリアしていれば、配置も強化もセットリストも通ってきた人。
+    // いまさら「まずは配置」を出すのは失礼なうえ、邪魔になる
+    const veteran = migrate({
+      ...createNewSave(),
+      version: 11,
+      stageProgress: { S1: { cleared: true, bestAudience: 100, plays: 3 } },
+    });
+    expect((veteran as { tutorialSeen: string[] }).tutorialSeen.length).toBeGreaterThan(0);
+  });
+
+  it('まだ勝っていないセーブには出す', () => {
+    // 作っただけ・負けただけの人は、まだ何も分かっていない可能性のほうが高い
+    const rookie = migrate({
+      ...createNewSave(),
+      version: 11,
+      stageProgress: { S1: { cleared: false, bestAudience: 40, plays: 2 } },
+    });
+    expect((rookie as { tutorialSeen: string[] }).tutorialSeen).toEqual([]);
+  });
+
   it('全バージョンぶんの移行が用意されている', () => {
     // 1 つでも欠けると、その版で遊んでいた人のセーブが例外になる
     for (let version = 1; version < CURRENT_VERSION; version++) {

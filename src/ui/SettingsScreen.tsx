@@ -18,6 +18,8 @@ import { playSe, setSeVolume } from '../audio/se';
 interface SettingsScreenProps {
   save: SaveData;
   onChange: (patch: Partial<Settings>) => void;
+  /** チュートリアルをもう一度見る（`meta/tutorial.ts`） */
+  onResetTutorial: () => void;
   onBack: () => void;
 }
 
@@ -32,6 +34,7 @@ const TEXT_SCALES: TextScale[] = [100, 125, 150];
 export function SettingsScreen({
   save,
   onChange,
+  onResetTutorial,
   onBack,
 }: SettingsScreenProps): React.JSX.Element {
   const settings = save.settings;
@@ -189,6 +192,26 @@ export function SettingsScreen({
         キーボードだけでも遊べます。数字キーで配置メンバーを選び、Q で月華の解放、
         P で一時停止、Tab で速度、Space でコール。
       </p>
+
+      {/* 遊び方を忘れたときの逃げ道。**一度きりの説明は必ず読み逃される** ——
+          戻す手段が無いと、分からないまま進むしかなくなる */}
+      <section className="party-summary">
+        <h2>遊び方の案内</h2>
+        <p className="settings-note">
+          ライブ中に出る案内（配置・強化・セットリスト・月華）を、もう一度最初から出します。
+          {save.tutorialSeen.length === 0 ? '（いまは全部出る状態です）' : ''}
+        </p>
+        <div className="settings-row">
+          <button
+            type="button"
+            className="party-open settings-inline"
+            onClick={onResetTutorial}
+            disabled={save.tutorialSeen.length === 0}
+          >
+            案内をもう一度見る
+          </button>
+        </div>
+      </section>
 
       {/*
         原作との関係をはっきりさせる場所。**ここが無いと楽曲名が誤解される。**

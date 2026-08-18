@@ -414,7 +414,24 @@ export interface BattleMeta {
    * 才能と同じく、セーブの形ではなく畳んだ結果だけを渡す
    */
   costumes?: PartyCostumeEffects;
+  /**
+   * まだ開いていない要素（06-ui-ux.md 6.5 段階解放）。
+   *
+   * **省略すると全部使える。** ヘッドレス計測もテストも「全部ある盤面」が基準で、
+   * ここを既定で塞ぐと測り直しになる。塞ぐかどうかを決めるのは meta 層
+   * （`meta/onboarding.ts`）で、sim は渡されたものを受け取るだけ。
+   *
+   * 才能や衣装と同じ形 —— sim はセーブの形も進捗も知らない
+   */
+  locked?: readonly LockedFeature[];
 }
+
+/** 段階解放で塞げる要素。sim の挙動が変わるものだけがここに並ぶ */
+export type LockedFeature =
+  /** セットリスト（◆ の選択）。塞ぐと sim が止まらなくなる */
+  | 'setlist'
+  /** 月華解放。ボルテージは貯まるが撃てない */
+  | 'special';
 
 export class BattleWorld {
   readonly stage: Stage;
@@ -1231,6 +1248,8 @@ export class BattleWorld {
   /** ◆ を通過したら選択を開始する。sim は止まり、楽曲はループ区間で鳴り続ける */
   private checkCardPick(bar: number): void {
     if (this.offers) return;
+    // まだ開いていないなら ◆ を素通りする。止まらないので譜面もそのまま進む
+    if (this.isLocked('setlist')) return;
     for (const wave of this.waves) {
       if (!wave.cardPick || this.resolvedPicks.has(wave.index)) continue;
       if (bar < wave.startBar + wave.bars) continue;
@@ -1279,7 +1298,13 @@ export class BattleWorld {
   }
 
   get specialReady(): boolean {
+    if (this.isLocked('special')) return false;
     return this.voltage >= VOLTAGE_MAX && !this.specialActive && !this.finished;
+  }
+
+  /** 段階解放で塞がれているか（`BattleMeta.locked`）。省略時は塞がない */
+  private isLocked(feature: LockedFeature): boolean {
+    return this.meta.locked?.includes(feature) === true;
   }
 
   /**

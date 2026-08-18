@@ -33,6 +33,8 @@ import { claimRewards } from '../meta/achievements';
 import { textScaleRatio, type Settings } from '../meta/settings';
 import { randomSeed } from '../core/rng';
 import { installAudioUnlock } from '../audio/context';
+import { isOpen, lockedForBattle } from '../meta/onboarding';
+import { markTutorialSeen, resetTutorial } from '../meta/tutorial';
 import {
   DEFAULT_RNG_STATE,
   loadSave,
@@ -83,6 +85,8 @@ export function App(): React.JSX.Element {
    */
   const [battleMeta, setBattleMeta] = useState<BattleMeta>({ atkByIdol: {} });
   const [lastResult, setLastResult] = useState<{
+    /** どのステージの結果か。ここで何が新しく開いたかを出す（`meta/onboarding.ts`） */
+    stageId: string;
     won: boolean;
     audience: number;
     funds: number;
@@ -137,11 +141,17 @@ export function App(): React.JSX.Element {
     const { save: next, dropped } = applyReward(saveRef.current, outcome, reward);
     setSave(next);
     setLastResult({
+      stageId: outcome.stageId,
       won: outcome.won,
       audience: outcome.audience,
       funds: reward.funds,
       drops: dropped,
     });
+  }, []);
+
+  /** チュートリアルの札を見せ終わった。二度と出さない（`meta/tutorial.ts`） */
+  const handleTutorialSeen = useCallback((id: string) => {
+    setSave((current) => markTutorialSeen(current, id));
   }, []);
 
   if (screen === 'battle') {
@@ -153,6 +163,9 @@ export function App(): React.JSX.Element {
         attributeGlyphs={save.settings.attributeGlyphs}
         bgmVolume={save.settings.bgmVolume}
         seVolume={save.settings.seVolume}
+        showFormations={isOpen(save, 'formation')}
+        tutorialSeen={save.tutorialSeen}
+        onTutorialSeen={handleTutorialSeen}
         onFinish={handleFinish}
         onExit={() => setScreen('home')}
       />
@@ -194,6 +207,7 @@ export function App(): React.JSX.Element {
         onChange={(patch: Partial<Settings>) =>
           setSave((current) => ({ ...current, settings: { ...current.settings, ...patch } }))
         }
+        onResetTutorial={() => setSave((current) => resetTutorial(current))}
         onBack={() => setScreen('home')}
       />
     );
@@ -259,6 +273,8 @@ export function App(): React.JSX.Element {
         // sim にメタ層を触らせないための境界。ここで解決して以後は固定
         const { party, center } = normalizeParty(save);
         setBattleMeta({
+          // 段階解放。まだ開いていない要素は sim にも渡さない（`meta/onboarding.ts`）
+          locked: lockedForBattle(save),
           star,
           call: save.settings.call,
           soloPart: soloPartForStage(save, id),

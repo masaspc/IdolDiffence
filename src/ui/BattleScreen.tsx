@@ -39,6 +39,11 @@ interface BattleScreenProps {
   /** BGM / 効果音の音量（0〜10 の段階） */
   bgmVolume: number;
   seVolume: number;
+  /** フォーメーションの表示（段階解放。`meta/onboarding.ts`） */
+  showFormations: boolean;
+  /** 見せ終わったチュートリアルの札（`meta/tutorial.ts`） */
+  tutorialSeen: readonly string[];
+  onTutorialSeen: (id: string) => void;
   onFinish: (outcome: BattleOutcome) => void;
   onExit: () => void;
 }
@@ -50,6 +55,9 @@ export function BattleScreen({
   attributeGlyphs,
   bgmVolume,
   seVolume,
+  showFormations,
+  tutorialSeen,
+  onTutorialSeen,
   onFinish,
   onExit,
 }: BattleScreenProps): React.JSX.Element {
@@ -521,6 +529,10 @@ export function BattleScreen({
           fps={fps}
           pendingIdolId={pendingIdolId}
           selectedUnitId={selectedUnitId}
+          showVoltage={meta.locked?.includes('special') !== true}
+          showFormations={showFormations}
+          tutorialSeen={tutorialSeen}
+          onTutorialSeen={onTutorialSeen}
           onSelectIdol={selectIdol}
           onUpgradeSelected={upgradeSelected}
           onAwaken={awaken}
