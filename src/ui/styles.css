@@ -2783,9 +2783,29 @@ kbd {
   50% { opacity: 1; transform: scale(1.3); }
 }
 
-/* 演出「控えめ」では動きを止める（点滅は情報ではない） */
+/* 演出「控えめ」は点滅を**弱くする**（06-ui-ux.md 6.7 の約束）。
+   タイトルは設定画面より先に出るので、保存済みの好みがここにも効かないと
+   光過敏対策として意味が無い */
+:root[data-effects='reduced'] .title-ball-shine,
+:root[data-effects='reduced'] .title-enter {
+  animation-name: title-glow-soft;
+  animation-duration: 4.8s;
+}
+
+:root[data-effects='reduced'] .title-sparkles i {
+  /* 瞬きがいちばん強い点滅なので、控えめでは静かな点に置き換える */
+  animation: none;
+  opacity: 0.4;
+}
+
+/* 演出「最小」では動きを止める（点滅は情報ではない） */
 :root[data-effects='minimal'] .title-ball-shine,
 :root[data-effects='minimal'] .title-sparkles i,
 :root[data-effects='minimal'] .title-enter {
   animation: none;
+}
+
+@keyframes title-glow-soft {
+  0%, 100% { opacity: 0.92; }
+  50% { opacity: 1; }
 }
