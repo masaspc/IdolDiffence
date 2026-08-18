@@ -30,6 +30,8 @@ function evolvedMul(save: SaveData, idolId: string): { atk: number; range: numbe
 interface PartyScreenProps {
   save: SaveData;
   onToggle: (idolId: string) => void;
+  /** センターを選べるか（段階解放。`meta/onboarding.ts`） */
+  canSetCenter: boolean;
   onSetCenter: (idolId: string) => void;
   onBack: () => void;
 }
@@ -37,6 +39,7 @@ interface PartyScreenProps {
 export function PartyScreen({
   save,
   onToggle,
+  canSetCenter,
   onSetCenter,
   onBack,
 }: PartyScreenProps): React.JSX.Element {
@@ -139,14 +142,16 @@ export function PartyScreen({
                       >
                         {inParty ? '出撃から外す' : full ? '定員' : '出撃に加える'}
                       </button>
-                      <button
-                        type="button"
-                        className="ghost"
-                        onClick={() => onSetCenter(id)}
-                        disabled={!inParty || isCenter}
-                      >
-                        センターに
-                      </button>
+                      {canSetCenter && (
+                        <button
+                          type="button"
+                          className="ghost"
+                          onClick={() => onSetCenter(id)}
+                          disabled={!inParty || isCenter}
+                        >
+                          センターに
+                        </button>
+                      )}
                     </div>
                   </>
                 ) : (

@@ -2,6 +2,8 @@ import { describe, expect, it } from 'vitest';
 import { createWorld } from './world';
 import { runHeadless, FIXED_STEP_MS } from '../core/loop';
 import { autoplay } from './autoplay';
+import { STAGE_PLANS } from '../balance/plans';
+import { balanceMeta } from '../balance/investment';
 
 const SEED = 20260816;
 
@@ -102,5 +104,59 @@ describe('BattleWorld', () => {
       return JSON.stringify(world.snapshot());
     };
     expect(run()).toBe(run());
+  });
+});
+
+/**
+ * 段階解放（06-ui-ux.md 6.5）。塞ぐかどうかを決めるのは meta 層で、
+ * sim は渡されたものを受け取るだけ（`meta/onboarding.ts`）。
+ */
+describe('まだ開いていない要素', () => {
+  it('既定では何も塞がない（計測とテストの基準を変えない）', () => {
+    // ここが既定で塞がると、hpMul の実測が全部やり直しになる
+    const world = createWorld('S1', SEED);
+    const { cardsPicked } = autoplay(world, { plan: [], useSpecial: true });
+    expect(cardsPicked).toBeGreaterThan(0);
+  });
+
+  it('セットリストを塞ぐと ◆ で止まらない', () => {
+    const world = createWorld('S1', SEED, { locked: ['setlist'] });
+    const { cardsPicked, snapshot } = autoplay(world, { plan: [] });
+    expect(cardsPicked).toBe(0);
+    // 止まらずに最後まで進む（止まると誰も選ばないまま永久に終わらない）
+    expect(snapshot.finished).toBe(true);
+  });
+
+  it('月華を塞ぐと、ボルテージが満タンになっても撃てない', () => {
+    const everReady = (locked: readonly ('setlist' | 'special')[]): boolean => {
+      const world = createWorld('S1', SEED, {
+        ...balanceMeta('S1', 1, 'bare'),
+        locked,
+      });
+      let ready = false;
+      autoplay(world, {
+        plan: STAGE_PLANS.S1?.placements ?? [],
+        onTick: (w) => {
+          if (w.specialReady) ready = true;
+        },
+      });
+      return ready;
+    };
+    // 塞いでいなければ同じ盤面で満タンになる ―― 比較しないと
+    // 「そもそも貯まっていないだけ」と区別が付かない
+    expect(everReady([])).toBe(true);
+    expect(everReady(['special'])).toBe(false);
+  });
+
+  it('塞いでも S1 は勝てる（最初の 1 本を壁にしない）', () => {
+    // 配置とポジション強化だけで通ることを、ここで見張る。
+    // S1 の参照盤面は `balance/plans.ts`
+    const world = createWorld('S1', SEED, {
+      ...balanceMeta('S1', 1, 'bare'),
+      locked: ['setlist', 'special'],
+    });
+    const { snapshot } = autoplay(world, { plan: STAGE_PLANS.S1?.placements ?? [] });
+    expect(snapshot.won).toBe(true);
+    expect(snapshot.audience).toBe(100);
   });
 });

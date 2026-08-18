@@ -2525,3 +2525,150 @@ kbd {
     display: none;
   }
 }
+
+/* --- 段階解放とチュートリアル（06-ui-ux.md 6.5） --- */
+
+/* 新しく開いたもの。リザルト直後の 1 回だけ出す ——
+   ホームへ戻ってから探させると気づかれない */
+.unlock-notice {
+  margin-top: 1rem;
+  padding: 0.8rem 1rem;
+  border-radius: 12px;
+  border: 1px solid rgba(79, 195, 247, 0.5);
+  background: linear-gradient(120deg, rgba(79, 195, 247, 0.14), rgba(143, 107, 255, 0.14));
+  display: grid;
+  gap: 0.3rem;
+}
+
+.unlock-notice-tag {
+  font-size: 0.72rem;
+  letter-spacing: 0.12em;
+  color: var(--dance);
+}
+
+.unlock-notice-row {
+  font-size: 0.82rem;
+  color: var(--text-dim);
+}
+
+.unlock-notice-row strong {
+  margin-right: 0.6rem;
+  color: var(--text);
+}
+
+/* 次に開くもの。隠すだけだと進行が止まったように見える */
+.next-unlock {
+  margin: 0.9rem 0 0;
+  padding: 0.55rem 0.9rem;
+  border-radius: 10px;
+  border: 1px dashed var(--panel-edge);
+  font-size: 0.8rem;
+  color: var(--text-dim);
+}
+
+.next-unlock strong {
+  color: var(--dance);
+}
+
+/* チュートリアルの札。**盤面を覆わない** ——
+   全画面のモーダルにすると、説明しているものが説明のあいだだけ見えなくなる */
+.coach {
+  /* **画面に固定して、いちばん上に出す。** 下部バーの中に置いていたころは
+     セットリストの選択（全画面のオーバーレイ）に覆われ、
+     「わかった」が押せなかった */
+  position: fixed;
+  z-index: 20;
+  max-width: min(20rem, 76vw);
+  display: grid;
+  gap: 0.35rem;
+  padding: 0.7rem 0.9rem;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 213, 79, 0.6);
+  background: rgba(14, 12, 32, 0.94);
+  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.45);
+  text-align: left;
+}
+
+.coach-title {
+  font-size: 0.9rem;
+  color: var(--visual);
+}
+
+.coach-body {
+  font-size: 0.78rem;
+  line-height: 1.5;
+  color: var(--text);
+}
+
+.coach-close {
+  justify-self: end;
+  padding: 0.25rem 0.8rem;
+  border-radius: 999px;
+  border: 1px solid var(--panel-edge);
+  background: transparent;
+  color: var(--text);
+  font-size: 0.75rem;
+  cursor: pointer;
+}
+
+.coach-close:hover {
+  border-color: var(--visual);
+}
+
+/* 指す先ごとの位置。画面基準なので、指すものの近くへ置ける */
+.coach-palette,
+.coach-cards {
+  left: 50%;
+  bottom: 7.5rem;
+  transform: translateX(-50%);
+}
+
+.coach-voltage {
+  left: 1rem;
+  bottom: 7.5rem;
+}
+
+/* ユニットパネルと観客ゲージは左上にある。その真下へ */
+.coach-unit,
+.coach-audience {
+  left: 1rem;
+  top: 5rem;
+}
+
+/* 演出「控えめ」でも消さない。これは点滅ではなく**情報**で、
+   消すと遊び方が分からないまま進むことになる（06-ui-ux.md 6.7） */
+:root[data-effects='minimal'] .coach {
+  box-shadow: none;
+}
+
+@media (max-width: 640px) {
+  .coach {
+    max-width: calc(100vw - 1.6rem);
+    left: 0.8rem;
+    right: 0.8rem;
+    transform: none;
+  }
+
+  /* 縦画面では下部バーが高い。札はその上に置く */
+  .coach-palette,
+  .coach-cards,
+  .coach-voltage {
+    bottom: 9rem;
+  }
+}
+
+.settings-row {
+  margin-top: 0.6rem;
+}
+
+.settings-inline {
+  display: inline-block;
+  width: auto;
+  padding: 0.45rem 1rem;
+  font-size: 0.82rem;
+}
+
+.settings-inline:disabled {
+  opacity: 0.45;
+  cursor: default;
+}

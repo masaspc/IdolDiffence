@@ -1,6 +1,7 @@
 import { getIdol } from '../data';
 import type { AwakeningKey } from '../data/schema/idol';
 import type { WorldSnapshot } from '../sim/world';
+import { nextTutorial, type TutorialStep } from '../meta/tutorial';
 
 const SECTION_LABEL: Record<string, string> = {
   intro: 'イントロ',
@@ -19,6 +20,13 @@ interface HudProps {
   fps: number;
   pendingIdolId: string | null;
   selectedUnitId: number | null;
+  /** 月華のゲージを出すか（段階解放。`meta/onboarding.ts`） */
+  showVoltage: boolean;
+  /** フォーメーションの表示（同上） */
+  showFormations: boolean;
+  /** 見せ終わったチュートリアルの札（`meta/tutorial.ts`） */
+  tutorialSeen: readonly string[];
+  onTutorialSeen: (id: string) => void;
   onSelectIdol: (idolId: string) => void;
   onUpgradeSelected: () => void;
   onAwaken: (branch: AwakeningKey) => void;
@@ -31,6 +39,25 @@ interface HudProps {
   onChooseCard: (cardId: string) => void;
   onRestart: () => void;
   onExportLog: () => void;
+}
+
+/**
+ * チュートリアルの札（`meta/tutorial.ts`）。
+ *
+ * **盤面を覆わない。** 全画面のモーダルにすると、説明しているものが
+ * 説明のあいだだけ見えなくなる。指す先の近くに小さく貼り、
+ * 閉じるまで残す —— 自動で消すと、読む前に消えたときに戻す手段が無い
+ */
+function CoachMark(props: { step: TutorialStep; onClose: () => void }): React.JSX.Element {
+  return (
+    <div className={`coach coach-${props.step.anchor}`} role="status">
+      <strong className="coach-title">{props.step.title}</strong>
+      <span className="coach-body">{props.step.body}</span>
+      <button type="button" className="coach-close" onClick={props.onClose}>
+        わかった
+      </button>
+    </div>
+  );
 }
 
 /** 判定の表示名。日本語にすると 3 つの幅が揃わず、出るたびに位置が動く */
@@ -99,6 +126,14 @@ export function Hud(props: HudProps): React.JSX.Element {
       getIdol(pendingIdolId).name)
     : '';
   const selected = snapshot.units.find((u) => u.id === selectedUnitId) ?? null;
+  // いま出すべき札は 1 枚だけ。並べて出すと画面が札で埋まる
+  const coach = nextTutorial(props.tutorialSeen, {
+    placed: snapshot.units.length,
+    leaked: snapshot.leaked,
+    choosing: snapshot.offers !== null,
+    specialReady: snapshot.specialReady,
+    awaiting: snapshot.units.some((u) => u.awaitingAwakening),
+  });
   const selectedDef = selected ? getIdol(selected.idolId) : null;
   const canUpgrade =
     selected?.upgradeCost !== null &&
@@ -141,6 +176,10 @@ export function Hud(props: HudProps): React.JSX.Element {
           <span className="cheer">
             <span className="cheer-icon">♥</span> {snapshot.cheer}
           </span>
+          {/* 月華はまだ開いていないことがある（段階解放）。
+              満タンのゲージを出したまま押せなくすると、
+              「壊れている」のか「まだ早い」のかが分からない */}
+          {props.showVoltage && (
           <div className="gauge gauge-voltage">
             <span className="gauge-label">月華</span>
             <div className={`bar bar-voltage${snapshot.specialReady ? ' is-ready' : ''}`}>
@@ -158,6 +197,7 @@ export function Hud(props: HudProps): React.JSX.Element {
               <kbd>Q</kbd>
             </button>
           </div>
+          )}
         </div>
 
         <div className="palette">
@@ -294,7 +334,7 @@ export function Hud(props: HudProps): React.JSX.Element {
         </div>
       )}
 
-      {snapshot.formations.length > 0 && (
+      {props.showFormations && snapshot.formations.length > 0 && (
         <div className="formations">
           {snapshot.formations.map((f) => (
             <span key={f.id} className="formation-chip" title={f.desc}>
@@ -325,6 +365,12 @@ export function Hud(props: HudProps): React.JSX.Element {
           撃破 {snapshot.killed} / 漏れ {snapshot.leaked}
         </span>
       </div>
+
+      {/* チュートリアルの札は**いちばん外側に置く**。
+          下部バーの中に置いていたら、セットリストの選択（全画面のオーバーレイ）に
+          覆われて「わかった」が押せなかった —— よりによって、
+          そのオーバーレイを説明する札が押せない状態になっていた */}
+      {coach && <CoachMark step={coach} onClose={() => props.onTutorialSeen(coach.id)} />}
 
       {snapshot.offers && (
         <div className="overlay">
