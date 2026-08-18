@@ -8,8 +8,11 @@
     "singer": "かぐや",
     "music": {
       "root": 52,
-      "scale": "ritsu",
-      "groove": "straight"
+      "scale": "yonanuki",
+      "groove": "straight",
+      "motif": [0, 1, 2, 4],
+      "rhythm": [1, 0.5, 0.5, 2],
+      "progression": [0, 3, 1, 4]
     }
   },
   "ray_cpk": {
@@ -22,7 +25,10 @@
     "music": {
       "root": 50,
       "scale": "ritsu",
-      "groove": "driving"
+      "groove": "driving",
+      "motif": [0, 2, 1, 0, 4],
+      "rhythm": [0.5, 0.5, 1, 1, 1],
+      "progression": [0, 4, 2, 3]
     }
   },
   "hoshifuru_umi": {
@@ -35,7 +41,10 @@
     "music": {
       "root": 47,
       "scale": "miyakobushi",
-      "groove": "sparse"
+      "groove": "sparse",
+      "motif": [0, -1, 2],
+      "rhythm": [2, 1, 1],
+      "progression": [0, 2, 4, 3]
     }
   },
   "shunkan": {
@@ -48,7 +57,10 @@
     "music": {
       "root": 53,
       "scale": "insen",
-      "groove": "driving"
+      "groove": "driving",
+      "motif": [4, 3, 1, 2, 0],
+      "rhythm": [0.5, 0.5, 0.5, 0.5, 2],
+      "progression": [0, 1, 4, 3]
     }
   },
   "watashi_wa": {
@@ -60,8 +72,11 @@
     "singer": "かぐや",
     "music": {
       "root": 55,
-      "scale": "ritsu",
-      "groove": "straight"
+      "scale": "yonanuki",
+      "groove": "straight",
+      "motif": [0, 2, 4, 3],
+      "rhythm": [1, 1, 1, 1],
+      "progression": [0, 3, 4, 2]
     }
   },
   "remember": {
@@ -74,7 +89,10 @@
     "music": {
       "root": 50,
       "scale": "miyakobushi",
-      "groove": "driving"
+      "groove": "driving",
+      "motif": [2, 1, 0, -1],
+      "rhythm": [0.5, 1, 0.5, 2],
+      "progression": [0, 4, 1, 3]
     }
   },
   "ex_otogibanashi": {
@@ -87,7 +105,10 @@
     "music": {
       "root": 48,
       "scale": "miyakobushi",
-      "groove": "straight"
+      "groove": "straight",
+      "motif": [0, 3, 2, 4, 3],
+      "rhythm": [1, 0.5, 0.5, 1, 1],
+      "progression": [0, 4, 3, 1]
     }
   }
 }

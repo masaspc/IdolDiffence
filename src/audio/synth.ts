@@ -19,6 +19,67 @@
 import type { Voice } from './compose';
 import { midiToFreq } from './scale';
 
+/**
+ * 残響。**ここが無いと、どれだけ良い譜面でも「打ち込み」に聞こえる。**
+ *
+ * 1 音ずつが乾いたまま鳴ると、会場ではなく机の上で鳴っている音になる。
+ * インパルス応答（減衰するノイズ）を作って `ConvolverNode` に食わせるだけで、
+ * 「広い場所で鳴っている」に変わる。音源ファイルは要らない。
+ *
+ * ## 使い回す単位が 2 つある
+ *
+ * インパルス応答は**作るのが重い**（数十万サンプルを埋める）ので
+ * AudioContext ごとに 1 つ。畳み込みの経路は**行き先ごと**に 1 つ。
+ *
+ * ここを分けずに AudioContext だけで使い回すと、**2 回目のバトルから
+ * 残響が消える** —— AudioContext は使い回されるが `BgmPlayer` の master は
+ * バトルごとに作り直され、古い master は `dispose()` で切断される。
+ * 経路の出口が古い master のままだと、以後の湿った音は切れた先へ流れる。
+ */
+const impulses = new WeakMap<BaseAudioContext, AudioBuffer>();
+const sends = new WeakMap<AudioNode, GainNode>();
+
+function impulse(ctx: BaseAudioContext): AudioBuffer {
+  const cached = impulses.get(ctx);
+  if (cached) return cached;
+
+  const seconds = 1.9;
+  const length = Math.floor(ctx.sampleRate * seconds);
+  const buffer = ctx.createBuffer(2, length, ctx.sampleRate);
+  // 決定性のため `Math.random()` は使わない（eslint で禁止）
+  let seed = 0x6d2b79f5;
+  for (let channel = 0; channel < 2; channel++) {
+    const data = buffer.getChannelData(channel);
+    for (let i = 0; i < length; i++) {
+      seed = (Math.imul(seed, 1664525) + 1013904223) >>> 0;
+      const noise = (seed / 0xffffffff) * 2 - 1;
+      // 指数減衰。頭を少し遅らせると、壁までの距離が出る
+      const decay = Math.pow(1 - i / length, 2.6);
+      data[i] = noise * decay * (i < ctx.sampleRate * 0.012 ? 0.2 : 1);
+    }
+  }
+  impulses.set(ctx, buffer);
+  return buffer;
+}
+
+function reverbSend(ctx: BaseAudioContext, destination: AudioNode): GainNode {
+  const existing = sends.get(destination);
+  if (existing) return existing;
+
+  const convolver = ctx.createConvolver();
+  convolver.buffer = impulse(ctx);
+  // 残響だけ高域を落とす。落とさないと、刻みの残響が耳に刺さる
+  const damp = ctx.createBiquadFilter();
+  damp.type = 'lowpass';
+  damp.frequency.value = 3600;
+
+  const send = ctx.createGain();
+  send.gain.value = 1;
+  send.connect(convolver).connect(damp).connect(destination);
+  sends.set(destination, send);
+  return send;
+}
+
 /** ホワイトノイズのバッファ。打楽器と息の成分に使う。1 回作って使い回す */
 let noiseBuffer: AudioBuffer | null = null;
 
@@ -68,6 +129,17 @@ function envelope(
  * @param at 鳴らす時刻（`AudioContext.currentTime` と同じ基準の秒）
  * @param duration 長さ（秒）
  */
+/** 声部ごとの残響の深さ。低音と刻みを濡らすと輪郭が消える */
+const REVERB: Record<Voice, number> = {
+  taiko: 0.12,
+  hat: 0.06,
+  koto: 0.3,
+  shakuhachi: 0.34,
+  bass: 0.05,
+  bell: 0.5,
+  musicbox: 0.45,
+};
+
 export function playVoice(
   ctx: BaseAudioContext,
   destination: AudioNode,
@@ -78,26 +150,92 @@ export function playVoice(
   midi?: number,
 ): void {
   const freq = midi === undefined ? 0 : midiToFreq(midi);
+
+  // 直接音と残響へ同時に送る。残響の深さは声部ごと
+  const bus = ctx.createGain();
+  bus.gain.value = 1;
+  bus.connect(destination);
+  const wet = REVERB[voice];
+  if (wet > 0) {
+    const send = ctx.createGain();
+    send.gain.value = wet;
+    bus.connect(send).connect(reverbSend(ctx, destination));
+  }
+
   switch (voice) {
     case 'taiko':
-      taiko(ctx, destination, at, gain);
+      taiko(ctx, bus, at, gain);
       return;
     case 'hat':
-      hat(ctx, destination, at, gain);
+      hat(ctx, bus, at, gain);
       return;
     case 'koto':
-      koto(ctx, destination, at, duration, gain, freq);
+      koto(ctx, bus, at, duration, gain, freq);
       return;
     case 'shakuhachi':
-      shakuhachi(ctx, destination, at, duration, gain, freq);
+      shakuhachi(ctx, bus, at, duration, gain, freq);
       return;
     case 'bass':
-      bass(ctx, destination, at, duration, gain, freq);
+      bass(ctx, bus, at, duration, gain, freq);
       return;
     case 'bell':
-      bell(ctx, destination, at, duration, gain, freq);
+      bell(ctx, bus, at, duration, gain, freq);
+      return;
+    case 'musicbox':
+      musicbox(ctx, bus, at, duration, gain, freq);
       return;
   }
+}
+
+/**
+ * オルゴール。**加算合成 + 非整数倍音**。
+ *
+ * 櫛歯を弾く音なので、
+ *
+ * - 立ち上がりはほぼ 0（打鍵の瞬間に全部の倍音が立つ）
+ * - 倍音は整数比から外す（金属の板は弦と違って倍音が整数にならない）
+ * - 高い倍音ほど早く消える
+ * - 撥の当たる「カチッ」を頭に少しだけ足す
+ *
+ * この 4 つで「オルゴールらしさ」はほぼ決まる。鐘（`bell`）と作りは似ているが、
+ * オルゴールのほうが倍音が少なく、減衰が速く、頭の音が硬い。
+ */
+function musicbox(
+  ctx: BaseAudioContext,
+  out: AudioNode,
+  at: number,
+  duration: number,
+  gain: number,
+  freq: number,
+): void {
+  // 非整数の倍音列。板の振動モードを粗く真似たもの
+  const partials: readonly [number, number, number][] = [
+    // [倍率, 音量, 減衰の速さ]
+    [1, 1, 1],
+    [2.76, 0.42, 0.6],
+    [5.4, 0.18, 0.35],
+    [8.9, 0.08, 0.2],
+  ];
+  const tail = Math.max(0.7, Math.min(2.4, duration * 1.8));
+  for (const [ratio, level, decay] of partials) {
+    const osc = ctx.createOscillator();
+    osc.type = 'sine';
+    osc.frequency.value = freq * ratio;
+    const env = envelope(ctx, at, 0.001, tail * decay, gain * 0.34 * level);
+    osc.connect(env).connect(out);
+    osc.start(at);
+    osc.stop(at + tail * decay + 0.1);
+  }
+  // 撥が当たる音。これが無いと「柔らかいベル」で止まる
+  const click = noiseSource(ctx);
+  const filter = ctx.createBiquadFilter();
+  filter.type = 'bandpass';
+  filter.frequency.value = Math.min(9000, freq * 6);
+  filter.Q.value = 1.2;
+  const clickEnv = envelope(ctx, at, 0.0005, 0.03, gain * 0.12);
+  click.connect(filter).connect(clickEnv).connect(out);
+  click.start(at);
+  click.stop(at + 0.06);
 }
 
 /** 和太鼓。低音が一瞬で落ちるのが芯、打面のノイズが胴の鳴り */

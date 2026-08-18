@@ -17,13 +17,16 @@
  * - `ritsu`（律）—— 雅楽の音階。半音が無く、開けた明るさが出る
  * - `insen`（陰旋）—— 都節の変種。上行と下行で表情が変わる
  */
-export type ScaleName = 'miyakobushi' | 'ritsu' | 'insen';
+export type ScaleName = 'miyakobushi' | 'ritsu' | 'insen' | 'yonanuki';
 
 /** 主音からの半音数 */
 const SCALES: Record<ScaleName, readonly number[]> = {
   miyakobushi: [0, 1, 5, 7, 8],
   ritsu: [0, 2, 5, 7, 9],
   insen: [0, 1, 5, 7, 10],
+  // ヨナ抜き長音階（長音階から 4 度と 7 度を抜いたもの）。
+  // 半音を含まないので、都節と並べるといちばん明るい
+  yonanuki: [0, 2, 4, 7, 9],
 };
 
 /**
@@ -40,6 +43,18 @@ export function scaleNote(root: number, scale: ScaleName, degree: number): numbe
   const octave = Math.floor(degree / size);
   const index = degree - octave * size;
   return root + octave * 12 + (steps[index] ?? 0);
+}
+
+/**
+ * 和音の構成音（音階上の度数）。
+ *
+ * **三和音は積まない。** 5 音音階に 3 度堆積を乗せると濁りやすく、
+ * 単純な波形では特に汚くなる。和風の定番どおり**四度堆積**にする ——
+ * 5 音音階では「1 つ飛ばし」がほぼ 4 度になるので、度数 +2 ずつ重ねる。
+ * sus4 的な、解決を急がない響きになる。
+ */
+export function chordDegrees(root: number): number[] {
+  return [root, root + 2, root + 4];
 }
 
 /** MIDI ノート番号 → 周波数（Hz）。A4 = 69 = 440Hz */
