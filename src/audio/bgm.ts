@@ -26,7 +26,7 @@ import type { Section } from '../data/schema/common';
 import type { Song } from '../data/schema/song';
 import type { ClockState } from '../core/clock';
 import { composeBar, DEFAULT_STYLE, sectionMap, type MusicStyle } from './compose';
-import { playVoice } from './synth';
+import { bakeNext, createMasterBus, playVoice, warmSamples } from './synth';
 
 /** どれだけ先まで予約するか（ミリ秒）。1 小節ぶんあれば取りこぼさない */
 const LOOKAHEAD_MS = 1400;
@@ -60,6 +60,8 @@ export function styleOf(song: Song): MusicStyle {
 
 export class BgmPlayer {
   private readonly master: GainNode;
+  /** まとめの段。バトルごとに作るので、抜けるときに切る */
+  private readonly bus: GainNode;
   private readonly sections: Section[];
   private readonly msPerBar: number;
 
@@ -89,9 +91,23 @@ export class BgmPlayer {
   ) {
     this.master = ctx.createGain();
     this.master.gain.value = 0;
-    this.master.connect(ctx.destination);
+    // 曲はまとめの段を通す（`createMasterBus`）。声部を足しただけだと
+    // 音量がばらついて、作り込んだ音色が「素人の録音」に聞こえる
+    this.bus = createMasterBus(ctx, ctx.destination);
+    this.master.connect(this.bus);
     this.sections = sectionMap(options.waves);
     this.msPerBar = (60000 / options.song.bpm) * options.song.beatsPerBar;
+
+    // この曲で要る標本を予約しておく（焼くのは 1 フレームに 1 本ずつ）。
+    // まとめて焼くと、バトルに入った最初のフレームが 218ms 掛かっていた
+    const root = (options.style ?? DEFAULT_STYLE).root;
+    warmSamples(
+      ctx,
+      this.master,
+      ['bass', 'koto', 'shakuhachi', 'musicbox', 'taiko', 'hat', 'bell'],
+      // 旋律は主音の 2 オクターブ上まで上がる（`compose.ts` の音域）
+      [root - 12, root, root + 12, root + 24],
+    );
   }
 
   /** 0..1。0 なら以後の予約もしない（無音のためだけに音を組み立てない） */
@@ -109,6 +125,9 @@ export class BgmPlayer {
    * @param speed 再生速度（1 / 2 / 3）
    */
   sync(simTimeMs: number, state: ClockState, speed: number): void {
+    // 予約した標本を 1 本だけ焼く。毎フレーム呼ばれるので、
+    // 1 小節先まで予約している曲には十分間に合う
+    bakeNext(this.ctx);
     if (this.volume === 0) {
       this.anchored = false;
       return;
@@ -133,8 +152,12 @@ export class BgmPlayer {
   dispose(): void {
     this.master.gain.cancelScheduledValues(this.ctx.currentTime);
     this.master.gain.setTargetAtTime(0, this.ctx.currentTime, 0.05);
-    // 予約済みの音が鳴り終わってから切る
-    window.setTimeout(() => this.master.disconnect(), 600);
+    // 予約済みの音が鳴り終わってから切る。まとめの段もここで外す ——
+    // 残しておくとバトルのたびにノードが積み上がる
+    window.setTimeout(() => {
+      this.master.disconnect();
+      this.bus.disconnect();
+    }, 600);
   }
 
   private onStateChange(state: ClockState, simTimeMs: number): void {
@@ -192,7 +215,9 @@ export class BgmPlayer {
     let guard = 0;
     while (this.loopCursorSec < horizon && guard++ < 8) {
       // 2 小節でひと回り。長すぎると選択が短いときに一度も回らない
-      const offset = Math.round((this.loopCursorSec - this.ctx.currentTime) / (this.msPerBar / 1000));
+      const offset = Math.round(
+        (this.loopCursorSec - this.ctx.currentTime) / (this.msPerBar / 1000),
+      );
       this.scheduleBar(this.loopFrom + (offset % 2), this.loopCursorSec);
       this.loopCursorSec += this.msPerBar / 1000;
     }
