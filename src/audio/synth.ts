@@ -26,21 +26,30 @@ import { midiToFreq } from './scale';
  * インパルス応答（減衰するノイズ）を作って `ConvolverNode` に食わせるだけで、
  * 「広い場所で鳴っている」に変わる。音源ファイルは要らない。
  *
- * AudioContext ごとに 1 つ作って使い回す。
+ * ## 使い回す単位が 2 つある
+ *
+ * インパルス応答は**作るのが重い**（数十万サンプルを埋める）ので
+ * AudioContext ごとに 1 つ。畳み込みの経路は**行き先ごと**に 1 つ。
+ *
+ * ここを分けずに AudioContext だけで使い回すと、**2 回目のバトルから
+ * 残響が消える** —— AudioContext は使い回されるが `BgmPlayer` の master は
+ * バトルごとに作り直され、古い master は `dispose()` で切断される。
+ * 経路の出口が古い master のままだと、以後の湿った音は切れた先へ流れる。
  */
-const reverbs = new WeakMap<BaseAudioContext, GainNode>();
+const impulses = new WeakMap<BaseAudioContext, AudioBuffer>();
+const sends = new WeakMap<AudioNode, GainNode>();
 
-function reverbSend(ctx: BaseAudioContext, destination: AudioNode): GainNode {
-  const existing = reverbs.get(ctx);
-  if (existing) return existing;
+function impulse(ctx: BaseAudioContext): AudioBuffer {
+  const cached = impulses.get(ctx);
+  if (cached) return cached;
 
   const seconds = 1.9;
   const length = Math.floor(ctx.sampleRate * seconds);
-  const impulse = ctx.createBuffer(2, length, ctx.sampleRate);
+  const buffer = ctx.createBuffer(2, length, ctx.sampleRate);
   // 決定性のため `Math.random()` は使わない（eslint で禁止）
   let seed = 0x6d2b79f5;
   for (let channel = 0; channel < 2; channel++) {
-    const data = impulse.getChannelData(channel);
+    const data = buffer.getChannelData(channel);
     for (let i = 0; i < length; i++) {
       seed = (Math.imul(seed, 1664525) + 1013904223) >>> 0;
       const noise = (seed / 0xffffffff) * 2 - 1;
@@ -49,9 +58,16 @@ function reverbSend(ctx: BaseAudioContext, destination: AudioNode): GainNode {
       data[i] = noise * decay * (i < ctx.sampleRate * 0.012 ? 0.2 : 1);
     }
   }
+  impulses.set(ctx, buffer);
+  return buffer;
+}
+
+function reverbSend(ctx: BaseAudioContext, destination: AudioNode): GainNode {
+  const existing = sends.get(destination);
+  if (existing) return existing;
 
   const convolver = ctx.createConvolver();
-  convolver.buffer = impulse;
+  convolver.buffer = impulse(ctx);
   // 残響だけ高域を落とす。落とさないと、刻みの残響が耳に刺さる
   const damp = ctx.createBiquadFilter();
   damp.type = 'lowpass';
@@ -60,7 +76,7 @@ function reverbSend(ctx: BaseAudioContext, destination: AudioNode): GainNode {
   const send = ctx.createGain();
   send.gain.value = 1;
   send.connect(convolver).connect(damp).connect(destination);
-  reverbs.set(ctx, send);
+  sends.set(destination, send);
   return send;
 }
 
