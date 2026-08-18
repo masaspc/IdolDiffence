@@ -162,10 +162,29 @@ export function BattleScreen({
 
     // sim からは鳴らさない。ヘッドレス計測とテストに音の都合を持ち込まないため
     const offSe = [
-      world.events.on('enemyKilled', () => playSe('kill')),
-      world.events.on('enemyLeaked', () => playSe('leak')),
+      world.events.on('enemyKilled', () => {
+        playSe('kill');
+        renderer.pushComment('kill');
+      }),
+      world.events.on('enemyLeaked', () => {
+        playSe('leak');
+        renderer.pushComment('leak');
+      }),
+      // ライブ開始直後は挨拶が流れる（かぐやっほ～！／ヤオヨロー！は原作の挨拶）。
+      // サビの頭でも一声。コメントは情報ではなく空気なので、間引きは renderer 側
+      world.events.on('bar', (e) => {
+        if (e.bar < 8 && e.bar % 2 === 0) renderer.pushComment('greeting');
+      }),
+      world.events.on('sectionChanged', (e) => {
+        if (e.section === 'chorus' || e.section === 'finale') renderer.pushComment('chorus');
+      }),
+      world.events.on('specialStarted', () => renderer.pushComment('special')),
+      world.events.on('called', (e) => {
+        if (!e.auto && e.judge === 'perfect') renderer.pushComment('perfect');
+      }),
       world.events.on('bossPhase', (e) => {
         playSe('phase');
+        renderer.pushComment('phase');
         // 何が変わったのかを名指しする。「フェーズ 2」では
         // 編成のどこを変えればいいのか分からない
         renderer.pushCutIn({
@@ -177,6 +196,7 @@ export function BattleScreen({
       world.events.on('enemySpawned', (e) => {
         if (!getEnemy(e.defId).traits.boss) return;
         playSe('boss');
+        renderer.pushComment('boss');
         renderer.pushCutIn({
           kind: 'boss',
           title: getEnemy(e.defId).name,
@@ -186,6 +206,7 @@ export function BattleScreen({
       }),
       // ソロパートは 1 人を選んで撃つ操作なので、誰に入ったのかを顔で返す
       world.events.on('soloStarted', (e) => {
+        renderer.pushComment('solo');
         const unit = world.snapshot().units.find((u) => u.id === e.id);
         if (!unit) return;
         renderer.pushCutIn({
@@ -205,7 +226,12 @@ export function BattleScreen({
         // 押していないのに手応えの音だけ返るのはおかしい
         if (!e.auto && e.judge === 'perfect') playSe('callPerfect');
       }),
-      world.events.on('battleEnded', (e) => playSe(e.won ? 'win' : 'lose')),
+      world.events.on('battleEnded', (e) => {
+        playSe(e.won ? 'win' : 'lose');
+        // 完走の拍手は 1 声では寂しい。間隔は renderer 側が守る
+        renderer.pushComment(e.won ? 'win' : 'lose');
+        renderer.pushComment(e.won ? 'win' : 'lose');
+      }),
     ];
 
     // HUD が覆う高さを測って渡す。canvas は全面のままにして背景を端まで見せ、

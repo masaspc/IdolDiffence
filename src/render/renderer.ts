@@ -14,6 +14,7 @@ import { GeneratedSprites, SPRITE_DRAW_SIZE, type SpriteProvider } from './sprit
 import { enemyDrawSize, GeneratedEnemySprites } from './enemySprites';
 import { allowsFloatingText, flashAmount, type EffectLevel } from '../meta/settings';
 import { CUTIN_STYLES, CutInQueue, type CutIn } from './cutin';
+import { CommentStream, type CommentKind } from './comments';
 import {
   drawBallSparkle,
   drawDrifters,
@@ -75,6 +76,8 @@ export class Renderer {
    */
   private skyTimeMs = 0;
   private readonly drifters: ReturnType<typeof skyDrifters>;
+  /** 配信コメント（`comments.ts`）。ツクヨミのライブには画面の向こうの観客がいる */
+  private readonly comments = new CommentStream();
 
   constructor(
     private readonly canvas: HTMLCanvasElement,
@@ -225,6 +228,8 @@ export class Renderer {
     ctx.restore();
 
     // 演出は盤面の変換の外。画面いっぱいに出したいので、倒しても正立させる
+    // 配信コメントは HUD のすぐ下の帯。盤面の変換の外なので、倒しても読める
+    this.comments.draw(ctx, this.widthCss, this.insetTop + 8, 84);
     this.drawSpecialEffect(ctx, snapshot);
     this.drawCutIn(ctx);
   }
@@ -237,6 +242,13 @@ export class Renderer {
     }
     this.cutIns.advance(deltaMs, this.effects);
     this.skyTimeMs += deltaMs;
+    this.comments.advance(deltaMs);
+    this.comments.prune(this.widthCss);
+  }
+
+  /** 配信コメントを流す。呼ぶのは world.events の購読側（BattleScreen） */
+  pushComment(kind: CommentKind): void {
+    this.comments.push(kind, this.effects);
   }
 
   /**
