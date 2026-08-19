@@ -15,7 +15,7 @@ import { enemyDrawSize, GeneratedEnemySprites } from './enemySprites';
 import { allowsFloatingText, flashAmount, type EffectLevel } from '../meta/settings';
 import { CUTIN_STYLES, CutInQueue, type CutIn } from './cutin';
 import { CommentStream, type CommentKind } from './comments';
-import { filledCount, seatsAround, type Seat } from './audience';
+import { blockedCells, filledCount, interleave, seatsAround, type Seat } from './audience';
 import {
   drawBallSparkle,
   drawDrifters,
@@ -104,18 +104,25 @@ export class Renderer {
     if (!ctx) throw new Error('2D コンテキストを取得できませんでした');
     this.ctx = ctx;
     this.drifters = skyDrifters(world.stageId);
-    // 複数レーンが同じゴールへ集まるステージでは席を二重に敷かない
+    // 経路と配置マスの上には座らせない。複数レーンが同じゴールへ集まる
+    // ステージでは席を二重に敷かず、ゴールが複数あるステージでは
+    // 「前から埋める」がどのゴールにも同じくらい効くよう交互に混ぜる
+    const blocked = blockedCells(world.stage.lanes, world.stage.placeable);
     const seenGoals = new Set<string>();
-    this.audienceSeats = world.stage.lanes.flatMap((lane, laneIndex) => {
+    const groups: Seat[][] = [];
+    world.stage.lanes.forEach((lane, laneIndex) => {
       const wp = lane.waypoints;
       const last = wp[wp.length - 1];
-      if (!last) return [];
+      if (!last) return;
       const key = `${last[0]},${last[1]}`;
-      if (seenGoals.has(key)) return [];
+      if (seenGoals.has(key)) return;
       seenGoals.add(key);
       const prev = wp.length > 1 ? (wp[wp.length - 2] ?? null) : null;
-      return seatsAround(last, prev, world.stage.grid.w, world.stage.grid.h, laneIndex);
+      groups.push(
+        seatsAround(last, prev, world.stage.grid.w, world.stage.grid.h, laneIndex, blocked),
+      );
     });
+    this.audienceSeats = interleave(groups);
   }
 
   get logicalWidth(): number {

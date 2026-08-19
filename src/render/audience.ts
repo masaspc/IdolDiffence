@@ -37,7 +37,53 @@ const BACK_SEATS = 8;
 
 const hash = (n: number): number => (Math.imul(n, 2654435761) >>> 0) % 1000;
 
-/** ある向きに扇を開いたときの席。盤面からはみ出す席は捨てる */
+/**
+ * 座らせないセルの集合（"x,y"）。**経路の上と配置マスの上には座らせない** ——
+ * 経路は敵が歩き、配置マスはプレイヤーが押す場所で、どちらも
+ * 客席が重なると読めなくなる（S28 の実データで経路 5 席・配置マス 10 席が
+ * 重なっていた）。レーンは折れ線なので、ウェイポイント間を 1 セルずつ
+ * 歩いて埋める。
+ */
+export function blockedCells(
+  lanes: readonly { waypoints: readonly (readonly [number, number])[] }[],
+  placeable: readonly (readonly [number, number])[],
+): Set<string> {
+  const blocked = new Set<string>();
+  for (const [x, y] of placeable) blocked.add(`${x},${y}`);
+  for (const lane of lanes) {
+    for (let i = 0; i < lane.waypoints.length - 1; i++) {
+      const from = lane.waypoints[i];
+      const to = lane.waypoints[i + 1];
+      if (!from || !to) continue;
+      const steps = Math.max(Math.abs(to[0] - from[0]), Math.abs(to[1] - from[1]));
+      for (let s = 0; s <= steps; s++) {
+        const t = steps === 0 ? 0 : s / steps;
+        blocked.add(`${Math.round(from[0] + (to[0] - from[0]) * t)},${Math.round(from[1] + (to[1] - from[1]) * t)}`);
+      }
+    }
+  }
+  return blocked;
+}
+
+/**
+ * ゴールごとの席の列を 1 本に混ぜる。**前から順に埋める**前提の配列なので、
+ * ゴール順に連結すると「最初のゴールだけ満席で残りは無人」になる
+ * （S18 の 4 ゴールで実際にそうなった）。各ゴールの 1 席目、2 席目…と
+ * 交互に取り、同接が減るとどのゴールからも同じくらいずつ帰るようにする。
+ */
+export function interleave<T>(groups: readonly (readonly T[])[]): T[] {
+  const out: T[] = [];
+  const longest = Math.max(0, ...groups.map((g) => g.length));
+  for (let i = 0; i < longest; i++) {
+    for (const group of groups) {
+      const item = group[i];
+      if (item !== undefined) out.push(item);
+    }
+  }
+  return out;
+}
+
+/** ある向きに扇を開いたときの席。盤面の外と立入禁止セルの席は捨てる */
 function fanSeats(
   gx: number,
   gy: number,
@@ -45,6 +91,7 @@ function fanSeats(
   gridW: number,
   gridH: number,
   laneIndex: number,
+  blocked: ReadonlySet<string>,
 ): Seat[] {
   const seats: Seat[] = [];
   const rows: { count: number; radius: number }[] = [
@@ -64,6 +111,8 @@ function fanSeats(
       index += 1;
       // 盤面の外・盤面の縁ぎりぎりは捨てる（描き切れない）
       if (x < 0.25 || y < 0.25 || x > gridW - 0.25 || y > gridH - 0.25) continue;
+      // 経路・配置マスの上にも座らせない
+      if (blocked.has(`${Math.floor(x)},${Math.floor(y)}`)) continue;
       seats.push({ x, y, phase: (salt % 100) / 100 });
     }
   }
@@ -81,6 +130,7 @@ function fanSeats(
  *
  * @param goal レーン終端のセル座標
  * @param prev 終端のひとつ手前のセル座標。無ければ真下向きとみなす
+ * @param blocked 座らせないセル（`blockedCells`）。省略は空
  */
 export function seatsAround(
   goal: readonly [number, number],
@@ -88,6 +138,7 @@ export function seatsAround(
   gridW: number,
   gridH: number,
   laneIndex: number,
+  blocked: ReadonlySet<string> = new Set(),
 ): Seat[] {
   const gx = goal[0] + 0.5;
   const gy = goal[1] + 0.5;
@@ -106,7 +157,7 @@ export function seatsAround(
 
   let best: Seat[] = [];
   for (const center of [forward, forward + Math.PI / 2, forward - Math.PI / 2]) {
-    const candidate = fanSeats(gx, gy, center, gridW, gridH, laneIndex);
+    const candidate = fanSeats(gx, gy, center, gridW, gridH, laneIndex, blocked);
     // 先に並べた候補（前方）を優先。同数なら向きを変えない
     if (candidate.length > best.length) best = candidate;
   }
