@@ -156,6 +156,10 @@ export function BattleScreen({
     bgmRef.current = bgm;
     bgm?.setVolume(volumeRatio(bgmVolumeRef.current));
 
+    // 配信開始の合図。バトルの頭に 1 回だけ ——
+    // ホームで「● 配信を始める」を押した先がここだと画面が言う
+    renderer.pushCutIn({ kind: 'live', title: 'LIVE 配信開始', subtitle: stage.name });
+
     // 観客の危機は 1 回だけ出す。境目を行き来するたびに出すと、
     // いちばん忙しい場面でカットインが連発することになる
     let warnedDanger = false;

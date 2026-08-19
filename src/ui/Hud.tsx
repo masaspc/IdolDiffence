@@ -153,7 +153,9 @@ export function Hud(props: HudProps): React.JSX.Element {
         )}
         <div className="gauge">
           {/* ゲージの数はツクヨミの同時接続数（設計文書では観客ゲージ）。
-              ライブは配信なので、画面の語彙は「同接」で揃える */}
+              ライブは配信なので、画面の語彙は「同接」で揃える。
+              LIVE バッジは配信アプリの定位置（点滅させない —— 情報ではなく看板） */}
+          <span className="live-badge">● LIVE</span>
           <span className="gauge-label">同接</span>
           <div className="bar bar-audience">
             <div className="bar-fill" style={{ width: `${snapshot.audience}%` }} />
