@@ -80,8 +80,8 @@ export function SettingsScreen({
       <section className="party-summary">
         <h2>音量</h2>
         <p className="party-hint">
-          流れる音は<strong>本作が合成したオリジナル</strong>です。曲名だけが原作の劇中歌で、
-          旋律もテンポも本作が決めたものです（原作の音源は使っていません）
+          流れる音は<strong>本作が合成したオリジナル</strong>です。テンポと調は原曲に
+          合わせていますが、旋律は本作が書いたものです（原作の音源は使っていません）
         </p>
         <div className="setting-row">
           <div className="setting-text">
@@ -229,8 +229,8 @@ export function SettingsScreen({
           ステージの楽曲名は<strong>原作の劇中歌</strong>で、作曲者と歌唱もそのクレジットです。
           ただし<strong>流れている音は本作が合成したオリジナル</strong>で、
           クレジットの人が作った音ではありません。
-          <strong>原曲と共通なのは曲名だけ</strong>です —— 旋律も音色も、
-          テンポ（BPM）も本作が決めたもので、原曲とは関係ありません。
+          <strong>テンポと調だけは原曲を解析して合わせて</strong>いますが、
+          <strong>旋律も音色も本作が作ったもの</strong>です。
           <strong>原作の音源も旋律も使っていません</strong> —— 原作の曲は Netflix と
           各配信サービスでお聴きください。
         </p>

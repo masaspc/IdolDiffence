@@ -82,22 +82,32 @@ for (const stageId of affected) {
   // **方向を決め打ちしない。** BPM を上げると実時間は縮む（難しくなる）が、
   // 出現数も減る（易しくなる）ので、どちらへ倒れるかは曲と盤面による。
   // 上下に広く振ってから、いちばん近い値の周りを細かく詰める
-  const coarse = [0.3, 0.45, 0.6, 0.75, 0.9, 1.0, 1.15, 1.35, 1.6, 2.0, 2.5];
+  const coarse = [0.2, 0.3, 0.45, 0.6, 0.75, 0.9, 1.0, 1.15, 1.35, 1.6, 2.0, 2.5, 3.2];
   const round = (v: number): number => Math.max(0.05, Math.round(v * 100) / 100);
-  let best = { hpMul: baseline, d: Infinity };
-  for (const k of coarse) {
-    const hpMul = round(baseline * k);
+  const tried: { hpMul: number; d: number }[] = [];
+  const probe = (hpMul: number): void => {
+    if (tried.some((t) => t.hpMul === hpMul)) return;
     stage.hpMul = hpMul;
-    const d = distance(want, profile(stageId));
-    if (d < best.d) best = { hpMul, d };
-  }
-  // 粗探しの当たりの周辺（±20%）を 5 点で詰める
-  for (const k of [0.85, 0.925, 1.075, 1.15]) {
-    const hpMul = round(best.hpMul * k);
-    stage.hpMul = hpMul;
-    const d = distance(want, profile(stageId));
-    if (d < best.d) best = { hpMul, d };
-  }
+    tried.push({ hpMul, d: distance(want, profile(stageId)) });
+  };
+  for (const k of coarse) probe(round(baseline * k));
+
+  /**
+   * **同点なら元の値に近いほうを採る。**
+   *
+   * 距離が同じ候補が複数あるとき（勝敗も観客数も一致する範囲）、
+   * 昇順に見て最初の 1 つを採ると**いちばん易しい値**に張り付く。
+   * 難度を変えないのが目的なので、迷ったら動かさないほうを選ぶ
+   */
+  const pick = (): { hpMul: number; d: number } => {
+    const min = Math.min(...tried.map((t) => t.d));
+    const near = tried.filter((t) => t.d <= min + 1.0);
+    near.sort((a, b) => Math.abs(a.hpMul - baseline) - Math.abs(b.hpMul - baseline));
+    return near[0]!;
+  };
+  // 当たりの周辺を詰めてから、同点は元の値寄りで決める
+  for (const k of [0.85, 0.925, 1.075, 1.15]) probe(round(pick().hpMul * k));
+  const best = pick();
   const cands: number[] = [];
 
   void cands;

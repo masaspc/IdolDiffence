@@ -542,7 +542,7 @@
       "4,5": "audience"
     },
     "song": "hoshifuru_umi",
-    "hpMul": 32,
+    "hpMul": 28.8,
     "waves": [
       {
         "section": "intro",
@@ -1221,7 +1221,7 @@
       "2,6": "audience"
     },
     "song": "shunkan",
-    "hpMul": 50,
+    "hpMul": 45.69,
     "waves": [
       {
         "section": "intro",
@@ -1677,7 +1677,7 @@
       "2,6": "audience"
     },
     "song": "ray_cpk",
-    "hpMul": 20,
+    "hpMul": 21.28,
     "waves": [
       {
         "section": "intro",
@@ -2356,7 +2356,7 @@
       "1,4": "audience"
     },
     "song": "hoshifuru_umi",
-    "hpMul": 30,
+    "hpMul": 24.19,
     "waves": [
       {
         "section": "intro",
@@ -3464,7 +3464,7 @@
       "2,6": "audience"
     },
     "song": "hoshifuru_umi",
-    "hpMul": 26,
+    "hpMul": 21.65,
     "modifiers": {
       "rangeMul": 0.9,
       "note": "常夜の霧で見通しが利かない。全メンバーの射程 -10%"
@@ -4090,7 +4090,7 @@
       "13,6": "runway"
     },
     "song": "reply",
-    "hpMul": 11,
+    "hpMul": 14.85,
     "waves": [
       {
         "section": "intro",
@@ -4835,7 +4835,7 @@
       "2,6": "audience"
     },
     "song": "shunkan",
-    "hpMul": 2.85,
+    "hpMul": 1.68,
     "boss": true,
     "waves": [
       {
@@ -7396,7 +7396,7 @@
       "14,7": "audience"
     },
     "song": "hoshifuru_umi",
-    "hpMul": 120,
+    "hpMul": 116.1,
     "modifiers": {
       "cheerGainMul": 0.8,
       "note": "まだ子ウサギが集まっていない。自然に溜まる声援 -20%（撃破ぶんは変わらない）"
@@ -10060,7 +10060,7 @@
       "14,7": "audience"
     },
     "song": "hoshifuru_umi",
-    "hpMul": 55,
+    "hpMul": 44.34,
     "waves": [
       {
         "section": "intro",
@@ -11238,7 +11238,7 @@
       "2,8": "audience"
     },
     "song": "hoshifuru_umi",
-    "hpMul": 70,
+    "hpMul": 63.96,
     "waves": [
       {
         "section": "intro",
@@ -13081,7 +13081,7 @@
       "2,6": "audience"
     },
     "song": "reply",
-    "hpMul": 60,
+    "hpMul": 55.64,
     "modifiers": {
       "rangeMul": 0.85,
       "note": "不死の薬を焼く煙で画面がかすむ。全メンバーの射程 -15%"
