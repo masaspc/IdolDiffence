@@ -61,6 +61,21 @@ export interface HoverState {
   selectedUnitId: number | null;
 }
 
+/**
+ * 焼いた光の半径。**0.5px 刻みに丸める。**
+ *
+ * 敵の半径は連続値なので、そのまま鍵にすると表が際限なく増えて
+ * 「速くするために足したキャッシュがメモリを食う」になる。
+ */
+export function glowRadius(radius: number): number {
+  return Math.max(1, Math.round(radius * 2) / 2);
+}
+
+/** 焼いた光を引く鍵。色 × 丸めた半径 */
+export function glowKey(color: string, radius: number): string {
+  return `${color}:${glowRadius(radius)}`;
+}
+
 export class Renderer {
   private ctx: CanvasRenderingContext2D;
   /** 背景（空）と盤面を分けて焼く。あいだに空の飾りが入る */
@@ -69,6 +84,8 @@ export class Renderer {
   private dpr = 1;
   private widthCss = 0;
   private heightCss = 0;
+  /** 敵の足元の光。色 × 半径で焼いて使い回す（`enemyGlow`） */
+  private readonly glowCache = new Map<string, HTMLCanvasElement>();
   /** 直近の draw で盤面を 90° 倒したか */
   private rotated = false;
   /** HUD が覆っている上下の帯。背景は全面に描くが、盤面はこの内側へ収める */
@@ -838,6 +855,43 @@ export class Renderer {
     }
   }
 
+  /**
+   * 敵の足元の光を焼いたもの。色と半径ごとに 1 枚。
+   *
+   * `createRadialGradient` は呼ぶたびにオブジェクトを作る。敵が 1 体なら
+   * 誤差だが、200 体 × 60 回/秒になると**描画時間の主役**になる
+   * （`scripts/perf-render.ts`）。半径は敵ごとに数種類しか無いので、
+   * 色と半径で引ける表に焼いておけば貼るだけで済む。
+   */
+  private enemyGlow(color: string, radius: number): HTMLCanvasElement {
+    const key = glowKey(color, radius);
+    const r = glowRadius(radius);
+    const cached = this.glowCache.get(key);
+    if (cached) return cached;
+
+    // 拡大して貼ることがあるので、2 倍で焼いてから縮める
+    const SS = 2;
+    const w = Math.ceil(r * 3 * SS);
+    const h = Math.ceil(r * 1.6 * SS);
+    const layer = document.createElement('canvas');
+    layer.width = w;
+    layer.height = h;
+    const lc = layer.getContext('2d');
+    if (lc) {
+      const cx = w / 2;
+      const cy = h / 2;
+      const grad = lc.createRadialGradient(cx, cy, 1, cx, cy, r * 1.5 * SS);
+      grad.addColorStop(0, `${color}88`);
+      grad.addColorStop(1, `${color}00`);
+      lc.fillStyle = grad;
+      lc.beginPath();
+      lc.ellipse(cx, cy, r * 1.5 * SS, r * 0.8 * SS, 0, 0, Math.PI * 2);
+      lc.fill();
+    }
+    this.glowCache.set(key, layer);
+    return layer;
+  }
+
   private drawEnemies(ctx: CanvasRenderingContext2D, enemies: readonly EnemyView[], alpha: number): void {
     for (const enemy of enemies) {
       // 固定ステップ間を補間して滑らかに見せる
@@ -851,14 +905,11 @@ export class Renderer {
       const sprite = this.enemySprites.get(enemy.spriteId);
       if (sprite) {
         // 足元に属性の色を敷く。絵は形で役割を伝え、**属性は色で**伝える ——
-        // 絵の色を属性に合わせると、五人の貴公子が塗り分けられなくなる
-        const glow = ctx.createRadialGradient(x, y + r * 0.5, 1, x, y + r * 0.5, r * 1.5);
-        glow.addColorStop(0, `${color}88`);
-        glow.addColorStop(1, `${color}00`);
-        ctx.fillStyle = glow;
-        ctx.beginPath();
-        ctx.ellipse(x, y + r * 0.5, r * 1.5, r * 0.8, 0, 0, Math.PI * 2);
-        ctx.fill();
+        // 絵の色を属性に合わせると、五人の貴公子が塗り分けられなくなる。
+        // **毎フレーム作らない** —— 敵 200 体だとグラデーションの生成だけで
+        // 1 フレームぶん食う（`scripts/perf-render.ts` の実測）。焼いて貼る
+        const glow = this.enemyGlow(color, r);
+        ctx.drawImage(glow, x - r * 1.5, y + r * 0.5 - r * 0.8, r * 3, r * 1.6);
 
         const size = enemyDrawSize(enemy.radius, CELL_SIZE);
         const smoothing = ctx.imageSmoothingEnabled;
