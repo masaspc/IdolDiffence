@@ -220,6 +220,8 @@ export function IdolScreen({
             </div>
           </dl>
 
+          {def.lore && <p className="idol-lore">{def.lore}</p>}
+
           <p className="idol-note">
             {TYPE_LABEL[def.type]}は<strong>{TYPE_STRONG_AGAINST[def.type]}</strong>の敵に有利
             （ダメージ +20%）。配置コストは<strong>声援</strong>で払い、
