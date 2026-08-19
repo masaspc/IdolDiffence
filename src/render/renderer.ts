@@ -41,6 +41,9 @@ const ROTATE_GAIN = 1.02;
 /** スペシャルライブの演出の長さ。バフの 8 秒より短くして、盤面をすぐ返す */
 const SPECIAL_EFFECT_MS = 1400;
 
+/** サビ突入のリングの長さ。1 拍前後で消える —— 曲の区切りの合図であって照明ではない */
+const CHORUS_RING_MS = 1000;
+
 const clamp01 = (v: number): number => (v < 0 ? 0 : v > 1 ? 1 : v);
 /** 入りは速く、終わりはゆっくり */
 const ease = (t: number): number => 1 - (1 - t) * (1 - t);
@@ -69,6 +72,8 @@ export class Renderer {
   private insetBottom = 0;
   /** スペシャルライブの演出。発動から数えた経過時間（ms）。null なら演出中でない */
   private specialAgeMs: number | null = null;
+  /** サビ突入のリング（06-ui-ux 6.4）。経過時間（ms）。null なら出ていない */
+  private chorusRingAgeMs: number | null = null;
   /** カットイン（月華・ソロ・ボス・フェーズ・危機）。閃光とは別枠で数える */
   private readonly cutIns = new CutInQueue();
   /**
@@ -198,6 +203,11 @@ export class Renderer {
     this.specialAgeMs = 0;
   }
 
+  /** サビ突入のリングを始める。呼ぶのは sectionChanged の購読側（BattleScreen） */
+  startChorusRing(): void {
+    this.chorusRingAgeMs = 0;
+  }
+
   /**
    * カットインを積む（`cutin.ts`）。
    *
@@ -252,6 +262,8 @@ export class Renderer {
 
     ctx.restore();
 
+    // サビ突入のリングは盤面の変換の外（画面の外周に沿わせる）
+    this.drawChorusRing(ctx);
     // 同接が 20 を切ると画面の周辺が暗くなる（06-ui-ux 6.4）。
     // BGM のハイパス（bgm.setAudience）と同じ曲線で、音と画面が一緒に細る
     this.drawVignette(ctx, snapshot);
@@ -267,6 +279,10 @@ export class Renderer {
     if (this.specialAgeMs !== null) {
       this.specialAgeMs += deltaMs;
       if (this.specialAgeMs > SPECIAL_EFFECT_MS) this.specialAgeMs = null;
+    }
+    if (this.chorusRingAgeMs !== null) {
+      this.chorusRingAgeMs += deltaMs;
+      if (this.chorusRingAgeMs > CHORUS_RING_MS) this.chorusRingAgeMs = null;
     }
     this.cutIns.advance(deltaMs, this.effects);
     this.skyTimeMs += deltaMs;
@@ -645,6 +661,34 @@ export class Renderer {
       ctx.ellipse(x, y - 1, 5, 4.4, 0, 0, Math.PI * 2);
       ctx.fill();
     }
+    ctx.restore();
+  }
+
+  /**
+   * サビ突入の光のリング（06-ui-ux 6.4）。
+   *
+   * 画面の外周に沿った金色の枠が 1 拍で消える。曲の区切りの**合図**であって
+   * 照明ではないので、長引かせない。閃光の仲間なので `flashAmount` で
+   * 段階的に落ち、「最小」では出ない —— サビ自体はコメントと HUD の
+   * セクション表示が伝えるから、消しても情報は減らない。
+   */
+  private drawChorusRing(ctx: CanvasRenderingContext2D): void {
+    if (this.chorusRingAgeMs === null) return;
+    const amount = flashAmount(this.effects);
+    if (amount === 0) return;
+    const t = clamp01(this.chorusRingAgeMs / CHORUS_RING_MS);
+    const fade = (1 - t) * (1 - t);
+    // 枠が縁へ向かって開いていく。動きがないと「貼り付いた枠」に見える
+    const inset = 30 - 22 * ease(t);
+    ctx.save();
+    ctx.globalAlpha = 0.55 * fade * amount;
+    ctx.strokeStyle = '#ffd54f';
+    ctx.lineWidth = 14;
+    ctx.shadowColor = '#ffd54f';
+    ctx.shadowBlur = 26;
+    ctx.beginPath();
+    ctx.roundRect(inset, inset, this.widthCss - inset * 2, this.heightCss - inset * 2, 18);
+    ctx.stroke();
     ctx.restore();
   }
 

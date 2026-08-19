@@ -528,6 +528,8 @@ export class BattleWorld {
   /** 才能「ステップアップ」の累積。ウェーブが変わるとリセットする */
   private killSpeedBonus = 0;
   private killSpeedWave = -1;
+  /** sectionChanged を出すための「前回いたウェーブ」。最初のウェーブでは出さない */
+  private lastWaveIndex = 0;
 
   private specialRemainingMs = 0;
   private cheer = INITIAL_CHEER;
@@ -664,6 +666,14 @@ export class BattleWorld {
         // 読んでしまうのを避ける
         this.expireKillStack();
         this.events.emit('bar', { bar: info.bar });
+        // ウェーブの境目でセクションの変化を知らせる。
+        // 宣言と購読だけあって**発火する者がいなかった**（M5-11 のサビの
+        // コメントも、これを待って一度も流れていなかった）
+        const wave = this.waveAt(info.bar);
+        if (wave && wave.index !== this.lastWaveIndex) {
+          this.lastWaveIndex = wave.index;
+          this.events.emit('sectionChanged', { index: wave.index, section: wave.section });
+        }
         this.addVoltage(VOLTAGE_PER_BAR);
         this.checkCardPick(info.bar);
       }

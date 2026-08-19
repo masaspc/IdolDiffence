@@ -52,6 +52,21 @@ describe('BattleWorld', () => {
     expect(world.snapshot().cheer).toBe(120);
   });
 
+  it('ウェーブの境目で sectionChanged が発火する', () => {
+    // 宣言と購読だけあって発火する者がいなかったイベント。
+    // サビのコメント（M5-11）とサビ突入のリング（M5-17）がこれを待っている
+    const world = createWorld('S1', SEED);
+    const seen: { index: number; section: string }[] = [];
+    world.events.on('sectionChanged', (e) => seen.push(e));
+    // S1 を頭から 1 分回せば、イントロの次のウェーブには必ず入る
+    runHeadless(60_000, (dt) => world.update(dt));
+    expect(seen.length).toBeGreaterThan(0);
+    // 最初のウェーブ（index 0）では出さない。開始の合図は battleStart の仕事
+    expect(seen[0]?.index).toBeGreaterThan(0);
+    // 同じウェーブで二度は出ない
+    expect(new Set(seen.map((e) => e.index)).size).toBe(seen.length);
+  });
+
   it('月華ゲージが小節ごとに溜まり、100 を超えない', () => {
     const world = createWorld('S1', SEED);
     runHeadless(10_000, (dt) => world.update(dt));

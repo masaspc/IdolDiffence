@@ -176,7 +176,11 @@ export function BattleScreen({
         if (e.bar < 8 && e.bar % 2 === 0) renderer.pushComment('greeting');
       }),
       world.events.on('sectionChanged', (e) => {
-        if (e.section === 'chorus' || e.section === 'finale') renderer.pushComment('chorus');
+        if (e.section === 'chorus' || e.section === 'finale') {
+          renderer.pushComment('chorus');
+          // サビ突入で画面外周に光のリング（06-ui-ux 6.4）
+          renderer.startChorusRing();
+        }
       }),
       world.events.on('specialStarted', () => renderer.pushComment('special')),
       world.events.on('called', (e) => {
