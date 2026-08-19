@@ -7,13 +7,14 @@
 import { describe, expect, it } from 'vitest';
 import { createNewSave, CURRENT_VERSION, migrate, saveSchema, type SaveData } from './save';
 import {
+  chapterIntroFor,
   isUnlocked,
   normalizeParty,
   setCenter,
   toggleParty,
   unlockedIds,
 } from './progression';
-import { canonIds, PARTY_SIZE, rosterIds, SECRET_IDS, stageOrder } from '../data';
+import { canonIds, chapters, PARTY_SIZE, rosterIds, SECRET_IDS, stageOrder } from '../data';
 import { createWorld } from '../sim/world';
 import { runHeadless } from '../core/loop';
 
@@ -191,5 +192,41 @@ describe('セーブの移行', () => {
     expect(migrated.party).toEqual(['V1', 'D1', 'Vi1']);
     expect(migrated.center).toBe('V1');
     expect(migrated.talents).toEqual([]);
+  });
+});
+
+describe('章の導入（chapterIntroFor）', () => {
+  it('新しい章の最初のステージへ初めて入るときだけ返す', () => {
+    const save = createNewSave();
+    const second = chapters[1];
+    const third = chapters[2];
+    expect(second).toBeDefined();
+    expect(third).toBeDefined();
+    const s2first = second?.stages[0] ?? '';
+    expect(chapterIntroFor(save, s2first)).toEqual({
+      name: second?.name,
+      lead: second?.lead,
+    });
+    expect(chapterIntroFor(save, third?.stages[0] ?? '')).not.toBeNull();
+  });
+
+  it('第 1 章では出さない（始まりの導入はタイトルの仕事）', () => {
+    const save = createNewSave();
+    expect(chapterIntroFor(save, chapters[0]?.stages[0] ?? '')).toBeNull();
+  });
+
+  it('章の途中のステージでは出さない', () => {
+    const save = createNewSave();
+    expect(chapterIntroFor(save, chapters[1]?.stages[1] ?? '')).toBeNull();
+  });
+
+  it('一度でも挑んだら出さない（負けて再挑戦しても言い直さない）', () => {
+    const save = createNewSave();
+    const first = chapters[1]?.stages[0] ?? '';
+    const played: SaveData = {
+      ...save,
+      stageProgress: { [first]: { cleared: false, bestAudience: 0, plays: 1 } },
+    };
+    expect(chapterIntroFor(played, first)).toBeNull();
   });
 });

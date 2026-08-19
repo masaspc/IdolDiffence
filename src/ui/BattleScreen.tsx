@@ -41,6 +41,8 @@ interface BattleScreenProps {
   seVolume: number;
   /** フォーメーションの表示（段階解放。`meta/onboarding.ts`） */
   showFormations: boolean;
+  /** 章の導入（`meta/progression.ts` chapterIntroFor）。新章の初回だけ非 null */
+  chapterIntro: { name: string; lead: string } | null;
   /** 見せ終わったチュートリアルの札（`meta/tutorial.ts`） */
   tutorialSeen: readonly string[];
   onTutorialSeen: (id: string) => void;
@@ -56,6 +58,7 @@ export function BattleScreen({
   bgmVolume,
   seVolume,
   showFormations,
+  chapterIntro,
   tutorialSeen,
   onTutorialSeen,
   onFinish,
@@ -156,6 +159,11 @@ export function BattleScreen({
     bgmRef.current = bgm;
     bgm?.setVolume(volumeRatio(bgmVolumeRef.current));
 
+    // 章の導入 → 配信開始、の順で 2 枚。カットインの列は 1 枚控えまでなので
+    // ちょうど収まる。章の導入は新章の最初のステージの初回だけ（chapterIntroFor）
+    if (chapterIntro) {
+      renderer.pushCutIn({ kind: 'chapter', title: chapterIntro.name, subtitle: chapterIntro.lead });
+    }
     // 配信開始の合図。バトルの頭に 1 回だけ ——
     // ホームで「● 配信を始める」を押した先がここだと画面が言う
     renderer.pushCutIn({ kind: 'live', title: 'LIVE 配信開始', subtitle: stage.name });

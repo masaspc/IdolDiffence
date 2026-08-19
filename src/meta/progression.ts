@@ -2,7 +2,15 @@
  * 恒久進行（アイドルレベル）と、リザルト報酬。
  * 「負ける → 育てる → 勝つ」のループを成立させる最小構成（03-progression.md ⑦）。
  */
-import { getIdol, getStage, idolUnlockStage, PARTY_SIZE, rosterIds, SECRET_IDS } from '../data';
+import {
+  chapters,
+  getIdol,
+  getStage,
+  idolUnlockStage,
+  PARTY_SIZE,
+  rosterIds,
+  SECRET_IDS,
+} from '../data';
 import { clampStar, MAX_STAR, starCoefficients } from '../sim/star';
 import { battleExp, songExp } from './rank';
 import { dropCount, grantDrops } from './costumes';
@@ -67,6 +75,27 @@ export function isUnlocked(save: SaveData, idolId: string): boolean {
 
 export function unlockedIds(save: SaveData): string[] {
   return rosterIds.filter((id) => isUnlocked(save, id));
+}
+
+/**
+ * 章の導入。**新しい章の最初のステージへ、初めて入るとき**だけ返す。
+ *
+ * 章の切り替わり（ヤチヨカップ → 月の都 → 羽衣）は世界の変わり目なのに、
+ * 画面の上では「次のカードが 1 枚増えた」でしかなかった。
+ * 第 1 章には出さない —— 始まりの導入はタイトルとチュートリアルの仕事。
+ * 2 回目からは出さない —— 分かっていることを毎回言うのは邪魔。
+ * 判定に使うのは plays（挑んだ回数）で cleared ではない。負けて再挑戦する
+ * たびに「ようこそ月の都へ」と言われるのは、負けを数えられているようで嫌味になる。
+ */
+export function chapterIntroFor(
+  save: SaveData,
+  stageId: string,
+): { name: string; lead: string } | null {
+  const index = chapters.findIndex((chapter) => chapter.stages[0] === stageId);
+  if (index <= 0) return null;
+  if (save.stageProgress[stageId] !== undefined) return null;
+  const chapter = chapters[index];
+  return chapter ? { name: chapter.name, lead: chapter.lead } : null;
 }
 
 /**
