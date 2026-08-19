@@ -530,6 +530,12 @@ export class BattleWorld {
   private killSpeedWave = -1;
   /** sectionChanged を出すための「前回いたウェーブ」。最初のウェーブでは出さない */
   private lastWaveIndex = 0;
+  /**
+   * まだ出していないセクションの変化。◆（セットリスト選択）と同じ小節で
+   * 変わったときは、選択が閉じるまで取っておく —— 選択の全画面の裏で
+   * 出すと、リングもコメントも誰にも見えないまま流れ切ってしまう
+   */
+  private pendingSection: { index: number; section: string } | null = null;
 
   private specialRemainingMs = 0;
   private cheer = INITIAL_CHEER;
@@ -672,10 +678,15 @@ export class BattleWorld {
         const wave = this.waveAt(info.bar);
         if (wave && wave.index !== this.lastWaveIndex) {
           this.lastWaveIndex = wave.index;
-          this.events.emit('sectionChanged', { index: wave.index, section: wave.section });
+          this.pendingSection = { index: wave.index, section: wave.section };
         }
         this.addVoltage(VOLTAGE_PER_BAR);
         this.checkCardPick(info.bar);
+        // ◆ が開いたら出すのを待つ（chooseCard で出す）。開かなければその場で
+        if (this.pendingSection && !this.offers) {
+          this.events.emit('sectionChanged', this.pendingSection);
+          this.pendingSection = null;
+        }
       }
     });
     if (advanced === 0) return;
@@ -1297,6 +1308,12 @@ export class BattleWorld {
     }
     this.refreshUnitStats();
     this.clock.endChoice();
+    // 選択と同じ小節で変わったセクションの合図は、閉じた**いま**出す。
+    // 選択の裏で出すと、リングもコメントも見えないまま流れ切る
+    if (this.pendingSection) {
+      this.events.emit('sectionChanged', this.pendingSection);
+      this.pendingSection = null;
+    }
     this.record('cardChosen', { card: cardId });
     return true;
   }
