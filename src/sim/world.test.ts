@@ -52,6 +52,52 @@ describe('BattleWorld', () => {
     expect(world.snapshot().cheer).toBe(120);
   });
 
+  it('ウェーブの境目で sectionChanged が発火する', () => {
+    // 宣言と購読だけあって発火する者がいなかったイベント。
+    // サビのコメント（M5-11）とサビ突入のリング（M5-17）がこれを待っている
+    const world = createWorld('S1', SEED);
+    const seen: { index: number; section: string }[] = [];
+    world.events.on('sectionChanged', (e) => seen.push(e));
+    // S1 を頭から 1 分回せば、イントロの次のウェーブには必ず入る。
+    // ◆ で止まったら選んで進める（合図は選択が閉じるまで保留される）
+    runHeadless(60_000, (dt) => {
+      world.update(dt);
+      const offers = world.snapshot().offers;
+      if (offers) world.chooseCard(offers[0]?.id ?? '');
+    });
+    expect(seen.length).toBeGreaterThan(0);
+    // 最初のウェーブ（index 0）では出さない。開始の合図は battleStart の仕事
+    expect(seen[0]?.index).toBeGreaterThan(0);
+    // 同じウェーブで二度は出ない
+    expect(new Set(seen.map((e) => e.index)).size).toBe(seen.length);
+  });
+
+  it('◆ と同じ小節のセクション変化は、選択が閉じてから知らせる', () => {
+    // ◆（セットリスト選択）はウェーブの終わりで開くので、次のセクションの
+    // 合図と必ず同じ小節に重なる。選択の全画面の裏で出すと、リングも
+    // コメントも誰にも見えないまま流れ切ってしまう（Codex の指摘）
+    const world = createWorld('S2', SEED);
+    const seen: number[] = [];
+    world.events.on('sectionChanged', (e) => seen.push(e.index));
+
+    let offers = null;
+    for (let guard = 0; guard < 40_000 && !offers; guard++) {
+      world.update(FIXED_STEP_MS);
+      if (guard % 10 === 0) {
+        const snap = world.snapshot();
+        if (snap.finished) break;
+        offers = snap.offers;
+      }
+    }
+    expect(offers).not.toBeNull();
+
+    // 開いているあいだは、境目のセクション変化はまだ知らせない
+    const whileOpen = seen.length;
+    expect(world.chooseCard(offers?.[0]?.id ?? '')).toBe(true);
+    // 閉じた瞬間に出る
+    expect(seen.length).toBe(whileOpen + 1);
+  });
+
   it('月華ゲージが小節ごとに溜まり、100 を超えない', () => {
     const world = createWorld('S1', SEED);
     runHeadless(10_000, (dt) => world.update(dt));
