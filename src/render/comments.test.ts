@@ -104,6 +104,27 @@ describe('スパチャ', () => {
     }
   });
 
+  it('どの段階も金額が読める（コントラスト 4.5:1 以上）', () => {
+    // 明るい帯（緑・黄・橙）に白文字を載せると 2〜3:1 まで落ちる。
+    // WCAG AA の本文基準（4.5:1）を全段階で満たすことを数で見張る
+    const linear = (channel: number): number => {
+      const c = channel / 255;
+      return c <= 0.03928 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4;
+    };
+    const luminance = (hex: string): number => {
+      const r = parseInt(hex.slice(1, 3), 16);
+      const g = parseInt(hex.slice(3, 5), 16);
+      const b = parseInt(hex.slice(5, 7), 16);
+      return 0.2126 * linear(r) + 0.7152 * linear(g) + 0.0722 * linear(b);
+    };
+    for (const tier of SUPERCHAT_TIERS) {
+      const bg = luminance(tier.color);
+      const fg = luminance(tier.text);
+      const ratio = (Math.max(bg, fg) + 0.05) / (Math.min(bg, fg) + 0.05);
+      expect(ratio, `${tier.amount} ${tier.color} に ${tier.text}`).toBeGreaterThanOrEqual(4.5);
+    }
+  });
+
   it('スパチャもカードぶん流し切ってから捨てる', () => {
     const stream = new CommentStream();
     stream.push('special', 'full');

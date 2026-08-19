@@ -108,14 +108,16 @@ export interface ActiveComment {
 
 /**
  * スパチャの金額段階。**低い順**。色は配信アプリの通例（青→緑→黄→橙→赤）に
- * 寄せるが、実在サービスの正確な色・金額区分の複製はしない
+ * 寄せるが、実在サービスの正確な色・金額区分の複製はしない。
+ * 文字色は段階ごとに持つ —— 明るい帯（緑・黄・橙）に白文字を載せると
+ * コントラストが 2〜3:1 まで落ちて金額が読めない
  */
-export const SUPERCHAT_TIERS: readonly { amount: string; color: string }[] = [
-  { amount: '¥200', color: '#3d7dd8' },
-  { amount: '¥500', color: '#2f9e6e' },
-  { amount: '¥1,000', color: '#d8a13d' },
-  { amount: '¥5,000', color: '#d8663d' },
-  { amount: '¥10,000', color: '#c93a5b' },
+export const SUPERCHAT_TIERS: readonly { amount: string; color: string; text: string }[] = [
+  { amount: '¥200', color: '#2f6ac2', text: '#ffffff' },
+  { amount: '¥500', color: '#2f9e6e', text: '#101026' },
+  { amount: '¥1,000', color: '#d8a13d', text: '#101026' },
+  { amount: '¥5,000', color: '#d8663d', text: '#101026' },
+  { amount: '¥10,000', color: '#c93a5b', text: '#ffffff' },
 ];
 
 /** 画面に同時に出す上限。埋め尽くすと盤面ではなくコメントを見てしまう */
@@ -123,6 +125,16 @@ function capFor(effects: EffectLevel): number {
   if (effects === 'minimal') return 0;
   if (effects === 'reduced') return 5;
   return 12;
+}
+
+/**
+ * 結果画面の先頭に出すスパチャ。完走の熱はここで金額になる ——
+ * `win` のコメントはバトル中には流れない（決着で描画ループが止まる）ので、
+ * ストリームの側ではなく結果画面に置く。
+ */
+export function resultSuperchat(seed: number): { amount: string; color: string; text: string } {
+  const index = ((seed * 2246822519) >>> 0) % SUPERCHAT_TIERS.length;
+  return SUPERCHAT_TIERS[index] ?? { amount: '¥200', color: '#2f6ac2', text: '#ffffff' };
 }
 
 /**
@@ -135,16 +147,6 @@ function capFor(effects: EffectLevel): number {
  *
  * @param seed そのライブの数字（撃破数など）。周回ごとに並びが変わる
  */
-/**
- * 結果画面の先頭に出すスパチャ。完走の熱はここで金額になる ——
- * `win` のコメントはバトル中には流れない（決着で描画ループが止まる）ので、
- * ストリームの側ではなく結果画面に置く。
- */
-export function resultSuperchat(seed: number): { amount: string; color: string } {
-  const index = ((seed * 2246822519) >>> 0) % SUPERCHAT_TIERS.length;
-  return SUPERCHAT_TIERS[index] ?? { amount: '¥200', color: '#3d7dd8' };
-}
-
 export function resultComments(won: boolean, seed: number): string[] {
   const pool = won ? POOL.win : POOL.lose;
   const out: string[] = [];
@@ -242,13 +244,13 @@ export class CommentStream {
         // スパチャは色付きの角丸カード。金額 + 本文を 1 枚に載せる
         const label = `${item.superchat.amount}  ${item.text}`;
         const w = ctx.measureText(label).width + 20;
-        const color = SUPERCHAT_TIERS[item.superchat.tier]?.color ?? '#3d7dd8';
+        const tier = SUPERCHAT_TIERS[item.superchat.tier];
         ctx.globalAlpha = 0.92;
-        ctx.fillStyle = color;
+        ctx.fillStyle = tier?.color ?? '#2f6ac2';
         ctx.beginPath();
         ctx.roundRect(x - 10, y - 5, w, 26, 8);
         ctx.fill();
-        ctx.fillStyle = '#ffffff';
+        ctx.fillStyle = tier?.text ?? '#ffffff';
         ctx.fillText(label, x, y);
         continue;
       }

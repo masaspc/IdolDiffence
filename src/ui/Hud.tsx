@@ -434,7 +434,10 @@ export function Hud(props: HudProps): React.JSX.Element {
                 (() => {
                   const sc = resultSuperchat(snapshot.killed);
                   return (
-                    <span className="result-superchat" style={{ background: sc.color }}>
+                    <span
+                      className="result-superchat"
+                      style={{ background: sc.color, color: sc.text }}
+                    >
                       {sc.amount} 完走おめでとう！！
                     </span>
                   );
