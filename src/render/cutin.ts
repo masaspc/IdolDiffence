@@ -32,7 +32,9 @@ export type CutInKind =
   /** ボスの属性が変わった */
   | 'phase'
   /** 観客が残りわずか */
-  | 'danger';
+  | 'danger'
+  /** 配信開始。バトルの頭に 1 回だけ —— まだ盤面に何も無いので目を離す代償が無い */
+  | 'live';
 
 export interface CutIn {
   kind: CutInKind;
@@ -62,6 +64,8 @@ export const CUTIN_STYLES: Record<CutInKind, CutInStyle> = {
   boss: { durationMs: 1500, from: '#6d3bd4', to: '#ff5f7e', ink: '#ffffff' },
   phase: { durationMs: 900, from: '#3a2f66', to: '#c8b8f0', ink: '#12102a' },
   danger: { durationMs: 1200, from: '#ff5f7e', to: '#ffb02e', ink: '#2b0d14' },
+  // 配信の赤。ホームの「● 配信を始める」と同じ系統の色で、押した先がここ
+  live: { durationMs: 1200, from: '#d92b52', to: '#ff8a5e', ink: '#ffffff' },
 };
 
 /**

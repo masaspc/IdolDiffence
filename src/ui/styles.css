@@ -88,6 +88,18 @@ body {
   white-space: nowrap;
 }
 
+/* 配信アプリの LIVE バッジ。点滅させない —— 情報ではなく看板 */
+.live-badge {
+  padding: 0.1rem 0.45rem;
+  border-radius: 4px;
+  background: #d92b52;
+  color: #fff;
+  font-size: 0.62rem;
+  font-weight: bold;
+  letter-spacing: 0.08em;
+  white-space: nowrap;
+}
+
 .gauge-value {
   font-variant-numeric: tabular-nums;
   font-size: 0.9rem;
