@@ -11,6 +11,7 @@ import { BattleScreen } from './BattleScreen';
 import {
   applyReward,
   calcReward,
+  chapterIntroFor,
   levelUp,
   normalizeParty,
   resolvedAtk,
@@ -218,6 +219,7 @@ export function App(): React.JSX.Element {
         bgmVolume={save.settings.bgmVolume}
         seVolume={save.settings.seVolume}
         showFormations={isOpen(save, 'formation')}
+        chapterIntro={chapterIntroFor(save, stageId)}
         tutorialSeen={save.tutorialSeen}
         onTutorialSeen={handleTutorialSeen}
         onFinish={handleFinish}

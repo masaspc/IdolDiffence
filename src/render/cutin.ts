@@ -34,7 +34,9 @@ export type CutInKind =
   /** 観客が残りわずか */
   | 'danger'
   /** 配信開始。バトルの頭に 1 回だけ —— まだ盤面に何も無いので目を離す代償が無い */
-  | 'live';
+  | 'live'
+  /** 章の導入。新しい章の最初のステージへ初めて入るときだけ */
+  | 'chapter';
 
 export interface CutIn {
   kind: CutInKind;
@@ -66,6 +68,8 @@ export const CUTIN_STYLES: Record<CutInKind, CutInStyle> = {
   danger: { durationMs: 1200, from: '#ff5f7e', to: '#ffb02e', ink: '#2b0d14' },
   // 配信の赤。ホームの「● 配信を始める」と同じ系統の色で、押した先がここ
   live: { durationMs: 1200, from: '#d92b52', to: '#ff8a5e', ink: '#ffffff' },
+  // 章の変わり目は月夜の色。上限の 1.6 秒 —— いちばん重い区切りなので
+  chapter: { durationMs: 1600, from: '#221c4e', to: '#b9c8ff', ink: '#ffffff' },
 };
 
 /**
