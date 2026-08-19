@@ -128,7 +128,7 @@ export function HomeScreen({
 
       {lastResult && (
         <div className={`last-result ${lastResult.won ? 'won' : 'lost'}`}>
-          前回のライブ: {lastResult.won ? '完走' : '中断'}（観客 {lastResult.audience}）
+          前回の配信: {lastResult.won ? '完走' : '中断'}（同接 {lastResult.audience}）
           <strong>＋¥{lastResult.funds.toLocaleString()}</strong>
           {/* 衣装は S7 まで開かない。**中身は配っている**（開いたときに
               まとめて受け取れる）が、開く前に「手に入りました」と言うと、
@@ -246,7 +246,8 @@ export function HomeScreen({
       )}
 
       <section className="stage-select">
-        <h2>ライブ</h2>
+        {/* ツクヨミのライブは配信。ステージの一覧は「配信アプリの枠の一覧」として見せる */}
+        <h2>配信枠</h2>
         {/* 34 本を 1 列に並べると「今どのあたりか」が読めない。章で区切る */}
         {chapters.map((chapter) => (
           <div key={chapter.name} className="stage-chapter">
@@ -284,7 +285,11 @@ interface StageCardProps {
 }
 
 /**
- * ステージ 1 枚。★を選んでから出撃する。
+ * 配信枠 1 枚。★を選んでから配信を始める。
+ *
+ * 見た目は配信アプリの枠一覧に寄せる —— 未解放は「配信予定」、
+ * クリア済みは「アーカイブあり」、まだの枠は「初配信」。守っているのが
+ * ライブ配信だということを、バトルに入る前のこの画面から言っておく。
  *
  * ★は**1 つずつしか開かない**（`maxSelectableStar`）。まとめて開くと
  * いきなり ★10 に挑んで「何が足りないのか分からないまま負ける」ことになる。
@@ -317,19 +322,24 @@ function StageCard({
         <span className="stage-no">{stageId}</span>
         <span className="stage-name">{stage.name}</span>
         {stage.boss && <span className="boss-chip">ボス</span>}
+        <span
+          className={`slot-chip ${locked ? 'is-planned' : progress?.cleared ? 'is-archive' : 'is-new'}`}
+        >
+          {locked ? '配信予定' : progress?.cleared ? 'アーカイブあり' : '初配信'}
+        </span>
       </div>
       <span className="stage-meta">
         {locked
-          ? `${getStage(gate).name} をクリアすると解放`
+          ? `${getStage(gate).name} の配信を完走すると解放`
           : progress?.cleared
-            ? `クリア済み・最高観客 ${progress.bestAudience}${showStar ? `・最高 ★${best}` : ''}`
-            : '未クリア'}
+            ? `完走済み・最高同接 ${progress.bestAudience}${showStar ? `・最高 ★${best}` : ''}`
+            : 'この枠はまだ配信していません'}
       </span>
       <span className="stage-song">
         ♪ {song.name}
         {showSongLevel && `（Lv${songLevel}${songLevel >= MAX_SONG_LEVEL ? ' 上限' : ''}）`}・
         {song.bpm} BPM・{stage.lanes.length} レーン
-        {progress ? ` ・ ${progress.plays} 回` : ''}
+        {progress ? ` ・ 配信 ${progress.plays} 回` : ''}
       </span>
       {/* 原作へのクレジット。**鳴っている音を作った人ではない**ので、
           そのことは設定画面に一度だけ書く（06-ui-ux.md 6.8） */}
@@ -370,7 +380,7 @@ function StageCard({
             className="stage-go"
             onClick={() => onStart(stageId, showStar ? chosen : 1)}
           >
-            {showStar ? `★${chosen} で出撃` : '出撃'}
+            {showStar ? `★${chosen} で配信を始める` : '配信を始める'}
           </button>
         </>
       )}

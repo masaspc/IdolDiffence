@@ -156,7 +156,7 @@ export function calcReward(outcome: BattleOutcome): Reward {
     breakdown: [
       { label: outcome.won ? '完走ボーナス' : '参加報酬', value: base },
       { label: `撃破 ${outcome.killed} 体`, value: kills },
-      ...(audience > 0 ? [{ label: `観客 ${outcome.audience}`, value: audience }] : []),
+      ...(audience > 0 ? [{ label: `同接 ${outcome.audience}`, value: audience }] : []),
       ...(star > 1 ? [{ label: `★${star} 補正 ×${starMul.toFixed(2)}`, value: funds - plain }] : []),
     ],
   };

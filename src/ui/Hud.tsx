@@ -152,7 +152,9 @@ export function Hud(props: HudProps): React.JSX.Element {
           </div>
         )}
         <div className="gauge">
-          <span className="gauge-label">観客</span>
+          {/* ゲージの数はツクヨミの同時接続数（設計文書では観客ゲージ）。
+              ライブは配信なので、画面の語彙は「同接」で揃える */}
+          <span className="gauge-label">同接</span>
           <div className="bar bar-audience">
             <div className="bar-fill" style={{ width: `${snapshot.audience}%` }} />
           </div>
@@ -402,7 +404,7 @@ export function Hud(props: HudProps): React.JSX.Element {
             <h2>{snapshot.won ? 'ライブ完走！' : 'ライブ中断…'}</h2>
             {snapshot.won && <p className="rank">ランク {rankOf(snapshot.audience)}</p>}
             <p>
-              観客 {snapshot.audience} / 100 ・ 撃破 {snapshot.killed} ・ 漏れ {snapshot.leaked}
+              同接 {snapshot.audience} / 100 ・ 撃破 {snapshot.killed} ・ 漏れ {snapshot.leaked}
             </p>
             {snapshot.contribution.length > 0 && (
               <div className="contribution">
@@ -433,7 +435,7 @@ export function Hud(props: HudProps): React.JSX.Element {
             </p>
             <p className="note">
               {snapshot.won
-                ? 'リザルトの報酬でメンバーを育てて、より上の観客数を狙えます。'
+                ? 'リザルトの報酬でメンバーを育てて、より多くの同接を狙えます。'
                 : 'ノイズを通しすぎました。強化とセットリストで火力を伸ばしましょう。'}
             </p>
             <div className="overlay-actions">
