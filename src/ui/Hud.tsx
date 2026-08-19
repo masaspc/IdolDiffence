@@ -2,7 +2,7 @@ import { getIdol } from '../data';
 import type { AwakeningKey } from '../data/schema/idol';
 import type { WorldSnapshot } from '../sim/world';
 import { nextTutorial, type TutorialStep } from '../meta/tutorial';
-import { resultComments } from '../render/comments';
+import { resultComments, resultSuperchat } from '../render/comments';
 
 const SECTION_LABEL: Record<string, string> = {
   intro: 'イントロ',
@@ -429,6 +429,19 @@ export function Hud(props: HudProps): React.JSX.Element {
             {/* 配信終了後のコメント欄。決着の瞬間に流すのは無理がある ——
                 描画ループが止まるので、静止して並べる（`render/comments.ts`） */}
             <p className="result-comments">
+              {/* 完走の熱は金額になる（スパチャ）。中断の夜には金は飛ばない */}
+              {snapshot.won &&
+                (() => {
+                  const sc = resultSuperchat(snapshot.killed);
+                  return (
+                    <span
+                      className="result-superchat"
+                      style={{ background: sc.color, color: sc.text }}
+                    >
+                      {sc.amount} 完走おめでとう！！
+                    </span>
+                  );
+                })()}
               {resultComments(snapshot.won, snapshot.killed).map((text) => (
                 <span key={text}>{text}</span>
               ))}

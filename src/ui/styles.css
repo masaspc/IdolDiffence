@@ -2861,3 +2861,15 @@ kbd {
   content: '💬 ';
   opacity: 0.6;
 }
+
+/* 結果画面のスパチャ。完走の熱は金額になる（背景色・文字色は段階ごとに inline で入る。
+   明るい帯に白文字を固定するとコントラストが落ちて金額が読めない） */
+.result-comments .result-superchat {
+  padding: 0.2rem 0.6rem;
+  border-radius: 8px;
+  font-weight: bold;
+}
+
+.result-comments .result-superchat::before {
+  content: '';
+}
