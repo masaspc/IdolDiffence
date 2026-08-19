@@ -222,7 +222,8 @@ export function SettingsScreen({
         <h2>この作品について</h2>
         <p className="settings-note">
           Netflix 映画『超かぐや姫！』の<strong>非公式ファン制作</strong>です。
-          権利は原作の権利者に帰属します。
+          原作の権利は権利者（コロリド・ツインエンジンパートナーズ）に帰属します。
+          公式サイト: cho-kaguyahime.com
         </p>
         <p className="settings-note">
           ステージの楽曲名は<strong>原作の劇中歌</strong>で、作曲者と歌唱もそのクレジットです。
