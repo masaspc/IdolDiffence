@@ -276,6 +276,9 @@ export function BattleScreen({
         }
 
         const latest = world.snapshot();
+        // 同接が 20 を切ると BGM の低音が痩せる（bgm.setAudience）。
+        // 画面の周辺減光（renderer 側）と同じ曲線で連動する
+        bgm?.setAudience(latest.audience);
         renderer.draw(latest, hoverRef.current, alpha);
 
         // 決着したら 1 回だけ publish してループを止める。

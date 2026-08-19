@@ -39,6 +39,28 @@ const LOOKAHEAD_MS = 1400;
  */
 const RESYNC_SEC = 0.12;
 
+/** 緊迫が効き始める同接。06-ui-ux 6.4「観客ゲージ 20% 以下」 */
+const TENSION_BELOW = 20;
+
+/**
+ * 同接から緊迫の度合い（0..1）。20 を切ってから効き始め、0 で最大。
+ * 画面の暗転（renderer の周辺減光）と BGM のハイパスが**同じ曲線**を使う ——
+ * 別々に決めると、音だけ緊迫して画面は平気、のような食い違いが起きる
+ */
+export function tensionAmount(audience: number): number {
+  const t = (TENSION_BELOW - audience) / TENSION_BELOW;
+  return Math.max(0, Math.min(1, t));
+}
+
+/**
+ * 緊迫の度合いをハイパスの遮断周波数へ。20Hz（素通し）→ 400Hz。
+ * 低音（太鼓・ベース）から痩せていくので、曲は続いているのに
+ * 土台が抜けた心細い響きになる。指数で動かすのは聴感が対数だから
+ */
+export function tensionFrequency(amount: number): number {
+  return 20 * 20 ** Math.max(0, Math.min(1, amount));
+}
+
 export interface BgmOptions {
   song: Song;
   songId: string;
@@ -62,6 +84,9 @@ export class BgmPlayer {
   private readonly master: GainNode;
   /** まとめの段。バトルごとに作るので、抜けるときに切る */
   private readonly bus: GainNode;
+  /** 緊迫のハイパス（`tensionFrequency`）。SE は通らない —— 削るのは曲だけ */
+  private readonly tension: BiquadFilterNode;
+  private lastTension = 0;
   private readonly sections: Section[];
   private readonly msPerBar: number;
 
@@ -94,7 +119,13 @@ export class BgmPlayer {
     // 曲はまとめの段を通す（`createMasterBus`）。声部を足しただけだと
     // 音量がばらついて、作り込んだ音色が「素人の録音」に聞こえる
     this.bus = createMasterBus(ctx, ctx.destination);
-    this.master.connect(this.bus);
+    // master → 緊迫ハイパス → まとめの段。普段は 20Hz で素通し
+    this.tension = ctx.createBiquadFilter();
+    this.tension.type = 'highpass';
+    this.tension.frequency.value = tensionFrequency(0);
+    this.tension.Q.value = 0.7;
+    this.master.connect(this.tension);
+    this.tension.connect(this.bus);
     this.sections = sectionMap(options.waves);
     this.msPerBar = (60000 / options.song.bpm) * options.song.beatsPerBar;
 
@@ -148,6 +179,22 @@ export class BgmPlayer {
     this.scheduleForward(simTimeMs);
   }
 
+  /**
+   * 同接ゲージから毎フレーム呼ぶ。20 を切ると低音から痩せていく
+   * （06-ui-ux 6.4「観客ゲージ 20% 以下: BGM のハイパスフィルタが強まる」）。
+   * 動きは 0.35 秒で滑らかに —— 客が減った瞬間にプツッと変わる音は事故に聞こえる
+   */
+  setAudience(audience: number): void {
+    const amount = tensionAmount(audience);
+    if (Math.abs(amount - this.lastTension) < 0.01) return;
+    this.lastTension = amount;
+    this.tension.frequency.setTargetAtTime(
+      tensionFrequency(amount),
+      this.ctx.currentTime,
+      0.35,
+    );
+  }
+
   /** 曲を止めてノードを片付ける。バトルを抜けるときに呼ぶ */
   dispose(): void {
     this.master.gain.cancelScheduledValues(this.ctx.currentTime);
@@ -156,6 +203,7 @@ export class BgmPlayer {
     // 残しておくとバトルのたびにノードが積み上がる
     window.setTimeout(() => {
       this.master.disconnect();
+      this.tension.disconnect();
       this.bus.disconnect();
     }, 600);
   }

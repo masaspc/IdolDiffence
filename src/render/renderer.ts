@@ -16,6 +16,7 @@ import { allowsFloatingText, flashAmount, type EffectLevel } from '../meta/setti
 import { CUTIN_STYLES, CutInQueue, type CutIn } from './cutin';
 import { CommentStream, type CommentKind } from './comments';
 import { blockedCells, filledCount, interleave, seatsAround, type Seat } from './audience';
+import { tensionAmount } from '../audio/bgm';
 import {
   drawBallSparkle,
   drawDrifters,
@@ -251,6 +252,9 @@ export class Renderer {
 
     ctx.restore();
 
+    // 同接が 20 を切ると画面の周辺が暗くなる（06-ui-ux 6.4）。
+    // BGM のハイパス（bgm.setAudience）と同じ曲線で、音と画面が一緒に細る
+    this.drawVignette(ctx, snapshot);
     // 演出は盤面の変換の外。画面いっぱいに出したいので、倒しても正立させる
     // 配信コメントは HUD のすぐ下の帯。盤面の変換の外なので、倒しても読める
     this.comments.draw(ctx, this.widthCss, this.insetTop + 8, 84);
@@ -641,6 +645,29 @@ export class Renderer {
       ctx.ellipse(x, y - 1, 5, 4.4, 0, 0, Math.PI * 2);
       ctx.fill();
     }
+    ctx.restore();
+  }
+
+  /**
+   * 同接 20 以下の周辺減光（06-ui-ux 6.4）。
+   *
+   * 客が帰るほど画面の隅から暗くなる。中心（盤面）は暗くしない ——
+   * 苦しいときほど盤面を読む必要があるので、これは**情報を遮らない演出**。
+   * 静的な暗さで点滅ではないため「控えめ」でも出すが、「最小」では消す。
+   */
+  private drawVignette(ctx: CanvasRenderingContext2D, snapshot: WorldSnapshot): void {
+    if (this.effects === 'minimal') return;
+    const strength = tensionAmount(snapshot.audience);
+    if (strength === 0) return;
+    const cx = this.widthCss / 2;
+    const cy = this.heightCss / 2;
+    const r = Math.hypot(cx, cy);
+    const gradient = ctx.createRadialGradient(cx, cy, r * 0.55, cx, cy, r);
+    gradient.addColorStop(0, 'rgba(4, 2, 12, 0)');
+    gradient.addColorStop(1, `rgba(4, 2, 12, ${0.55 * strength})`);
+    ctx.save();
+    ctx.fillStyle = gradient;
+    ctx.fillRect(0, 0, this.widthCss, this.heightCss);
     ctx.restore();
   }
 
