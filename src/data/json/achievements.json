@@ -55,7 +55,7 @@
   },
   "first_perfect": {
     "name": "満員御礼",
-    "desc": "観客 100 でライブを完走する（子ウサギが満席）",
+    "desc": "同接 100 でライブを完走する（子ウサギが満席）",
     "title": "満員御礼",
     "stat": "perfectStages",
     "goal": 1,
@@ -64,7 +64,7 @@
   },
   "ten_perfect": {
     "name": "全公演ソールドアウト",
-    "desc": "10 ステージで観客 100 を出す",
+    "desc": "10 ステージで同接 100 を出す",
     "title": "ソールドアウト",
     "stat": "perfectStages",
     "goal": 10,

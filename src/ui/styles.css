@@ -992,6 +992,33 @@ kbd {
   font-weight: bold;
 }
 
+/* 配信枠の状態。ホームは「ツクヨミの配信アプリ」で、ステージは枠の一覧。
+   初配信（まだの枠）だけ配信の赤で目を引き、残りは静かに */
+.slot-chip {
+  margin-left: auto;
+  align-self: center;
+  padding: 0.08rem 0.5rem;
+  border-radius: 999px;
+  font-size: 0.62rem;
+  letter-spacing: 0.06em;
+  white-space: nowrap;
+}
+
+.slot-chip.is-new {
+  color: #ffb3c2;
+  border: 1px solid rgba(255, 107, 138, 0.6);
+}
+
+.slot-chip.is-archive {
+  color: var(--text-dim);
+  border: 1px solid var(--panel-edge);
+}
+
+.slot-chip.is-planned {
+  color: var(--text-dim);
+  border: 1px dashed var(--panel-edge);
+}
+
 /* 原作へのクレジット。曲名のすぐ下に小さく添える */
 .stage-credit {
   display: block;
@@ -1045,16 +1072,25 @@ kbd {
   margin-top: 0.5rem;
   padding: 0.55rem;
   border-radius: 8px;
-  border: 1px solid var(--panel-edge);
-  background: rgba(255, 255, 255, 0.09);
+  border: 1px solid rgba(255, 107, 138, 0.4);
+  background: rgba(255, 107, 138, 0.1);
   color: var(--text);
   font: inherit;
   font-size: 0.85rem;
   cursor: pointer;
 }
 
+/* 配信アプリの「LIVE」の赤丸。動かさない（ホームは静かな画面のまま） */
+.stage-go::before {
+  content: '●';
+  margin-right: 0.4rem;
+  color: #ff6b8a;
+  font-size: 0.7em;
+  vertical-align: 0.1em;
+}
+
 .stage-go:hover {
-  background: rgba(255, 255, 255, 0.17);
+  background: rgba(255, 107, 138, 0.2);
 }
 
 /* ライブ中の★とギミックの表示。常に見えていないと理由が分からず弱くなる */
@@ -1335,7 +1371,7 @@ kbd {
 }
 
 /* ★スライダーを置くためにカードは div になった。
-   クリックできるのは中の「出撃」ボタンだけなので、カード全体を光らせない */
+   クリックできるのは中の「配信を始める」ボタンだけなので、カード全体を光らせない */
 .stage-card:hover {
   border-color: var(--panel-edge);
 }

@@ -109,8 +109,8 @@ const STEPS: readonly (TutorialStep & { when: (cue: BattleCue) => boolean })[] =
   },
   {
     id: 'leak',
-    title: '通すと観客が減る',
-    body: '敵がステージの端まで届くと観客が減ります。0 になるとライブは中断です。',
+    title: '通すと同接が減る',
+    body: '敵がステージの端まで届くと同接（見てくれている観客の数）が減ります。0 になるとライブは中断です。',
     anchor: 'audience',
     when: (cue) => cue.leaked > 0,
   },

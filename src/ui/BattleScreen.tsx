@@ -200,7 +200,7 @@ export function BattleScreen({
         renderer.pushCutIn({
           kind: 'boss',
           title: getEnemy(e.defId).name,
-          subtitle: '通すと観客が大きく減ります',
+          subtitle: '通すと同接が大きく減ります',
           enemyId: e.defId,
         });
       }),
@@ -219,7 +219,7 @@ export function BattleScreen({
       world.events.on('audienceChanged', (e) => {
         if (warnedDanger || e.value > 25 || e.value <= 0) return;
         warnedDanger = true;
-        renderer.pushCutIn({ kind: 'danger', title: '客席が空きはじめた', subtitle: '観客 25 以下' });
+        renderer.pushCutIn({ kind: 'danger', title: '視聴者が離れはじめた', subtitle: '同接 25 以下' });
       }),
       world.events.on('called', (e) => {
         // 自動ぶん（コールを切っている人へ配る Good）では鳴らさない。
