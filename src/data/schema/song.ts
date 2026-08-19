@@ -47,7 +47,7 @@ export const songSchema = z.object({
       /** 主音の MIDI ノート番号。48 = C3 */
       root: z.number().int(),
       /** 使う 5 音音階。`scale.ts` を参照 */
-      scale: z.enum(['miyakobushi', 'ritsu', 'insen', 'yonanuki']),
+      scale: z.enum(['miyakobushi', 'ritsu', 'insen', 'yonanuki', 'yonanukiMinor']),
       /** 打ち方の性格 */
       groove: z.enum(['straight', 'driving', 'sparse']),
       /**

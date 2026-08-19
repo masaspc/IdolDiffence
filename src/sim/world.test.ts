@@ -14,7 +14,7 @@ describe('BattleWorld', () => {
     // 名前で固定すると、原作に合わせて言い回しを直すたびに落ちる
     expect(world.stage.name.length).toBeGreaterThan(0);
     expect(world.song.name).toBe('Reply');
-    expect(world.song.bpm).toBe(132);
+    expect(world.song.bpm).toBe(170);
   });
 
   it('未知のステージは例外', () => {
@@ -129,7 +129,7 @@ describe('BattleWorld', () => {
     expect(world.currentWave?.section).toBe('intro');
     expect(world.currentWave?.startBar).toBe(0);
 
-    // イントロは 8 小節。1 小節 = 4 拍 / 132BPM ≒ 1818ms
+    // イントロは 8 小節。長さは曲の BPM から決まる（msPerBar を使う）
     const msPerBar = world.clock.msPerBar;
     runHeadless(msPerBar * 8 + FIXED_STEP_MS, (dt) => world.update(dt));
     expect(world.currentWave?.section).toBe('verse');

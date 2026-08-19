@@ -1,66 +1,128 @@
 {
   "reply": {
     "name": "Reply",
-    "bpm": 132,
+    "bpm": 170,
     "beatsPerBar": 4,
     "tempoBase": 132,
     "writer": "kz (livetune)",
     "singer": "かぐや",
     "music": {
-      "root": 52,
-      "scale": "yonanuki",
+      "root": 57,
+      "scale": "yonanukiMinor",
       "groove": "straight",
-      "motif": [0, 1, 2, 4],
-      "rhythm": [1, 0.5, 0.5, 2],
-      "progression": [0, 3, 1, 4]
+      "motif": [
+        0,
+        1,
+        2,
+        4
+      ],
+      "rhythm": [
+        1,
+        0.5,
+        0.5,
+        2
+      ],
+      "progression": [
+        0,
+        3,
+        1,
+        4
+      ]
     }
   },
   "ray_cpk": {
     "name": "ray 超かぐや姫！Version",
-    "bpm": 148,
+    "bpm": 132,
     "beatsPerBar": 4,
     "tempoBase": 132,
     "writer": "BUMP OF CHICKEN",
     "singer": "かぐや & ヤチヨ",
     "music": {
-      "root": 50,
-      "scale": "ritsu",
+      "root": 54,
+      "scale": "yonanuki",
       "groove": "driving",
-      "motif": [0, 2, 1, 0, 4],
-      "rhythm": [0.5, 0.5, 1, 1, 1],
-      "progression": [0, 4, 2, 3]
+      "motif": [
+        0,
+        2,
+        1,
+        0,
+        4
+      ],
+      "rhythm": [
+        0.5,
+        0.5,
+        1,
+        1,
+        1
+      ],
+      "progression": [
+        0,
+        4,
+        2,
+        3
+      ]
     }
   },
   "hoshifuru_umi": {
     "name": "星降る海",
-    "bpm": 118,
+    "bpm": 202,
     "beatsPerBar": 4,
     "tempoBase": 132,
     "writer": "Aqu3ra",
     "singer": "ヤチヨ",
     "music": {
-      "root": 47,
-      "scale": "miyakobushi",
+      "root": 46,
+      "scale": "ritsu",
       "groove": "sparse",
-      "motif": [0, -1, 2],
-      "rhythm": [2, 1, 1],
-      "progression": [0, 2, 4, 3]
+      "motif": [
+        0,
+        -1,
+        2
+      ],
+      "rhythm": [
+        2,
+        1,
+        1
+      ],
+      "progression": [
+        0,
+        2,
+        4,
+        3
+      ]
     }
   },
   "shunkan": {
     "name": "瞬間、シンフォニー。",
-    "bpm": 172,
+    "bpm": 200,
     "beatsPerBar": 4,
     "tempoBase": 132,
     "writer": "40mP",
     "singer": "かぐや",
     "music": {
-      "root": 53,
-      "scale": "insen",
+      "root": 55,
+      "scale": "yonanuki",
       "groove": "driving",
-      "motif": [4, 3, 1, 2, 0],
-      "rhythm": [0.5, 0.5, 0.5, 0.5, 2],
-      "progression": [0, 1, 4, 3]
+      "motif": [
+        4,
+        3,
+        1,
+        2,
+        0
+      ],
+      "rhythm": [
+        0.5,
+        0.5,
+        0.5,
+        0.5,
+        2
+      ],
+      "progression": [
+        0,
+        1,
+        4,
+        3
+      ]
     }
   },
   "watashi_wa": {
@@ -74,9 +136,24 @@
       "root": 55,
       "scale": "yonanuki",
       "groove": "straight",
-      "motif": [0, 2, 4, 3],
-      "rhythm": [1, 1, 1, 1],
-      "progression": [0, 3, 4, 2]
+      "motif": [
+        0,
+        2,
+        4,
+        3
+      ],
+      "rhythm": [
+        1,
+        1,
+        1,
+        1
+      ],
+      "progression": [
+        0,
+        3,
+        4,
+        2
+      ]
     }
   },
   "remember": {
@@ -90,9 +167,24 @@
       "root": 50,
       "scale": "miyakobushi",
       "groove": "driving",
-      "motif": [2, 1, 0, -1],
-      "rhythm": [0.5, 1, 0.5, 2],
-      "progression": [0, 4, 1, 3]
+      "motif": [
+        2,
+        1,
+        0,
+        -1
+      ],
+      "rhythm": [
+        0.5,
+        1,
+        0.5,
+        2
+      ],
+      "progression": [
+        0,
+        4,
+        1,
+        3
+      ]
     }
   },
   "ex_otogibanashi": {
@@ -106,9 +198,26 @@
       "root": 48,
       "scale": "miyakobushi",
       "groove": "straight",
-      "motif": [0, 3, 2, 4, 3],
-      "rhythm": [1, 0.5, 0.5, 1, 1],
-      "progression": [0, 4, 3, 1]
+      "motif": [
+        0,
+        3,
+        2,
+        4,
+        3
+      ],
+      "rhythm": [
+        1,
+        0.5,
+        0.5,
+        1,
+        1
+      ],
+      "progression": [
+        0,
+        4,
+        3,
+        1
+      ]
     }
   }
 }

@@ -16,8 +16,11 @@
  *   箏や三味線の定番で、暗く艶のある響きになる
  * - `ritsu`（律）—— 雅楽の音階。半音が無く、開けた明るさが出る
  * - `insen`（陰旋）—— 都節の変種。上行と下行で表情が変わる
+ * - `yonanuki`（ヨナ抜き長音階）—— 半音が無く、いちばん明るい
+ * - `yonanukiMinor`（ヨナ抜き短音階）—— その短調版。原曲が短調の枠に使う。
+ *   都節・陰旋は半音 2 つで「和」が濃すぎるので、**短調だが素直な**響きが要る
  */
-export type ScaleName = 'miyakobushi' | 'ritsu' | 'insen' | 'yonanuki';
+export type ScaleName = 'miyakobushi' | 'ritsu' | 'insen' | 'yonanuki' | 'yonanukiMinor';
 
 /** 主音からの半音数 */
 const SCALES: Record<ScaleName, readonly number[]> = {
@@ -27,6 +30,9 @@ const SCALES: Record<ScaleName, readonly number[]> = {
   // ヨナ抜き長音階（長音階から 4 度と 7 度を抜いたもの）。
   // 半音を含まないので、都節と並べるといちばん明るい
   yonanuki: [0, 2, 4, 7, 9],
+  // ヨナ抜き短音階（短音階から 2 度と 6 度を抜いたもの）。
+  // 短調の原曲に都節を当てると半音が 2 つ入って濃すぎるので、その受け皿
+  yonanukiMinor: [0, 3, 5, 7, 10],
 };
 
 /**
