@@ -15,6 +15,7 @@ import { enemyDrawSize, GeneratedEnemySprites } from './enemySprites';
 import { allowsFloatingText, flashAmount, type EffectLevel } from '../meta/settings';
 import { CUTIN_STYLES, CutInQueue, type CutIn } from './cutin';
 import { CommentStream, type CommentKind } from './comments';
+import { filledCount, seatsAround, type Seat } from './audience';
 import {
   drawBallSparkle,
   drawDrifters,
@@ -78,6 +79,8 @@ export class Renderer {
   private readonly drifters: ReturnType<typeof skyDrifters>;
   /** 配信コメント（`comments.ts`）。ツクヨミのライブには画面の向こうの観客がいる */
   private readonly comments = new CommentStream();
+  /** 子ウサギの客席（`audience.ts`）。ステージが決まれば席は動かない */
+  private readonly audienceSeats: Seat[];
 
   constructor(
     private readonly canvas: HTMLCanvasElement,
@@ -101,6 +104,18 @@ export class Renderer {
     if (!ctx) throw new Error('2D コンテキストを取得できませんでした');
     this.ctx = ctx;
     this.drifters = skyDrifters(world.stageId);
+    // 複数レーンが同じゴールへ集まるステージでは席を二重に敷かない
+    const seenGoals = new Set<string>();
+    this.audienceSeats = world.stage.lanes.flatMap((lane, laneIndex) => {
+      const wp = lane.waypoints;
+      const last = wp[wp.length - 1];
+      if (!last) return [];
+      const key = `${last[0]},${last[1]}`;
+      if (seenGoals.has(key)) return [];
+      seenGoals.add(key);
+      const prev = wp.length > 1 ? (wp[wp.length - 2] ?? null) : null;
+      return seatsAround(last, prev, world.stage.grid.w, world.stage.grid.h, laneIndex);
+    });
   }
 
   get logicalWidth(): number {
@@ -218,6 +233,8 @@ export class Renderer {
     drawDrifters(ctx, this.logicalWidth, this.logicalHeight, this.drifters, this.skyTimeMs);
     this.drawBoardLayer(ctx);
     this.drawBeatPulse(ctx);
+    // 客席は敵とユニットの下。最小設定では描かない（純粋な飾りなので消しても情報は減らない）
+    if (this.effects !== 'minimal') this.drawAudience(ctx, snapshot);
     this.drawGoalGlow(ctx);
     this.drawHover(ctx, hover, snapshot);
     this.drawAttacks(ctx, snapshot);
@@ -559,6 +576,63 @@ export class Renderer {
     for (const [x, y] of this.world.stage.placeable) {
       roundRect(ctx, x * CELL_SIZE + pad, y * CELL_SIZE + pad, CELL_SIZE - pad * 2, CELL_SIZE - pad * 2, 8);
       ctx.stroke();
+    }
+    ctx.restore();
+  }
+
+  /**
+   * 子ウサギの客席（`audience.ts`）。
+   *
+   * 同接に比例して前から席が埋まる —— 敵を通すと、ゲージと一緒に
+   * **誰が帰ったのか**が画面に見える。サビと大詰めではペンライトが点き、
+   * 1 小節ごとに一斉に色が替わる（06-ui-ux.md 6.4 の演出表）。
+   * 揺れは「控えめ」で止め、「最小」ではそもそも呼ばれない。
+   */
+  private drawAudience(ctx: CanvasRenderingContext2D, snapshot: WorldSnapshot): void {
+    const filled = filledCount(this.audienceSeats.length, snapshot.audience);
+    if (filled === 0) return;
+    const lively = this.effects === 'full';
+    const beat = this.world.clock.absoluteBeat;
+    const section = snapshot.wave?.section;
+    const penlight = section === 'chorus' || section === 'finale';
+    const penColors = [typeColor('vocal'), typeColor('dance'), typeColor('visual')];
+    const penColor = penColors[snapshot.bar % penColors.length] ?? '#ffd54f';
+
+    ctx.save();
+    for (let i = 0; i < filled; i++) {
+      const seat = this.audienceSeats[i];
+      if (!seat) continue;
+      const x = seat.x * CELL_SIZE;
+      const bob = lively ? Math.sin((beat + seat.phase) * Math.PI * 2) * 1.8 : 0;
+      const y = seat.y * CELL_SIZE + bob;
+
+      if (penlight) {
+        const sway = lively ? Math.sin((beat * 2 + seat.phase) * Math.PI * 2) * 0.55 : 0.25;
+        ctx.globalAlpha = 0.95;
+        ctx.strokeStyle = penColor;
+        ctx.lineWidth = 2.4;
+        ctx.beginPath();
+        ctx.moveTo(x + 4, y - 2);
+        ctx.lineTo(x + 4 + sway * 7, y - 14);
+        ctx.stroke();
+        ctx.fillStyle = penColor;
+        ctx.beginPath();
+        ctx.arc(x + 4 + sway * 7, y - 14, 2.2, 0, Math.PI * 2);
+        ctx.fill();
+      }
+
+      // 子ウサギ本体。耳 2 本 + 丸い体（64px マスに対して 14px 程度）
+      ctx.globalAlpha = 0.88;
+      ctx.fillStyle = '#ece8fa';
+      ctx.beginPath();
+      ctx.ellipse(x - 2.1, y - 7.5, 1.3, 3.6, -0.14, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.beginPath();
+      ctx.ellipse(x + 2.1, y - 7.5, 1.3, 3.6, 0.14, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.beginPath();
+      ctx.ellipse(x, y - 1, 5, 4.4, 0, 0, Math.PI * 2);
+      ctx.fill();
     }
     ctx.restore();
   }
