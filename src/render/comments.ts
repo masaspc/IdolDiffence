@@ -26,6 +26,14 @@
  * 「かぐやっほ～！」（かぐやの挨拶）と「ヤオヨロー！」（ヤチヨの挨拶）は
  * 出典で確認済みの canon（04-content.md 出典表）。残りは配信で普通に
  * 流れる言葉だけを使い、キャラクターや固有名詞を作り足さない。
+ *
+ * ## スパチャ
+ *
+ * スパチャも原作の地の言葉（M5-3）。月華と完走の盛り上がりでは、
+ * コメントを**色付きの角丸カード + 金額**で描く —— 配信アプリの画面で
+ * 熱が金額になって流れる、あの瞬間の再現。金額と色帯は押された回数から
+ * 決定的に選ぶ（表示だけの飾りで、ゲームの資金とは無関係）。
+ * ボスの登場は strong だがスパチャにしない —— 視聴者が金を投げる場面ではない。
  */
 import type { EffectLevel } from '../meta/settings';
 
@@ -94,7 +102,21 @@ export interface ActiveComment {
   speed: number;
   /** 強調（月華・勝利など）。少し大きく明るく描く */
   strong: boolean;
+  /** スパチャとして描く（角丸カード + 金額）。金額は表示だけの飾り */
+  superchat: { amount: string; tier: number } | null;
 }
+
+/**
+ * スパチャの金額段階。**低い順**。色は配信アプリの通例（青→緑→黄→橙→赤）に
+ * 寄せるが、実在サービスの正確な色・金額区分の複製はしない
+ */
+export const SUPERCHAT_TIERS: readonly { amount: string; color: string }[] = [
+  { amount: '¥200', color: '#3d7dd8' },
+  { amount: '¥500', color: '#2f9e6e' },
+  { amount: '¥1,000', color: '#d8a13d' },
+  { amount: '¥5,000', color: '#d8663d' },
+  { amount: '¥10,000', color: '#c93a5b' },
+];
 
 /** 画面に同時に出す上限。埋め尽くすと盤面ではなくコメントを見てしまう */
 function capFor(effects: EffectLevel): number {
@@ -113,6 +135,16 @@ function capFor(effects: EffectLevel): number {
  *
  * @param seed そのライブの数字（撃破数など）。周回ごとに並びが変わる
  */
+/**
+ * 結果画面の先頭に出すスパチャ。完走の熱はここで金額になる ——
+ * `win` のコメントはバトル中には流れない（決着で描画ループが止まる）ので、
+ * ストリームの側ではなく結果画面に置く。
+ */
+export function resultSuperchat(seed: number): { amount: string; color: string } {
+  const index = ((seed * 2246822519) >>> 0) % SUPERCHAT_TIERS.length;
+  return SUPERCHAT_TIERS[index] ?? { amount: '¥200', color: '#3d7dd8' };
+}
+
 export function resultComments(won: boolean, seed: number): string[] {
   const pool = won ? POOL.win : POOL.lose;
   const out: string[] = [];
@@ -146,6 +178,12 @@ export class CommentStream {
 
     this.counter += 1;
     const jitter = ((this.counter * 40503) >>> 0) % 1000;
+    // 月華と完走だけスパチャにする。ボスの登場は視聴者が金を投げる場面ではない
+    const tier =
+      kind === 'special' || kind === 'win'
+        ? ((this.counter * 2246822519) >>> 0) % SUPERCHAT_TIERS.length
+        : -1;
+    const chosen = tier >= 0 ? SUPERCHAT_TIERS[tier] : undefined;
     this.items.push({
       text: this.pick(POOL[kind]),
       lane: (jitter % 5) / 5 + 0.06,
@@ -153,6 +191,7 @@ export class CommentStream {
       // 速さも少し散らす。全部同じ速さだと帯ごと動いて見える
       speed: 68 + (jitter % 7) * 7,
       strong: kind === 'special' || kind === 'win' || kind === 'boss',
+      superchat: chosen ? { amount: chosen.amount, tier } : null,
     });
   }
 
@@ -168,7 +207,9 @@ export class CommentStream {
   prune(width: number): void {
     for (let i = this.items.length - 1; i >= 0; i--) {
       const item = this.items[i];
-      if (item && item.progress > width + item.text.length * 22) this.items.splice(i, 1);
+      // スパチャは金額とカードの余白ぶん長い。捨てるのが早いと右端で消える
+      const extra = item?.superchat ? (item.superchat.amount.length + 3) * 22 : 0;
+      if (item && item.progress > width + item.text.length * 22 + extra) this.items.splice(i, 1);
     }
   }
 
@@ -196,6 +237,22 @@ export class CommentStream {
       ctx.font = item.strong
         ? 'bold 15px "Hiragino Sans", "Noto Sans JP", sans-serif'
         : '13px "Hiragino Sans", "Noto Sans JP", sans-serif';
+
+      if (item.superchat) {
+        // スパチャは色付きの角丸カード。金額 + 本文を 1 枚に載せる
+        const label = `${item.superchat.amount}  ${item.text}`;
+        const w = ctx.measureText(label).width + 20;
+        const color = SUPERCHAT_TIERS[item.superchat.tier]?.color ?? '#3d7dd8';
+        ctx.globalAlpha = 0.92;
+        ctx.fillStyle = color;
+        ctx.beginPath();
+        ctx.roundRect(x - 10, y - 5, w, 26, 8);
+        ctx.fill();
+        ctx.fillStyle = '#ffffff';
+        ctx.fillText(label, x, y);
+        continue;
+      }
+
       // 半透明の白 + 細い縁。配信のコメントらしく、背景より前・情報より後ろ
       ctx.globalAlpha = item.strong ? 0.9 : 0.72;
       ctx.strokeStyle = 'rgba(10, 8, 26, 0.8)';

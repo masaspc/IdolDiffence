@@ -2861,3 +2861,15 @@ kbd {
   content: '💬 ';
   opacity: 0.6;
 }
+
+/* 結果画面のスパチャ。完走の熱は金額になる（背景色は段階ごとに inline で入る） */
+.result-comments .result-superchat {
+  padding: 0.2rem 0.6rem;
+  border-radius: 8px;
+  color: #fff;
+  font-weight: bold;
+}
+
+.result-comments .result-superchat::before {
+  content: '';
+}
