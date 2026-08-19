@@ -52,8 +52,11 @@ interface PerfChromium {
 async function main(): Promise<void> {
   let chromium: PerfChromium;
   try {
-    // 入っていないことがある前提なので、静的 import にはしない
-    ({ chromium } = (await import('playwright-core')) as unknown as { chromium: PerfChromium });
+    // **モジュール名を変数に逃がす。** ここへ直接文字列を書くと
+    // `tsc --noEmit` が解決を試み、入っていない環境（CI）で型エラーになる。
+    // 入っていないのが正常な依存なので、型の側でも解決させない
+    const spec = 'playwright-core';
+    ({ chromium } = (await import(spec)) as unknown as { chromium: PerfChromium });
   } catch {
     console.error('playwright-core が入っていません。');
     console.error('  npm i -D playwright-core');
