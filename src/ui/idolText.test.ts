@@ -6,7 +6,7 @@
  * 具体的な数字そのものではない（データを触るたびに書き直す羽目になる）。
  */
 import { describe, expect, it } from 'vitest';
-import { canonIds, getIdol, getStage } from '../data';
+import { canonIds, getIdol, getStage, rosterIds } from '../data';
 import { createNewSave, type SaveData } from '../meta/save';
 import { unlockSecret } from '../meta/secrets';
 import {
@@ -173,5 +173,23 @@ describe('用語', () => {
       expect(TYPE_LABEL[type]).toBeTruthy();
       expect(TYPE_STRONG_AGAINST[type]).toBeTruthy();
     }
+  });
+});
+
+describe('プロフィール（lore）', () => {
+  it('全員が由来を持っている（育成画面が能力値の一覧で終わらない）', () => {
+    for (const id of rosterIds) {
+      const def = getIdol(id);
+      expect(def.lore.length, `${def.name} の lore が空`).toBeGreaterThan(0);
+    }
+  });
+
+  it('同一人物・同一個体であることが本人の側からも書いてある', () => {
+    // かぐや＝ヤチヨ、犬DOGE＝FUSHI（04-content.md「二人と二匹は、二人だった」）。
+    // 片方にだけ書くと、先に見たほうでは分からないままになる
+    expect(getIdol('V1').lore).toContain('ヤチヨ');
+    expect(getIdol('Vi1').lore).toContain('かぐや');
+    expect(getIdol('D4').lore).toContain('8000');
+    expect(getIdol('Vi4').lore).toContain('犬DOGE');
   });
 });

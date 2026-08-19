@@ -2885,3 +2885,16 @@ kbd {
 .result-comments .result-superchat::before {
   content: '';
 }
+
+/* 育成画面のプロフィール。**能力ではなく由来**を語る 1〜2 文（idols.json の lore）。
+   能力の説明は数値から導く（idolText.ts）が、由来は数値から導けない */
+.idol-lore {
+  margin: 0 0 0.8rem;
+  padding: 0.6rem 0.8rem;
+  border-left: 2px solid var(--visual);
+  border-radius: 0 6px 6px 0;
+  background: rgba(255, 255, 255, 0.04);
+  font-size: 0.82rem;
+  line-height: 1.7;
+  color: var(--text);
+}

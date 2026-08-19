@@ -271,6 +271,16 @@ export const idolSchema = z.object({
   name: z.string().min(1),
   /** 表示用の短縮名。HUD の配置パレットで使う */
   shortName: z.string().min(1),
+  /**
+   * その人が何者かの 1〜2 文（04-content.md 4.1 の出典表から）。
+   *
+   * **能力の説明は数値から導く**（`ui/idolText.ts`）—— JSON に書くと
+   * 数値を変えたときに文だけ古く残るから。ここはその例外にあたる:
+   * **由来は数値から導けないし、数値を変えても古くならない**。
+   * 逆に画面のどこにも書いていないと、育成画面は能力値の一覧でしかなく、
+   * 「この人は誰なのか」がゲームの中に一度も出てこないことになる。
+   */
+  lore: z.string().default(''),
   type: idolTypeSchema,
   cost: z.number().positive(),
   tags: z.array(unitTagSchema).default([]),
