@@ -2,6 +2,7 @@ import { getIdol } from '../data';
 import type { AwakeningKey } from '../data/schema/idol';
 import type { WorldSnapshot } from '../sim/world';
 import { nextTutorial, type TutorialStep } from '../meta/tutorial';
+import { resultComments } from '../render/comments';
 
 const SECTION_LABEL: Record<string, string> = {
   intro: 'イントロ',
@@ -423,6 +424,13 @@ export function Hud(props: HudProps): React.JSX.Element {
                 })()}
               </div>
             )}
+            {/* 配信終了後のコメント欄。決着の瞬間に流すのは無理がある ——
+                描画ループが止まるので、静止して並べる（`render/comments.ts`） */}
+            <p className="result-comments">
+              {resultComments(snapshot.won, snapshot.killed).map((text) => (
+                <span key={text}>{text}</span>
+              ))}
+            </p>
             <p className="note">
               {snapshot.won
                 ? 'リザルトの報酬でメンバーを育てて、より上の観客数を狙えます。'
