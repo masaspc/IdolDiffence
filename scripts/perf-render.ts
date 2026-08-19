@@ -10,12 +10,18 @@
  *
  * `npx tsx scripts/perf-render-run.ts` が Chromium で同じことを自動でやる。
  *
+ * **演出の配線は本番と同じものを使う**（`ui/battleEffects.ts`）。カットインも
+ * 閃光もコメントもリングも出ない状態で測ると、本番より軽い絵の数字が出る ——
+ * 最初に書いたときはまさにそれをやっていた（Codex の指摘）。
+ * HUD の帯（`setSafeArea`）と `advanceEffects` も本番と同じに呼ぶ。
+ *
  * 実時間を読むのはここが**描画の計測そのもの**だから。sim には持ち込まない。
  */
 import { createWorld } from '../src/sim/world';
 import { Renderer, type HoverState } from '../src/render/renderer';
 import { FIXED_STEP_MS } from '../src/core/loop';
-import { stages } from '../src/data';
+import { attachBattleEffects } from '../src/ui/battleEffects';
+import { getStage, stages } from '../src/data';
 import { STAGE_PLANS } from '../src/balance/plans';
 import { balanceMeta } from '../src/balance/investment';
 
@@ -98,7 +104,12 @@ function main(): void {
   const out = document.getElementById('out') as HTMLPreElement;
   const world = createWorld(stageId, SEED, { ...balanceMeta(stageId, 1, 'bare'), star });
   const renderer = new Renderer(canvas, world);
+  // HUD が覆う帯。本番（`BattleScreen.tsx`）は実測して渡すので、
+  // ここも近い値を入れておく —— 盤面の縮尺が変わると塗る面積も変わる
+  renderer.setSafeArea(96, 120);
   renderer.resize(innerWidth, innerHeight * 0.6, window.devicePixelRatio || 1);
+  // 本番と同じ演出配線。音だけ外す（既定の onSe は何もしない）
+  attachBattleEffects(world, renderer, { stageName: getStage(stageId).name });
 
   const plan = STAGE_PLANS[stageId]?.placements ?? [];
   const samples: Sample[] = [];
@@ -117,6 +128,8 @@ function main(): void {
         const next = plan[cursor];
         if (next && typeof world.placeUnit(next.idolId, next.x, next.y) !== 'string') cursor++;
       }
+      // 演出は実時間で進む。1 フレーム 1 更新で回しているので 1 ステップぶん
+      renderer.advanceEffects(FIXED_STEP_MS);
       const t0 = performance.now();
       renderer.draw(snap, HOVER, 0);
       const t1 = performance.now();

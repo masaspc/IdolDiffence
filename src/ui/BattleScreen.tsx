@@ -10,14 +10,14 @@ import { GameLoop } from '../core/loop';
 import { Renderer, type HoverState } from '../render/renderer';
 import { createWorld, type BattleMeta, type BattleWorld, type WorldSnapshot } from '../sim/world';
 import { randomSeed } from '../core/rng';
-import { getEnemy, getIdol, getSong, getStage } from '../data';
+import { getIdol, getSong, getStage } from '../data';
 import type { AwakeningKey } from '../data/schema/idol';
 import type { BattleOutcome } from '../meta/progression';
 import { volumeRatio, type EffectLevel } from '../meta/settings';
 import { BgmPlayer, styleOf } from '../audio/bgm';
 import { audioContext, resumeAudio } from '../audio/context';
 import { playSe, setSeVolume } from '../audio/se';
-import { ATTR_LABEL } from './idolText';
+import { attachBattleEffects } from './battleEffects';
 import { Hud } from './Hud';
 
 /**
@@ -128,20 +128,6 @@ export function BattleScreen({
     worldRef.current = world;
     rendererRef.current = renderer;
 
-    // 演出は sim ではなく描画側で数える。sim 時刻に紐付けると、
-    // 一時停止で止まり、倍速で早送りされてしまう
-    const offSpecial = world.events.on('specialStarted', () => {
-      const latest = world.snapshot();
-      renderer.startSpecialEffect();
-      renderer.pushCutIn({
-        kind: 'special',
-        title: 'スペシャルライブ！',
-        ...(latest.centerName ? { subtitle: `センター ${latest.centerName}` } : {}),
-        ...(latest.centerIdolId ? { idolId: latest.centerIdolId } : {}),
-      });
-      playSe('special');
-    });
-
     // --- 音 ---
     // 出撃ボタン（クリック）から来ているので、ここで作れば自動再生の制限に当たらない
     resumeAudio();
@@ -159,94 +145,15 @@ export function BattleScreen({
     bgmRef.current = bgm;
     bgm?.setVolume(volumeRatio(bgmVolumeRef.current));
 
-    // 章の導入 → 配信開始、の順で 2 枚。カットインの列は 1 枚控えまでなので
-    // ちょうど収まる。章の導入は新章の最初のステージの初回だけ（chapterIntroFor）
-    if (chapterIntro) {
-      renderer.pushCutIn({ kind: 'chapter', title: chapterIntro.name, subtitle: chapterIntro.lead });
-    }
-    // 配信開始の合図。バトルの頭に 1 回だけ ——
-    // ホームで「● 配信を始める」を押した先がここだと画面が言う
-    renderer.pushCutIn({ kind: 'live', title: 'LIVE 配信開始', subtitle: stage.name });
-
-    // 観客の危機は 1 回だけ出す。境目を行き来するたびに出すと、
-    // いちばん忙しい場面でカットインが連発することになる
-    let warnedDanger = false;
-
-    // sim からは鳴らさない。ヘッドレス計測とテストに音の都合を持ち込まないため
-    const offSe = [
-      world.events.on('enemyKilled', () => {
-        playSe('kill');
-        renderer.pushComment('kill');
-      }),
-      world.events.on('enemyLeaked', () => {
-        playSe('leak');
-        renderer.pushComment('leak');
-      }),
-      // ライブ開始直後は挨拶が流れる（かぐやっほ～！／ヤオヨロー！は原作の挨拶）。
-      // サビの頭でも一声。コメントは情報ではなく空気なので、間引きは renderer 側
-      world.events.on('bar', (e) => {
-        if (e.bar < 8 && e.bar % 2 === 0) renderer.pushComment('greeting');
-      }),
-      world.events.on('sectionChanged', (e) => {
-        if (e.section === 'chorus' || e.section === 'finale') {
-          renderer.pushComment('chorus');
-          // サビ突入で画面外周に光のリング（06-ui-ux 6.4）
-          renderer.startChorusRing();
-        }
-      }),
-      world.events.on('specialStarted', () => renderer.pushComment('special')),
-      world.events.on('called', (e) => {
-        if (!e.auto && e.judge === 'perfect') renderer.pushComment('perfect');
-      }),
-      world.events.on('bossPhase', (e) => {
-        playSe('phase');
-        renderer.pushComment('phase');
-        // 何が変わったのかを名指しする。「フェーズ 2」では
-        // 編成のどこを変えればいいのか分からない
-        renderer.pushCutIn({
-          kind: 'phase',
-          title: '属性が変わった',
-          subtitle: `${ATTR_LABEL[e.attr] ?? e.attr} になった`,
-        });
-      }),
-      world.events.on('enemySpawned', (e) => {
-        if (!getEnemy(e.defId).traits.boss) return;
-        playSe('boss');
-        renderer.pushComment('boss');
-        renderer.pushCutIn({
-          kind: 'boss',
-          title: getEnemy(e.defId).name,
-          subtitle: '通すと同接が大きく減ります',
-          enemyId: e.defId,
-        });
-      }),
-      // ソロパートは 1 人を選んで撃つ操作なので、誰に入ったのかを顔で返す
-      world.events.on('soloStarted', (e) => {
-        renderer.pushComment('solo');
-        const unit = world.snapshot().units.find((u) => u.id === e.id);
-        if (!unit) return;
-        renderer.pushCutIn({
-          kind: 'solo',
-          title: 'ソロパート',
-          subtitle: unit.shortName,
-          idolId: unit.spriteId,
-        });
-      }),
-      world.events.on('audienceChanged', (e) => {
-        if (warnedDanger || e.value > 25 || e.value <= 0) return;
-        warnedDanger = true;
-        renderer.pushCutIn({ kind: 'danger', title: '視聴者が離れはじめた', subtitle: '同接 25 以下' });
-      }),
-      world.events.on('called', (e) => {
-        // 自動ぶん（コールを切っている人へ配る Good）では鳴らさない。
-        // 押していないのに手応えの音だけ返るのはおかしい
-        if (!e.auto && e.judge === 'perfect') playSe('callPerfect');
-      }),
-      // 決着の瞬間に流すコメントは無い —— 決着のフレームで描画ループが
-      // 止まるので、流し始めても誰にも見えない。完走の拍手は結果画面が
-      // 静止したコメント欄として出す（`comments.ts` resultComments）
-      world.events.on('battleEnded', (e) => playSe(e.won ? 'win' : 'lose')),
-    ];
+    // 演出とコメントの配線は `battleEffects.ts` に置いてある。
+    // **ここに直接書かない。** 描画を測るページ（`scripts/perf-render.ts`）が
+    // 同じ配線を使えないと、本番より軽い絵の数字が出る
+    const detachEffects = attachBattleEffects(world, renderer, {
+      stageName: stage.name,
+      chapterIntro,
+      // 音は sim からは鳴らさない。ヘッドレス計測とテストに音の都合を持ち込まないため
+      onSe: playSe,
+    });
 
     // HUD が覆う高さを測って渡す。canvas は全面のままにして背景を端まで見せ、
     // 盤面だけを HUD の内側へ収める（renderer.setSafeArea）。
@@ -393,8 +300,7 @@ export function BattleScreen({
 
     return () => {
       loop.stop();
-      offSpecial();
-      for (const off of offSe) off();
+      detachEffects();
       bgm?.dispose();
       bgmRef.current = null;
       observer.disconnect();
