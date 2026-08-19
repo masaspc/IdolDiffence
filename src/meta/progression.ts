@@ -83,9 +83,15 @@ export function unlockedIds(save: SaveData): string[] {
  * 章の切り替わり（ヤチヨカップ → 月の都 → 羽衣）は世界の変わり目なのに、
  * 画面の上では「次のカードが 1 枚増えた」でしかなかった。
  * 第 1 章には出さない —— 始まりの導入はタイトルとチュートリアルの仕事。
- * 2 回目からは出さない —— 分かっていることを毎回言うのは邪魔。
- * 判定に使うのは plays（挑んだ回数）で cleared ではない。負けて再挑戦する
- * たびに「ようこそ月の都へ」と言われるのは、負けを数えられているようで嫌味になる。
+ *
+ * ## 「入った」はセーブに持つ
+ *
+ * 最初は `stageProgress` の有無で見ていたが、**あれは決着まで書かれない**。
+ * 挑んで途中で閉じると、次に入ったときもう一度「ようこそ月の都へ」と言う。
+ * 見せたかどうかは進捗から復元できない**出来事**なので、
+ * `seenChapterIntros` に持つ（`tutorialSeen`・`seenSecrets` と同じ理由）。
+ * 決着ではなく**入った時点**で記録するのは、負けて再挑戦するたびに
+ * 言い直さないため —— 負けを数えられているようで嫌味になる。
  */
 export function chapterIntroFor(
   save: SaveData,
@@ -93,9 +99,18 @@ export function chapterIntroFor(
 ): { name: string; lead: string } | null {
   const index = chapters.findIndex((chapter) => chapter.stages[0] === stageId);
   if (index <= 0) return null;
+  if (save.seenChapterIntros.includes(stageId)) return null;
+  // 古いセーブ（この仕組みより前にその章を通った人）には出さない。
+  // 記録が空でも、挑んだ跡があればもう知っている
   if (save.stageProgress[stageId] !== undefined) return null;
   const chapter = chapters[index];
   return chapter ? { name: chapter.name, lead: chapter.lead } : null;
+}
+
+/** 章の導入を見せた印を付ける。**入った時点**で呼ぶ（決着を待たない） */
+export function markChapterIntroSeen(save: SaveData, stageId: string): SaveData {
+  if (save.seenChapterIntros.includes(stageId)) return save;
+  return { ...save, seenChapterIntros: [...save.seenChapterIntros, stageId] };
 }
 
 /**

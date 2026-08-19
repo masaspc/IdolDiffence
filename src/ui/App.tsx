@@ -13,6 +13,7 @@ import {
   calcReward,
   chapterIntroFor,
   levelUp,
+  markChapterIntroSeen,
   normalizeParty,
   resolvedAtk,
   setCenter,
@@ -85,6 +86,12 @@ export function App(): React.JSX.Element {
   /** 育成画面を開いたとき最初に見せる人。隠しキャラの登場からだけ入る */
   const [idolFocus, setIdolFocus] = useState<string | null>(null);
   const [stageId, setStageId] = useState('S1');
+  /**
+   * 章の導入（`chapterIntroFor`）。**出撃の瞬間に確定させて持つ。**
+   * 描画のたびに導出すると、見せた印を付けた次のレンダーで消えてしまう ——
+   * 印は「もう出さない」の意味なので、出す判断より後に効いてはいけない
+   */
+  const [chapterIntro, setChapterIntro] = useState<{ name: string; lead: string } | null>(null);
   /**
    * 育成状態はバトル開始時に一度だけ解決して固定する。
    * 毎レンダーで作り直すと、リザルトで save が更新された瞬間に参照が変わり、
@@ -219,7 +226,7 @@ export function App(): React.JSX.Element {
         bgmVolume={save.settings.bgmVolume}
         seVolume={save.settings.seVolume}
         showFormations={isOpen(save, 'formation')}
-        chapterIntro={chapterIntroFor(save, stageId)}
+        chapterIntro={chapterIntro}
         tutorialSeen={save.tutorialSeen}
         onTutorialSeen={handleTutorialSeen}
         onFinish={handleFinish}
@@ -331,6 +338,11 @@ export function App(): React.JSX.Element {
       onStart={(id, star) => {
         setStageId(id);
         setLastResult(null);
+        // 章の導入は**入った時点**で確定させ、同時に見せた印を付ける。
+        // 決着まで待つと、途中で閉じた人へ次も同じ「ようこそ」を出すことになる
+        const intro = chapterIntroFor(save, id);
+        setChapterIntro(intro);
+        if (intro) setSave((current) => markChapterIntroSeen(current, id));
         // sim にメタ層を触らせないための境界。ここで解決して以後は固定
         const { party, center } = normalizeParty(save);
         setBattleMeta({

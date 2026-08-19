@@ -9,6 +9,7 @@ import { createNewSave, CURRENT_VERSION, migrate, saveSchema, type SaveData } fr
 import {
   chapterIntroFor,
   isUnlocked,
+  markChapterIntroSeen,
   normalizeParty,
   setCenter,
   toggleParty,
@@ -192,6 +193,9 @@ describe('セーブの移行', () => {
     expect(migrated.party).toEqual(['V1', 'D1', 'Vi1']);
     expect(migrated.center).toBe('V1');
     expect(migrated.talents).toEqual([]);
+    // v13 で足した章の導入の記録。古いセーブは空で始まる ——
+    // すでに挑んだ章は stageProgress 側の判定が塞ぐ
+    expect(migrated.seenChapterIntros).toEqual([]);
   });
 });
 
@@ -228,5 +232,23 @@ describe('章の導入（chapterIntroFor）', () => {
       stageProgress: { [first]: { cleared: false, bestAudience: 0, plays: 1 } },
     };
     expect(chapterIntroFor(played, first)).toBeNull();
+  });
+
+  it('入った時点の印だけで塞がる（決着まで閉じても言い直さない）', () => {
+    // stageProgress は**決着まで書かれない**。挑んで途中で閉じた人に
+    // もう一度「ようこそ月の都へ」と言わないよう、印は入った時点で付ける
+    const save = createNewSave();
+    const first = chapters[1]?.stages[0] ?? '';
+    const entered = markChapterIntroSeen(save, first);
+    expect(entered.seenChapterIntros).toContain(first);
+    // 決着していない（stageProgress は空のまま）が、もう出ない
+    expect(entered.stageProgress[first]).toBeUndefined();
+    expect(chapterIntroFor(entered, first)).toBeNull();
+  });
+
+  it('同じ印を二度は積まない', () => {
+    const first = chapters[1]?.stages[0] ?? '';
+    const once = markChapterIntroSeen(createNewSave(), first);
+    expect(markChapterIntroSeen(once, first)).toBe(once);
   });
 });

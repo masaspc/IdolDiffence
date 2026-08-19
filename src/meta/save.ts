@@ -14,7 +14,7 @@ import { DEFAULT_SETTINGS, settingsSchema } from './settings';
 import { TUTORIAL_IDS } from './tutorial';
 
 export const SAVE_KEY = 'idoldiffence.save';
-export const CURRENT_VERSION = 12;
+export const CURRENT_VERSION = 13;
 
 /**
  * 生成された衣装 1 着（03-progression.md ⑨）。
@@ -138,6 +138,14 @@ export const saveSchema = z.object({
    * （隠しキャラの `seenSecrets` と同じ理由）
    */
   tutorialSeen: z.array(z.string()),
+  /**
+   * 章の導入を見せたステージ ID（`meta/progression.ts` chapterIntroFor）。
+   *
+   * stageProgress は決着まで書かれないので、決着前に閉じると
+   * 次の挑戦でもう一度「ようこそ」と言ってしまう。tutorialSeen と同じで
+   * これは**出来事**であり、進捗からは復元できない
+   */
+  seenChapterIntros: z.array(z.string()),
 });
 
 export type SaveData = z.infer<typeof saveSchema>;
@@ -178,6 +186,7 @@ export function createNewSave(rngState: number = DEFAULT_RNG_STATE): SaveData {
     claimedAchievements: [],
     title: null,
     tutorialSeen: [],
+    seenChapterIntros: [],
   };
 }
 
@@ -299,6 +308,13 @@ const migrations: Record<number, Migration> = {
     ...old,
     version: 12,
     tutorialSeen: hasClearedAny(old.stageProgress) ? [...TUTORIAL_IDS] : [],
+  }),
+  // v12 -> v13: 章の導入（M5-19）。既存のセーブは空で始めてよい ——
+  // すでに挑んだ章は stageProgress 側の判定が塞ぐ
+  12: (old) => ({
+    ...old,
+    version: 13,
+    seenChapterIntros: [],
   }),
 };
 
