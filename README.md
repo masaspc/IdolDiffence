@@ -83,6 +83,20 @@ npx tsx scripts/sweep-difficulty.ts S5   # 採用した hpMul の周辺を掃く
 
 参照盤面は `src/balance/plans.ts`。境界は `src/balance/balance.test.ts` が CI で見張ります。
 
+### パフォーマンス計測
+
+「60fps 出ている気がする」ではなく、1 フレームの ms を並べます。
+
+```bash
+npx tsx scripts/perf.ts                      # sim + snapshot（ヘッドレス）
+npx tsx scripts/perf.ts --stress S30 10 6    # 密度を 6 倍にして敵 500 体を作る
+npm i -D playwright-core                     # 描画の計測にだけ要る（常設の依存にはしない）
+npx tsx scripts/perf-render-run.ts S30 10 6  # 描画を Chromium で実際に描いて測る
+```
+
+実測した結果は [05.9 パフォーマンス方針](./docs/design/05-architecture.md#実測m6) にあります
+（**34 ステージのどこにも敵 200 体は立たない**こと、重いのは sim ではなく描画であることも含めて）。
+
 ### 実装済み（M0〜M3-1）
 
 | モジュール | 内容 |
